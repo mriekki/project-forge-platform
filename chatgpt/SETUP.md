@@ -30,7 +30,7 @@ https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/cu
 
 Follow its `snapshotPath` to the immutable `PROJECT_INSTRUCTIONS.md` and copy the fenced instruction text **verbatim** into the ChatGPT Project instructions.
 
-That canonical instruction is the same for Mark, Kyle, and every other Project Forge Builder. Do not create per-person forks of it.
+That canonical instruction is the same for every Project Forge Builder. Do not create per-person forks of it.
 
 When Project Forge advances the stable contract, `chatgpt/current.json` remains the pointer to the current immutable instruction source.
 
