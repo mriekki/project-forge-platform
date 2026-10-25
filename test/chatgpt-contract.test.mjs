@@ -41,12 +41,12 @@ function contractPath(value, name) {
   return `${value.snapshotPath}/${name}`;
 }
 
-test('public ChatGPT descriptor resolves immutable Project Forge contract v13', async () => {
+test('public ChatGPT descriptor resolves immutable Project Forge contract v14', async () => {
   const value = await descriptor();
   assert.equal(value.schemaVersion, 1);
   assert.equal(value.channel, 'stable');
-  assert.equal(value.contractVersion, 13);
-  assert.equal(value.snapshotPath, 'chatgpt/contracts/v13');
+  assert.equal(value.contractVersion, 14);
+  assert.equal(value.snapshotPath, 'chatgpt/contracts/v14');
   assert.deepEqual(value.documents.map((item) => path.basename(item.path)), requiredDocuments);
 
   const actual = {};
@@ -60,7 +60,7 @@ test('public ChatGPT descriptor resolves immutable Project Forge contract v13', 
     actual[document.path] = createHash('sha256').update(canonicalGitBlob(document.path)).digest('hex');
     declared[document.path] = document.sha256;
   }
-  assert.deepEqual(declared, actual, 'descriptor hashes must match immutable v13 document bytes');
+  assert.deepEqual(declared, actual, 'descriptor hashes must match immutable v14 document bytes');
 });
 
 test('descriptor keeps private foundational source topology out of the public contract', async () => {
@@ -69,7 +69,7 @@ test('descriptor keeps private foundational source topology out of the public co
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'repository'), false);
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'commit'), false);
   assert.match(value.generation.bootstrap.revision, /^[0-9a-f]{40}$/);
-  assert.equal(value.generation.bootstrap.revision, 'ea12cca2649d420d12656b87a4377c3e251dfc18');
+  assert.equal(value.generation.bootstrap.revision, '62e0bdaa6d9cbc18b5c19a4e2e87e194cc9f3b0a');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 12);
 });
@@ -77,7 +77,7 @@ test('descriptor keeps private foundational source topology out of the public co
 test('generation aligns the published package with the accepted Bootstrap revision', async () => {
   const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
-  assert.equal(value.generation.bootstrap.revision, 'ea12cca2649d420d12656b87a4377c3e251dfc18');
+  assert.equal(value.generation.bootstrap.revision, '62e0bdaa6d9cbc18b5c19a4e2e87e194cc9f3b0a');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 12);
   assert.equal(value.generation.package, '@mriekki/project-forge');
@@ -185,7 +185,7 @@ test('public contract makes one canonical instruction plus one personal profile 
   assert.equal(schema.title, 'Project Forge Developer Profile');
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.required, ['schemaVersion', 'githubOwner']);
-  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v13/);
+  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v14/);
 
   for (const forbidden of ['password', 'token', 'secret', `${predecessorLower}State`, 'projectState', 'workItem', 'commitSha']) {
     assert.equal(Object.hasOwn(schema.properties, forbidden), false);
