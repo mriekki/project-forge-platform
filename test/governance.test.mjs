@@ -9,14 +9,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 test('Platform CI exposes one stable required branch-protection gate', () => {
   const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
   assert.match(workflow, /pull_request:/);
-  assert.match(workflow, /\n  required:\n    name: required\n/);
-  assert.match(workflow, /needs:\n      - test/);
+  assert.match(workflow, /\r?\n  required:\r?\n    name: required\r?\n/);
+  assert.match(workflow, /needs:\r?\n      - test/);
   assert.match(workflow, /needs\.test\.result/);
 });
 
 test('npm publication is bound to the protected publication environment', () => {
   const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'npm-publish.yml'), 'utf8');
-  assert.match(workflow, /\n  publish:\n    environment: npm-production\n/);
+  assert.match(workflow, /\r?\n  publish:\r?\n    environment: npm-production\r?\n/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /source_commit:/);
   assert.match(workflow, /version:/);
