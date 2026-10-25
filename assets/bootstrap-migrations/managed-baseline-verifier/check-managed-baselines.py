@@ -40,12 +40,18 @@ def sha256(path: Path) -> str:
 
 def project_component_metadata(component: str, metadata: dict, schema_version: int) -> dict:
     if schema_version == 1:
-        result = {"revision": metadata.get("commit"), "distribution": metadata.get("distribution")}
+        result = {
+            "revision": metadata.get("commit"),
+            "distribution": metadata.get("distribution"),
+        }
         if component == "core":
             result["version"] = metadata.get("version")
         return result
     if schema_version == 2:
-        result = {"revision": metadata.get("revision"), "distribution": metadata.get("distribution")}
+        result = {
+            "revision": metadata.get("revision"),
+            "distribution": metadata.get("distribution"),
+        }
         if component == "core":
             result["version"] = metadata.get("version")
         return result
@@ -56,13 +62,23 @@ def component_baseline_metadata(component: str, baseline: dict, filename: str) -
     schema_version = baseline.get("schemaVersion")
     if schema_version == 1:
         if component == "core":
-            return {"revision": baseline.get("coreCommit"), "version": baseline.get("coreVersion"), "distribution": baseline.get("distribution")}
+            return {
+                "revision": baseline.get("coreCommit"),
+                "version": baseline.get("coreVersion"),
+                "distribution": baseline.get("distribution"),
+            }
         if component == "deployment":
-            return {"revision": baseline.get("deploymentKitCommit"), "distribution": baseline.get("distribution")}
+            return {
+                "revision": baseline.get("deploymentKitCommit"),
+                "distribution": baseline.get("distribution"),
+            }
     elif schema_version == 2:
         if baseline.get("component") != component:
             raise RuntimeError(f"{filename} component does not match PROJECT_FORGE_BASELINE.json")
-        result = {"revision": baseline.get("revision"), "distribution": baseline.get("distribution")}
+        result = {
+            "revision": baseline.get("revision"),
+            "distribution": baseline.get("distribution"),
+        }
         if component == "core":
             result["version"] = baseline.get("version")
         return result
@@ -71,18 +87,30 @@ def component_baseline_metadata(component: str, baseline: dict, filename: str) -
     raise RuntimeError(f"Unsupported Project Forge component in generated baseline: {component}")
 
 
-def validate_component(component: str, project_forge_component: dict, filename: str, project_schema_version: int) -> int:
+def validate_component(
+    component: str,
+    project_forge_component: dict,
+    filename: str,
+    project_schema_version: int,
+) -> int:
     baseline = read_json(filename)
     if baseline.get("schemaVersion") != project_schema_version:
-        raise RuntimeError(f"{filename} schemaVersion does not match PROJECT_FORGE_BASELINE.json")
+        raise RuntimeError(
+            f"{filename} schemaVersion does not match PROJECT_FORGE_BASELINE.json"
+        )
+
     expected = project_component_metadata(component, project_forge_component, project_schema_version)
     actual = component_baseline_metadata(component, baseline, filename)
     for key, expected_value in expected.items():
         if expected_value is not None and actual.get(key) != expected_value:
-            raise RuntimeError(f"{filename} {key} does not match PROJECT_FORGE_BASELINE.json")
+            raise RuntimeError(
+                f"{filename} {key} does not match PROJECT_FORGE_BASELINE.json"
+            )
+
     managed = baseline.get("managedPaths")
     if not isinstance(managed, list) or not managed:
         raise RuntimeError(f"{filename} managedPaths is missing or empty")
+
     count = 0
     seen: set[str] = set()
     for item in managed:
@@ -98,7 +126,8 @@ def validate_component(component: str, project_forge_component: dict, filename: 
         path = ROOT.joinpath(*PurePosixPath(relative).parts)
         if path.is_symlink() or not path.is_file():
             raise RuntimeError(f"Managed file missing or unsafe: {relative}")
-        if sha256(path) != expected_hash:
+        actual_hash = sha256(path)
+        if actual_hash != expected_hash:
             raise RuntimeError(f"Managed file drift: {relative}")
         count += 1
     return count
@@ -114,10 +143,14 @@ def main() -> int:
             raise RuntimeError("Unsupported PROJECT_FORGE_BASELINE.json schemaVersion")
         for key in ["package", "version", "profile"]:
             if project_forge.get(key) != approved.get(key):
-                raise RuntimeError(f"PROJECT_FORGE_BASELINE.json {key} does not match PROJECT_BOOTSTRAP.json")
+                raise RuntimeError(
+                    f"PROJECT_FORGE_BASELINE.json {key} does not match PROJECT_BOOTSTRAP.json"
+                )
+
         components = project_forge.get("components")
         if not isinstance(components, dict) or not components:
             raise RuntimeError("PROJECT_FORGE_BASELINE.json components is missing or empty")
+
         total = 0
         for component, metadata in sorted(components.items()):
             if component == "core":
@@ -128,8 +161,14 @@ def main() -> int:
                 raise RuntimeError(f"Unsupported Project Forge component: {component}")
             if not isinstance(metadata, dict):
                 raise RuntimeError(f"Invalid Project Forge component metadata: {component}")
-            total += validate_component(component, metadata, filename, project_schema_version)
+            total += validate_component(
+                component,
+                metadata,
+                filename,
+                project_schema_version,
+            )
             print(f"PASS {filename}")
+
         print(f"PASS Project Forge managed baselines ({total} files)")
         return 0
     except RuntimeError as exc:
