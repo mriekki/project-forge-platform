@@ -8,10 +8,12 @@ async function text(path) {
 
 test('welcome page leads with the approved static infographic without duplicating the lifecycle Mermaid', async () => {
   const welcome = await text('WELCOME.md');
-  const imageIndex = welcome.indexOf('docs/images/project-forge-welcome.jpg');
+  const imageMarkdown = '![Project Forge overview showing the journey from an idea through planning, GitHub repository generation, AI-assisted development, delivery, learning, and controlled deployment.](./docs/images/project-forge-welcome.jpg)';
+  const imageIndex = welcome.indexOf(imageMarkdown);
   const mermaidCount = (welcome.match(/```mermaid/g) || []).length;
 
-  assert.ok(imageIndex >= 0, 'WELCOME.md must reference the approved static infographic');
+  assert.ok(imageIndex >= 0, 'WELCOME.md must use the approved relative Markdown image reference');
+  assert.doesNotMatch(welcome, /<img\b/i, 'WELCOME.md should not use raw HTML for the welcome infographic');
   assert.equal(mermaidCount, 1, 'WELCOME.md should keep only the non-duplicative human-control Mermaid');
   assert.match(welcome, /AI handles mechanics; humans retain engineering authority/);
   assert.doesNotMatch(welcome, /Project Forge at a glance/);
