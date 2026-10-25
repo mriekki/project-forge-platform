@@ -27,5 +27,5 @@ test('ChatGPT setup converges every Builder on one canonical instruction plus pe
   assert.match(setup, /Project Forge Developer Profile/);
   assert.match(setup, /Verify my Project Forge setup\./);
   assert.match(setup, /README welcome page/);
-  assert.doesNotMatch(setup, /copy .*handoff/i);
+  assert.match(setup, /do \*\*not\*\* copy .*handoff/i);
 });
