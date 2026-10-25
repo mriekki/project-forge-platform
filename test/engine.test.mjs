@@ -20,27 +20,92 @@ function fixture() {
     root: packageRoot,
     pkg: { name: '@mriekki/project-forge', version: '0.1.0' },
     assets: {
+      schemaVersion: 2,
       defaultProfile: 'greenfield-project',
       profiles: { 'greenfield-project': { components: ['core', 'deployment'] } },
       components: {
-        core: { repository: 'mriekki/project-forge-core', commit: 'a'.repeat(40), version: '1.10.0', distribution: 'greenfield-workspace', descriptor: 'assets/core/distribution.json', sourceRoot: 'assets/core/source' },
-        deployment: { repository: 'mriekki/project-forge-deployment-kit', commit: 'b'.repeat(40), distribution: 'greenfield-project', descriptor: 'assets/deployment/distribution.json', sourceRoot: 'assets/deployment/source' }
+        core: { revision: 'a'.repeat(40), version: '1.10.0', distribution: 'greenfield-workspace', descriptor: 'assets/core/distribution.json', sourceRoot: 'assets/core/source' },
+        deployment: { revision: 'b'.repeat(40), distribution: 'greenfield-project', descriptor: 'assets/deployment/distribution.json', sourceRoot: 'assets/deployment/source' }
       }
     }
   };
   return { root, packageRoot, consumerRoot, packageData };
 }
 
-test('first install writes both component baselines and umbrella provenance', () => {
+test('first install writes privacy-safe component baselines and umbrella provenance', () => {
   const { consumerRoot, packageData } = fixture();
   const plan = planProfile(packageData, 'greenfield-project', consumerRoot);
   assert.equal(plan.unsafe.length, 0);
   applyProfile(packageData, plan, consumerRoot, 'demo-project', '@mriekki/project-forge@0.1.0');
   assert.equal(fs.readFileSync(path.join(consumerRoot, '.github/a.txt'), 'utf8'), 'core-v1\n');
   assert.equal(fs.readFileSync(path.join(consumerRoot, 'tools/b.txt'), 'utf8'), 'kit-v1\n');
-  assert.equal(JSON.parse(fs.readFileSync(path.join(consumerRoot, 'CORE_BASELINE.json'))).coreVersion, '1.10.0');
-  assert.equal(JSON.parse(fs.readFileSync(path.join(consumerRoot, 'DEPLOYMENT_BASELINE.json'))).deploymentKitCommit, 'b'.repeat(40));
-  assert.equal(JSON.parse(fs.readFileSync(path.join(consumerRoot, 'PROJECT_FORGE_BASELINE.json'))).version, '0.1.0');
+
+  const core = JSON.parse(fs.readFileSync(path.join(consumerRoot, 'CORE_BASELINE.json')));
+  const deployment = JSON.parse(fs.readFileSync(path.join(consumerRoot, 'DEPLOYMENT_BASELINE.json')));
+  const umbrella = JSON.parse(fs.readFileSync(path.join(consumerRoot, 'PROJECT_FORGE_BASELINE.json')));
+  assert.equal(core.schemaVersion, 2);
+  assert.equal(core.component, 'core');
+  assert.equal(core.version, '1.10.0');
+  assert.equal(core.revision, 'a'.repeat(40));
+  assert.equal(deployment.schemaVersion, 2);
+  assert.equal(deployment.component, 'deployment');
+  assert.equal(deployment.revision, 'b'.repeat(40));
+  assert.equal(umbrella.schemaVersion, 2);
+  assert.equal(umbrella.version, '0.1.0');
+  assert.equal(umbrella.components.core.revision, 'a'.repeat(40));
+  assert.equal(Object.hasOwn(core, 'coreRepository'), false);
+  assert.equal(Object.hasOwn(deployment, 'deploymentKitRepository'), false);
+  assert.equal(Object.hasOwn(umbrella.components.core, 'repository'), false);
+  assert.equal(checkProfile(packageData, 'greenfield-project', consumerRoot).clean, true);
+});
+
+test('legacy schema v1 baselines upgrade in place without changing managed files', () => {
+  const { consumerRoot, packageData } = fixture();
+  applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
+  const coreV2 = JSON.parse(fs.readFileSync(path.join(consumerRoot, 'CORE_BASELINE.json')));
+  const deploymentV2 = JSON.parse(fs.readFileSync(path.join(consumerRoot, 'DEPLOYMENT_BASELINE.json')));
+  fs.writeFileSync(path.join(consumerRoot, 'CORE_BASELINE.json'), JSON.stringify({
+    schemaVersion: 1,
+    consumer: 'demo',
+    consumerBaseline: 'base',
+    coreRepository: 'legacy/private-core',
+    coreVersion: coreV2.version,
+    coreCommit: coreV2.revision,
+    distribution: coreV2.distribution,
+    managedPaths: coreV2.managedPaths
+  }, null, 2) + '\n');
+  fs.writeFileSync(path.join(consumerRoot, 'DEPLOYMENT_BASELINE.json'), JSON.stringify({
+    schemaVersion: 1,
+    consumer: 'demo',
+    consumerBaseline: 'base',
+    deploymentKitRepository: 'legacy/private-deployment',
+    deploymentKitCommit: deploymentV2.revision,
+    distribution: deploymentV2.distribution,
+    managedPaths: deploymentV2.managedPaths
+  }, null, 2) + '\n');
+  fs.writeFileSync(path.join(consumerRoot, 'PROJECT_FORGE_BASELINE.json'), JSON.stringify({
+    schemaVersion: 1,
+    package: '@mriekki/project-forge',
+    version: '0.1.0',
+    profile: 'greenfield-project',
+    consumer: 'demo',
+    consumerBaseline: 'base',
+    components: {
+      core: { repository: 'legacy/private-core', commit: 'a'.repeat(40), version: '1.10.0', distribution: 'greenfield-workspace' },
+      deployment: { repository: 'legacy/private-deployment', commit: 'b'.repeat(40), distribution: 'greenfield-project' }
+    }
+  }, null, 2) + '\n');
+
+  const beforeCore = fs.readFileSync(path.join(consumerRoot, '.github/a.txt'));
+  const beforeDeployment = fs.readFileSync(path.join(consumerRoot, 'tools/b.txt'));
+  const plan = planProfile(packageData, 'greenfield-project', consumerRoot);
+  assert.equal(plan.unsafe.length, 0);
+  assert(plan.plans.every((component) => component.rows.every((row) => row.state === 'SAME')));
+  applyProfile(packageData, plan, consumerRoot, 'demo', 'base');
+  assert.deepEqual(fs.readFileSync(path.join(consumerRoot, '.github/a.txt')), beforeCore);
+  assert.deepEqual(fs.readFileSync(path.join(consumerRoot, 'tools/b.txt')), beforeDeployment);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(consumerRoot, 'CORE_BASELINE.json'))).schemaVersion, 2);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(consumerRoot, 'DEPLOYMENT_BASELINE.json'))).schemaVersion, 2);
   assert.equal(checkProfile(packageData, 'greenfield-project', consumerRoot).clean, true);
 });
 
@@ -113,7 +178,7 @@ test('readiness rename removes old Core-managed paths and installs replacement p
     schemaVersion: 1,
     consumer: 'demo',
     consumerBaseline: '@mriekki/project-forge@0.2.1',
-    coreRepository: 'mriekki/project-forge-core',
+    coreRepository: 'legacy/private-core',
     coreVersion: '1.11.1',
     coreCommit: 'c'.repeat(40),
     distribution: 'greenfield-workspace',
