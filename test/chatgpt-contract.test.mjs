@@ -77,11 +77,11 @@ test('descriptor keeps private foundational source topology out of the public co
 test('generation aligns the published package with the accepted Bootstrap revision', async () => {
   const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
-  assert.equal(value.generation.bootstrap.revision, '49d8414c157ebefefec3562bade5966b69d6e357');
+  assert.equal(value.generation.bootstrap.revision, '49d8414c157ebefec3562bade5966b69d6e357');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 12);
   assert.equal(value.generation.package, '@mriekki/project-forge');
-  assert.equal(value.generation.packageVersion, '4.5.0');
+  assert.equal(value.generation.packageVersion, '4.6.0');
   assert.equal(value.generation.profile, 'greenfield-project');
   assert.equal(value.generation.bootstrapProtocolVersion, 12);
   assert.equal(value.bootstrapUrl, 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json');
