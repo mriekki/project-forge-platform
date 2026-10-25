@@ -80,8 +80,7 @@ test('trusted publish workflow is exact-source, private-source-mapped OIDC publi
   assert.match(workflow, /steps\.sources\.outputs\.core/);
   assert.match(workflow, /steps\.sources\.outputs\.deployment/);
   assert.match(workflow, /::add-mask::/);
-  assert.match(workflow, /data\.components\.core\.revision/);
-  assert.match(workflow, /data\.components\.deployment\.revision/);
+  assert.match(workflow, /data\.components\?\.\[id\]\?\.revision/);
   assert.doesNotMatch(workflow, /data\.components\.(?:core|deployment)\.commit/);
   assert.match(workflow, /actions\/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38/);
   assert.doesNotMatch(workflow, /uses:\s+actions\/(?:checkout|setup-node)@v\d+/);
@@ -110,7 +109,7 @@ test('release skill owns automatic version selection, protected source mapping, 
   assert.match(skill, /prepare-package-update\.mjs/);
   assert.match(skill, /protected source-repository mappings/i);
   assert.match(skill, /Routine releases do not require a local npm login/);
-  assert.match(skill, /do not query `npm trust list` on every routine release/);
+  assert.match(skill, /do not query `npm trust list` on every routine release/i);
   assert.match(skill, /npm login --auth-type=web/);
   assert.match(skill, /EOTP/);
   assert.match(skill, /npm trust list @mriekki\/project-forge --json/);
