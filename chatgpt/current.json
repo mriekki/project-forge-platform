@@ -1,36 +1,36 @@
 {
   "schemaVersion": 1,
   "channel": "stable",
-  "contractVersion": 10,
-  "snapshotPath": "chatgpt/contracts/v10",
+  "contractVersion": 11,
+  "snapshotPath": "chatgpt/contracts/v11",
   "documents": [
     {
-      "path": "chatgpt/contracts/v10/ADMIN.md",
-      "sha256": "98ab8850d46194a5c62697346e71b1aba1bfb71328c22e170e0e37b94fd538cd"
+      "path": "chatgpt/contracts/v11/ADMIN.md",
+      "sha256": "199f92e2b001911d605f72d06ef921d2bf6c445854b25602d75e2a819a8e8e14"
     },
     {
-      "path": "chatgpt/contracts/v10/EXISTING_PROJECT.md",
+      "path": "chatgpt/contracts/v11/EXISTING_PROJECT.md",
       "sha256": "6f7aa862332e4e776810e0be36afaf92bca81304174b0b3b793ee6597e5167ed"
     },
     {
-      "path": "chatgpt/contracts/v10/NEW_PROJECT.md",
+      "path": "chatgpt/contracts/v11/NEW_PROJECT.md",
       "sha256": "eaeb825bcebbe3976c2e0dc62c65842fb97cd63224df79c0613ae0c225d9e530"
     },
     {
-      "path": "chatgpt/contracts/v10/ONBOARDING.md",
-      "sha256": "03f4242cd7dfc1cffcbaccdf9eb92b1940e9276869483aaff0a147f3752b579c"
+      "path": "chatgpt/contracts/v11/ONBOARDING.md",
+      "sha256": "7c9ab54316b0b71fa893ed2974eaf3790def8cd6982b1b0308f13f6a2eea1bdc"
     },
     {
-      "path": "chatgpt/contracts/v10/PROJECT_INSTRUCTIONS.md",
+      "path": "chatgpt/contracts/v11/PROJECT_INSTRUCTIONS.md",
       "sha256": "cfc6db9fa59b29568d2c3156724bf4e8ffca554975ba6c6897aa9f9e32dae40b"
     },
     {
-      "path": "chatgpt/contracts/v10/PROJECT_RULES.md",
+      "path": "chatgpt/contracts/v11/PROJECT_RULES.md",
       "sha256": "17e471faa0c63e681f2bb6fad761ca9e9cb792875bea6d40b3e1f4f380f5256a"
     },
     {
-      "path": "chatgpt/contracts/v10/USER_PROFILE.schema.json",
-      "sha256": "11c4c0d5b0bffb02643503118c915a259193d8cb80d2cdb1b8bd523a52c5507b"
+      "path": "chatgpt/contracts/v11/USER_PROFILE.schema.json",
+      "sha256": "e7e438d0e1fa8d88e88eb1f97d78467aa04e4812b87f58fa77b2967e16e2472a"
     }
   ],
   "sourceProvenance": {
@@ -50,7 +50,7 @@
     },
     "bootstrap": {
       "repository": "mriekki/project-forge-bootstrap",
-      "commit": "fc1e62f2b5d19473f79d2b89d07cbf9c4079aa90",
+      "commit": "ea12cca2649d420d12656b87a4377c3e251dfc18",
       "sources": [
         {
           "path": "docs/discovery/QUESTION_MODEL.md",
@@ -79,20 +79,28 @@
         {
           "path": "catalog/policies/generation-destination.json",
           "blobSha": "cbd4caf90c465e3e5a1e22ecff321b64922736de"
+        },
+        {
+          "path": "tools/generation_pipeline.py",
+          "blobSha": "d1da5cc1dd1a970ddb87661a1d62854317a9a222"
+        },
+        {
+          "path": "tests/test_workspace_welcome.py",
+          "blobSha": "47da895a6850838750816bb410c549deb53f1695"
         }
       ]
     },
     "controlPlane": {
       "repository": "mriekki/project-forge-control-plane",
-      "commit": "ae5ff862bd5b3bfddf632aa7395a1de4d295451b",
+      "commit": "12c2486889518c47f937eab4e0c0d531dd7a251d",
       "sources": [
         {
           "path": "docs/SETUP.md",
-          "blobSha": "113eb5bce7d171e44742e563f6ecd53abb74e49e"
+          "blobSha": "7828981c81610860d653d583cce2dcf638014218"
         },
         {
           "path": "docs/INVITATIONS.md",
-          "blobSha": "d3c392351cf373b982e486d5bda138898ecb9b17"
+          "blobSha": "99833a94fb75751f28d6eb867b6c4541c30c840a"
         },
         {
           "path": ".github/workflows/generate-project.yml",
@@ -100,15 +108,23 @@
         },
         {
           "path": ".github/workflows/invite-developer.yml",
-          "blobSha": "8356ec0e43d95705ace2e08ac63c665e737a7537"
+          "blobSha": "961d1e7d6e5ee2984578c7ed98b736432720655a"
         },
         {
           "path": ".github/workflows/claim-invitation.yml",
-          "blobSha": "b228c51a2d295aa7c589eaf8ddf329b364ca91aa"
+          "blobSha": "4bab3d60b91718eae68a765a4b1fbbfdf15ba64c"
+        },
+        {
+          "path": ".github/workflows/decline-invitation.yml",
+          "blobSha": "30688e6854afda33fb4a8ce5ea418c99bff849ef"
+        },
+        {
+          "path": ".github/workflows/expire-invitations.yml",
+          "blobSha": "7b16451df37fb51f63ad9481682ae8839f53a1a7"
         },
         {
           "path": ".github/workflows/onboarding-doctor.yml",
-          "blobSha": "200023f68506ccc42b3db0a065c9349688427eb8"
+          "blobSha": "66befae7ffb611fca9e4d688264e7c1bd79993e7"
         },
         {
           "path": "tools/request.py",
@@ -117,6 +133,14 @@
         {
           "path": "tools/project_forge_contract.py",
           "blobSha": "6849c49c9c89fcbce09a0d1b9905a6f02c062d89"
+        },
+        {
+          "path": "tools/onboarding_portal.py",
+          "blobSha": "4197e4c063a7233b6a335f5164d6a8bdec89a7c1"
+        },
+        {
+          "path": "tools/public_contract.py",
+          "blobSha": "157b9f4cccdcb0261ae7ef40f15c437cdd2e3a33"
         }
       ]
     }
@@ -136,7 +160,7 @@
     "manifestFilename": "PROJECT_BOOTSTRAP.json",
     "bootstrap": {
       "repository": "mriekki/project-forge-bootstrap",
-      "commit": "3df0c8847acff9acc58c4d74bb1c5f3cd6dfc8bd",
+      "commit": "ea12cca2649d420d12656b87a4377c3e251dfc18",
       "protocolVersion": 12,
       "catalogVersion": 12
     },
