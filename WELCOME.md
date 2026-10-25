@@ -31,7 +31,7 @@ idea
 → V1 scope + non-goals
 → technology/testing/data/deployment choices
 → approved PROJECT_BOOTSTRAP.json + Work Items
-→ deterministic private GitHub Project repository generation
+→ deterministic GitHub Project repository generation
 → generated development workspace
 → setup + readiness + human workspace acceptance
 → bounded Work Items
