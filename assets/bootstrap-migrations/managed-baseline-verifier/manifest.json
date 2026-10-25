@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "bootstrap-managed-baseline-verifier-schema2",
+  "owner": "bootstrap",
+  "destination": "tools/project-forge-package/check-managed-baselines.py",
+  "asset": "assets/bootstrap-migrations/managed-baseline-verifier/check-managed-baselines.py",
+  "source": {
+    "repository": "mriekki/project-forge-bootstrap",
+    "revision": "b5a83729d211e0492be5368ff7f1e59b63986419",
+    "path": "migration-assets/package-workspace/check-managed-baselines.py"
+  },
+  "targetGitBlob": "26496854ed5d6ad47c7b6136078b2114473ac773",
+  "supportedPredecessorGitBlobs": [
+    "f7ccfc0e8efaac4d6aed6ed5d8e2130d4fb3dc9d"
+  ],
+  "supportedProjectBaselineSchemas": [1, 2]
+}
