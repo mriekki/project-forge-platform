@@ -10,7 +10,8 @@ function readJson(file) {
 }
 
 export function gitBlobSha(data) {
-  const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  const raw = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  const buffer = Buffer.from(raw.toString('utf8').replaceAll('\r\n', '\n'), 'utf8');
   const header = Buffer.from(`blob ${buffer.length}\0`, 'utf8');
   return crypto.createHash('sha1').update(header).update(buffer).digest('hex');
 }
