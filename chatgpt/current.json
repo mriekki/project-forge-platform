@@ -1,36 +1,36 @@
 {
   "schemaVersion": 1,
   "channel": "stable",
-  "contractVersion": 13,
-  "snapshotPath": "chatgpt/contracts/v13",
+  "contractVersion": 14,
+  "snapshotPath": "chatgpt/contracts/v14",
   "documents": [
     {
-      "path": "chatgpt/contracts/v13/ADMIN.md",
+      "path": "chatgpt/contracts/v14/ADMIN.md",
       "sha256": "199f92e2b001911d605f72d06ef921d2bf6c445854b25602d75e2a819a8e8e14"
     },
     {
-      "path": "chatgpt/contracts/v13/EXISTING_PROJECT.md",
+      "path": "chatgpt/contracts/v14/EXISTING_PROJECT.md",
       "sha256": "6f7aa862332e4e776810e0be36afaf92bca81304174b0b3b793ee6597e5167ed"
     },
     {
-      "path": "chatgpt/contracts/v13/NEW_PROJECT.md",
+      "path": "chatgpt/contracts/v14/NEW_PROJECT.md",
       "sha256": "9f9c0318f23472a03349e1dca9e9bd66c2167d734d5aa225333d8d3fca5afd06"
     },
     {
-      "path": "chatgpt/contracts/v13/ONBOARDING.md",
+      "path": "chatgpt/contracts/v14/ONBOARDING.md",
       "sha256": "f6389bc783c5bd819ca4ccb8435539827342d284b326bafbe06aa8211d3423c6"
     },
     {
-      "path": "chatgpt/contracts/v13/PROJECT_INSTRUCTIONS.md",
+      "path": "chatgpt/contracts/v14/PROJECT_INSTRUCTIONS.md",
       "sha256": "cfc6db9fa59b29568d2c3156724bf4e8ffca554975ba6c6897aa9f9e32dae40b"
     },
     {
-      "path": "chatgpt/contracts/v13/PROJECT_RULES.md",
+      "path": "chatgpt/contracts/v14/PROJECT_RULES.md",
       "sha256": "c783f23d870f013c68b34dfb90aef61a37b4b88db5d374e9f931129c03a573af"
     },
     {
-      "path": "chatgpt/contracts/v13/USER_PROFILE.schema.json",
-      "sha256": "6bab53277c6b0ab81e91b09f6c12b731f82c4c8005085adbfcce1e7182be4969"
+      "path": "chatgpt/contracts/v14/USER_PROFILE.schema.json",
+      "sha256": "e649a77f79a510e8b27e4a55d7fb8b4580cccda89580b8f63ab42f9fa23811db"
     }
   ],
   "controlPlane": {
@@ -47,7 +47,7 @@
   "generation": {
     "manifestFilename": "PROJECT_BOOTSTRAP.json",
     "bootstrap": {
-      "revision": "ea12cca2649d420d12656b87a4377c3e251dfc18",
+      "revision": "62e0bdaa6d9cbc18b5c19a4e2e87e194cc9f3b0a",
       "protocolVersion": 12,
       "catalogVersion": 12
     },
