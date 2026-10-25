@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   publish:
+    environment: npm-production
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Project Forge Platform
