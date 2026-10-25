@@ -1,84 +1,96 @@
 # npm Release Process
 
-`@mriekki/project-forge` is the public npm distribution assembled from exact accepted commits of the private canonical Project Forge repositories.
+`@mriekki/project-forge` is the public npm distribution assembled from exact accepted revisions of private canonical Project Forge component sources.
 
-Release preparation and npm publication are intentionally automated, but publication remains an explicit decision for one exact package/version/source tuple.
+Release preparation and npm publication are automated, but publication remains an explicit decision for one exact package/version/source tuple. Public package metadata records logical component IDs and opaque exact revisions; private source repository locations remain protected configuration.
 
 ## Normal operator workflow
 
 Use the repository-local VS Code skill:
 
 ```text
-/release-project-forge [version | patch | minor | major]
+/release-project-forge
 ```
 
-The skill is resume-aware and owns the normal package-release orchestration:
+The normal flow is:
 
 ```text
-accepted Core / Deployment Kit main commits
+accepted component revisions
 → choose package version
 → deterministic package metadata + descriptor update
-→ local tests / asset verification
+→ tests / asset verification
 → release PR + PR CI
 → ONE PACKAGE PR MERGE GATE
 → post-merge main CI
 → ONE EXACT NPM PUBLISH GATE
 → GitHub OIDC direct publish
 → registry + neutral npx verification
-→ package release complete
+→ public ChatGPT contract alignment
 ```
 
 Publishing the package does not update consumers. Existing package-managed Projects adopt it separately through `/project-forge-update`.
 
 ## Release invariants
 
-Before npm publication, the exact release candidate must satisfy all of these:
+Before npm publication:
 
 - Project Forge Platform publication source is an exact clean `main` commit;
-- `assets/components.json` pins exact accepted component commits;
-- the canonical Core and Deployment Kit commits are clean exact accepted `main` states when a release PR is prepared locally;
-- the packaged distribution descriptors exactly match their pinned canonical descriptors;
+- `assets/components.json` uses schema v2 and pins exact opaque component revisions;
+- local canonical component checkouts are clean exact accepted `origin/main` states when a release PR is prepared locally;
+- packaged distribution descriptors exactly match the pinned source descriptors;
 - all package tests pass;
 - generated assets verify against the assembly ledger;
 - two independent `npm pack` runs produce the same SHA-256;
-- a clean temporary install of the packed tarball can run `project-forge version` through both direct Node and npm executable resolution, then run `project-forge install` and `project-forge check` successfully;
+- a clean temporary install can run `project-forge version`, `project-forge install`, and `project-forge check` successfully;
 - the npm version does not already exist;
-- the exact Project Forge Platform source commit and package version are passed to the publication workflow and revalidated there.
+- the exact Platform source commit and package version are revalidated by the publication workflow.
 
-`scripts/prepare-release.mjs` enforces the release-candidate checks and writes only ignored artifacts under `dist/release/` plus ignored generated package assets under `assets/generated/`.
+`scripts/prepare-release.mjs` enforces release-candidate checks and writes ignored release artifacts under `dist/release/` and ignored generated package assets under `assets/generated/`.
+
+## Privacy-safe component provenance
+
+`assets/components.json` schema v2 contains only:
+
+- logical component IDs such as `core` and `deployment`;
+- exact opaque `revision` values;
+- public compatibility/version and distribution metadata;
+- packaged descriptor/source-root paths.
+
+It must not publish private source repository identities. New consumer baselines use schema v2 with the same logical-ID + opaque-revision model. Package runtime remains backward-compatible with schema v1 baselines so an existing Project can upgrade in place; the next successful apply rewrites its package provenance as schema v2 without changing clean managed files solely for the migration.
 
 ## Deterministic package-update preparation
 
-The release skill uses:
-
-```powershell
-Set-Location D:\Projects\project-forge-platform
-node .\scripts\prepare-package-update.mjs `
-  --version <version> `
-  --core-root D:\Projects\project-forge-core `
-  --deployment-root D:\Projects\project-forge-deployment-kit
-```
-
-The script refuses to modify `main`, requires a clean Project Forge Platform release branch, resolves clean exact `origin/main` component checkouts, and updates only:
+The release skill runs `scripts/prepare-package-update.mjs` with local Core and Deployment source roots. The script refuses Platform `main`, requires clean exact component `origin/main` checkouts, validates canonical descriptors, and updates only:
 
 - `package.json` version;
 - `package-lock.json` version metadata;
-- `assets/components.json` package version and exact component pins/versions;
-- packaged component distribution descriptors copied from those exact canonical checkouts.
+- `assets/components.json` package version and exact component revisions/versions;
+- packaged component distribution descriptors copied from those exact source checkouts.
 
-Afterward the skill runs package tests, asset assembly/verification, `git diff --check`, and meaningful diff review before routine PR delivery.
+Private source repository names are not encoded in package metadata or required as public command arguments. After preparation, run package tests, asset assembly/verification, `git diff --check`, and meaningful diff review before PR delivery.
 
 ## Package version policy
 
-Unless a repository decision supersedes it, Project Forge follows normal post-1.0 semantic versioning:
+For `1.0.0` and later, use conventional semantic versioning:
 
-- patch: backward-compatible corrections, content changes, or tooling fixes;
-- minor: backward-compatible consumer-visible features or additions;
-- major: consumer-visible breaking changes such as managed-path rename/removal, command removal, authorization-contract changes, or other incompatible contract changes.
+- patch — backward-compatible corrections;
+- minor — backward-compatible consumer-visible features;
+- major — breaking consumer contracts.
 
-The exact version is still reviewed as part of the release PR. The Project terminology migration is a major release because it removes or renames active consumer-facing technical contracts.
+The baseline provenance v2 migration is backward-compatible because schema v1 remains readable, so it is a minor release.
 
-## Trusted Publishing: direct publish
+## Protected source-repository mappings
+
+The publication workflow resolves private source locations only from protected Actions secrets on Project Forge Platform:
+
+```text
+CORE_SOURCE_REPOSITORY
+DEPLOYMENT_SOURCE_REPOSITORY
+```
+
+Values are exact `owner/repository` mappings. Do not print them, commit them, or place them in public package metadata. The workflow validates their shape, masks resolved values in logs, and uses `PROJECT_FORGE_SOURCE_TOKEN` only for read access to the exact private sources needed by the release.
+
+## Trusted Publishing
 
 Normal releases use npm Trusted Publishing (OIDC) from:
 
@@ -89,62 +101,30 @@ Workflow: npm-publish.yml
 Allowed action: npm publish
 ```
 
-No long-lived npm publish token is required. GitHub Actions receives a short-lived OIDC credential for the configured workflow.
+Routine releases do not require local npm login. Inspect or change npm trust only during initial setup, migration, repository/workflow identity changes, or a reported trust error.
 
-The package can retain npm's `Require two-factor authentication and disallow tokens` package setting; that restriction applies to traditional tokens, not the configured OIDC trusted publisher.
-
-### Operator authentication and one-time setup
-
-Routine releases do not require a local npm login. GitHub Actions uses OIDC, and a successful publish from the exact workflow confirms that the trusted-publisher relationship works. Do not run `npm trust list` on every release: npm may require fresh browser/2FA authorization even when `npm whoami` succeeds.
-
-Use npmjs.com under **Packages → `@mriekki/project-forge` → Settings → Trusted Publisher** for initial setup or inspection. Configure GitHub Actions with owner `mriekki`, repository `project-forge-platform`, workflow file `npm-publish.yml`, no environment, and direct publish permission.
-
-If CLI access is needed to configure or investigate the relationship, sign in interactively:
+For one-time trust administration, use npmjs.com or, when needed:
 
 ```powershell
 npm login --auth-type=web --registry=https://registry.npmjs.org/
-npm whoami --registry=https://registry.npmjs.org/
 npm trust list @mriekki/project-forge --json
 ```
 
-The account must be allowed to manage `@mriekki/project-forge`. `npm trust list` can require a separate browser authorization (`EOTP`) even after login; open the URL printed in the local terminal, finish npm's prompt, and rerun the command. Never paste or save that one-time URL or an OTP in chat, repository files, or CI. The same relationship can be created through `npm trust github` after the release skill's `[NPM TRUST WRITE]` gate.
+If npm returns `EOTP`, complete the browser authorization locally. Never paste or store its one-time URL or OTP in chat, repository files, or CI.
 
-No long-lived npm token is needed or appropriate for this flow. Local npm login is only for occasional maintainer operations and trust configuration. GitHub Actions publishes with OIDC. The workflow uses the repository's `PROJECT_FORGE_SOURCE_TOKEN` only to read the private canonical component repositories.
+## Exact release gates
 
-### One-time migration from the old staged workflow
+A green release PR stops at one package merge gate. Merging does not authorize publication.
 
-If the npm trusted publisher still points at `npm-stage.yml` or only permits staged publication, replace it once. Inspect the current relationship:
+After the merged exact Platform `main` commit passes post-merge CI and the target npm version is confirmed unused, stop at one exact npm publication gate naming:
 
-```powershell
-npm trust list @mriekki/project-forge --json
-```
+- package/version;
+- Platform main SHA;
+- exact logical component revisions (and Core version where applicable);
+- green post-merge CI;
+- GitHub OIDC / `npm-publish.yml` publisher.
 
-After explicit `[NPM TRUST WRITE]` approval in `/release-project-forge`, revoke the observed old relationship and create the direct-publish relationship:
-
-```powershell
-npm trust revoke @mriekki/project-forge --id <observed-id>
-npm trust github @mriekki/project-forge --file npm-publish.yml --repo mriekki/project-forge-platform --allow-publish --yes
-npm trust list @mriekki/project-forge --json
-```
-
-npm may require interactive 2FA for this one-time trust configuration change. Do not store an OTP anywhere in the repository, skill, workflow, CI secret, or documentation.
-
-Once this relationship exists, normal package releases require no npm staging or npm 2FA promotion step.
-
-## Exact publication gate
-
-A merged package PR does not itself publish npm.
-
-After the release PR is merged and exact post-merge `main` CI is green, `/release-project-forge` shows the exact package version, Project Forge Platform main SHA, Core pin/version, Deployment Kit pin, and trusted publisher evidence.
-
-The single publication decision is:
-
-```text
-[NPM PUBLISH]
-Publish this exact @mriekki/project-forge version from this exact Project Forge Platform main commit and component pin set?
-```
-
-If approved, the skill triggers:
+If approved, trigger:
 
 ```powershell
 gh workflow run npm-publish.yml --ref main `
@@ -152,48 +132,29 @@ gh workflow run npm-publish.yml --ref main `
   -f source_commit=<exact-main-sha>
 ```
 
-The workflow refuses changed/stale evidence.
+The workflow refuses stale or changed evidence.
 
 ## Publication workflow behavior
 
 `.github/workflows/npm-publish.yml`:
 
-1. checks out Project Forge Platform `main`;
-2. requires `HEAD == source_commit` from the human-approved invocation;
-3. requires `package.json` version to equal the approved version;
-4. refuses an already-published version;
-5. resolves exact component pins from `assets/components.json`;
-6. checks out those exact private Core and Deployment Kit commits using read-only `PROJECT_FORGE_SOURCE_TOKEN` Contents access;
-7. runs `scripts/prepare-release.mjs` to reproduce/test the package;
-8. verifies the release manifest matches the authorized Project Forge Platform commit/version;
-9. publishes the exact tarball with `npm publish --access public` using OIDC;
-10. waits up to 10 minutes, with exponential backoff, for registry visibility and verifies npm integrity/shasum against the release manifest;
-11. runs `npx --yes @mriekki/project-forge@<version> version` from a neutral temporary directory.
+1. checks out exact Project Forge Platform source;
+2. verifies the authorized Platform SHA and package version;
+3. refuses an already-published version;
+4. resolves exact component revisions from schema-v2 `assets/components.json`;
+5. resolves private component source locations from protected source-repository mappings and masks them;
+6. checks out each exact component revision with read-only source credentials;
+7. runs `scripts/prepare-release.mjs` and verifies the release manifest;
+8. publishes the exact tarball with OIDC;
+9. verifies registry version/integrity/shasum with bounded retry;
+10. runs a neutral-directory `npx` smoke check.
 
-If any pre-publication step fails, npm is not published. If publication succeeds but a post-publish verification fails, report the published state accurately and diagnose the verification failure; do not attempt to republish the same version.
+If a pre-publication step fails, npm is not published. If publication succeeds but post-publish verification fails, report the published state accurately and never republish the same version.
 
-## Manual release-candidate diagnostics
+## Public ChatGPT contract alignment
 
-The underlying deterministic preparation remains directly available for troubleshooting:
-
-```powershell
-Set-Location D:\Projects\project-forge-platform
-node .\scripts\prepare-release.mjs `
-  --core-root D:\Projects\project-forge-core `
-  --deployment-root D:\Projects\project-forge-deployment-kit
-```
-
-Expected output includes the package/version, tarball path, SHA-256, and exact Project Forge Platform source commit.
-
-Review artifacts when diagnosing a release issue:
-
-```text
-dist/release/RELEASE_MANIFEST.json
-dist/release/mriekki-project-forge-<version>.tgz
-```
-
-These are implementation evidence, not a separate mandatory manual-review ceremony in the normal `/release-project-forge` flow.
+After registry verification, compare live `chatgpt/current.json` with the exact published package. Never point stable to an unpublished version. If only the mutable package/revision pointer is stale and the immutable operating contract is unchanged, prepare the smallest follow-up PR; otherwise create a new immutable snapshot as required by the live contract rules.
 
 ## What release does not imply
 
-Publishing `@mriekki/project-forge` does not regenerate existing Projects, update Bootstrap provenance, deploy an application, publish Core/Deployment Kit GitHub releases/tags, or update Family Meal Planner. Those remain separately owned actions.
+Publishing `@mriekki/project-forge` does not regenerate existing Projects, update consumers, deploy an application, publish component GitHub releases/tags, or perform Production changes. Those remain separately authorized actions.

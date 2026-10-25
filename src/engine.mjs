@@ -54,6 +54,12 @@ function baselineMap(baseline, filename) {
   return map;
 }
 
+function componentRevision(component) {
+  const revision = component.revision ?? component.commit;
+  if (typeof revision !== 'string' || !/^[0-9a-f]{40}$/i.test(revision)) throw new Error('Component revision must be an exact 40-character Git revision');
+  return revision.toLowerCase();
+}
+
 export function componentEntries(packageData, componentId) {
   const component = packageData.assets.components[componentId];
   if (!component) throw new Error(`Package does not define component ${componentId}`);
@@ -95,22 +101,27 @@ function classifyDesired(componentId, src, dst, baselineItem) {
   return { state: 'CONFLICT', desiredHash, currentHash };
 }
 
-function coreMetadataCurrent(baseline, component) {
-  return baseline.schemaVersion === 1 && baseline.coreRepository === component.repository && baseline.coreVersion === component.version && baseline.coreCommit === component.commit && baseline.distribution === component.distribution && Array.isArray(baseline.managedPaths) && baseline.managedPaths.length > 0;
+function validateBaselineIdentity(baseline, componentId, component, filename) {
+  if (!Object.keys(baseline).length) return;
+  if (![1, 2].includes(baseline.schemaVersion)) throw new Error(`Unsupported ${filename} schemaVersion`);
+  if (baseline.schemaVersion === 2 && baseline.component !== componentId) throw new Error(`${filename} records a different component`);
+  if (baseline.distribution && baseline.distribution !== component.distribution) throw new Error(`${filename} records a different distribution`);
 }
 
-function deploymentMetadataCurrent(baseline, component) {
-  return baseline.schemaVersion === 1 && baseline.deploymentKitRepository === component.repository && baseline.deploymentKitCommit === component.commit && baseline.distribution === component.distribution && Array.isArray(baseline.managedPaths) && baseline.managedPaths.length > 0;
+function componentMetadataCurrent(baseline, componentId, component) {
+  if (baseline.schemaVersion !== 2 || baseline.component !== componentId) return false;
+  if (baseline.revision !== componentRevision(component) || baseline.distribution !== component.distribution) return false;
+  if (componentId === 'core' && baseline.version !== component.version) return false;
+  return Array.isArray(baseline.managedPaths) && baseline.managedPaths.length > 0;
 }
 
 export function planComponent(packageData, componentId, targetRoot, acceptedRetired = new Set()) {
   const component = packageData.assets.components[componentId];
+  if (!component) throw new Error(`Package does not define component ${componentId}`);
+  componentRevision(component);
   const filename = baselineFile(componentId);
   const baseline = loadOptionalJson(path.join(targetRoot, filename));
-  if (Object.keys(baseline).length && baseline.schemaVersion !== 1) throw new Error(`Unsupported ${filename} schemaVersion`);
-  if (componentId === 'core' && baseline.coreRepository && baseline.coreRepository !== component.repository) throw new Error(`${filename} records a different Core repository`);
-  if (componentId === 'deployment' && baseline.deploymentKitRepository && baseline.deploymentKitRepository !== component.repository) throw new Error(`${filename} records a different Deployment Kit repository`);
-  if (baseline.distribution && baseline.distribution !== component.distribution) throw new Error(`${filename} records a different distribution`);
+  validateBaselineIdentity(baseline, componentId, component, filename);
 
   const entries = componentEntries(packageData, componentId);
   const baseMap = baselineMap(baseline, filename);
@@ -151,30 +162,19 @@ export function planComponent(packageData, componentId, targetRoot, acceptedReti
     rows,
     retired,
     unsafe,
-    metadataCurrent: componentId === 'core' ? coreMetadataCurrent(baseline, component) : deploymentMetadataCurrent(baseline, component)
+    metadataCurrent: componentMetadataCurrent(baseline, componentId, component)
   };
 }
 
 function buildComponentBaseline(plan, consumer, consumerBaseline) {
   const managedPaths = plan.rows.map((row) => ({ source: row.source, path: row.path, sha256: row.desiredHash }));
-  if (plan.componentId === 'core') {
-    return {
-      schemaVersion: 1,
-      consumer,
-      consumerBaseline,
-      coreRepository: plan.component.repository,
-      coreVersion: plan.component.version,
-      coreCommit: plan.component.commit,
-      distribution: plan.component.distribution,
-      managedPaths
-    };
-  }
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    component: plan.componentId,
     consumer,
     consumerBaseline,
-    deploymentKitRepository: plan.component.repository,
-    deploymentKitCommit: plan.component.commit,
+    revision: componentRevision(plan.component),
+    ...(plan.component.version ? { version: plan.component.version } : {}),
     distribution: plan.component.distribution,
     managedPaths
   };
@@ -213,15 +213,14 @@ export function applyProfile(packageData, profilePlan, targetRoot, consumer, con
     fs.writeFileSync(path.join(targetRoot, plan.filename), JSON.stringify(baseline, null, 2) + '\n');
   }
   const projectForgeBaseline = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     package: packageData.pkg.name,
     version: packageData.pkg.version,
     profile: profilePlan.profileName,
     consumer,
     consumerBaseline,
     components: Object.fromEntries(profilePlan.plans.map((plan) => [plan.componentId, {
-      repository: plan.component.repository,
-      commit: plan.component.commit,
+      revision: componentRevision(plan.component),
       ...(plan.component.version ? { version: plan.component.version } : {}),
       distribution: plan.component.distribution
     }]))
@@ -233,7 +232,7 @@ export function applyProfile(packageData, profilePlan, targetRoot, consumer, con
 export function checkProfile(packageData, profileName, targetRoot) {
   const plan = planProfile(packageData, profileName, targetRoot);
   const projectForgeBaseline = loadOptionalJson(path.join(targetRoot, 'PROJECT_FORGE_BASELINE.json'));
-  const projectForgeCurrent = projectForgeBaseline.schemaVersion === 1 && projectForgeBaseline.package === packageData.pkg.name && projectForgeBaseline.version === packageData.pkg.version && projectForgeBaseline.profile === profileName;
+  const projectForgeCurrent = projectForgeBaseline.schemaVersion === 2 && projectForgeBaseline.package === packageData.pkg.name && projectForgeBaseline.version === packageData.pkg.version && projectForgeBaseline.profile === profileName;
   const componentClean = plan.plans.every((component) => component.metadataCurrent && component.rows.every((row) => row.state === 'SAME') && component.retired.length === 0);
   return { clean: projectForgeCurrent && componentClean, projectForgeCurrent, plan, projectForgeBaseline };
 }

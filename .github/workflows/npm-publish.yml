@@ -70,28 +70,55 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const data = JSON.parse(fs.readFileSync('assets/components.json', 'utf8'));
+          if (data.schemaVersion !== 2) {
+            throw new Error(`components schema mismatch: expected 2, got ${data.schemaVersion}`);
+          }
           if (data.version !== process.env.EXPECTED_VERSION) {
             throw new Error(`components version mismatch: expected ${process.env.EXPECTED_VERSION}, got ${data.version}`);
           }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `core=${data.components.core.commit}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `deployment=${data.components.deployment.commit}\n`);
+          for (const id of ['core', 'deployment']) {
+            const revision = data.components?.[id]?.revision;
+            if (typeof revision !== 'string' || !/^[0-9a-f]{40}$/.test(revision)) {
+              throw new Error(`invalid ${id} revision`);
+            }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `${id}=${revision}\n`);
+          }
           NODE
         env:
           EXPECTED_VERSION: ${{ inputs.version }}
 
+      - name: Resolve protected source repositories
+        id: sources
+        shell: bash
+        env:
+          CORE_SOURCE_REPOSITORY: ${{ secrets.CORE_SOURCE_REPOSITORY }}
+          DEPLOYMENT_SOURCE_REPOSITORY: ${{ secrets.DEPLOYMENT_SOURCE_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          for name in CORE_SOURCE_REPOSITORY DEPLOYMENT_SOURCE_REPOSITORY; do
+            value="${!name:-}"
+            if [[ ! "$value" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+              echo "Missing or invalid protected source repository mapping: $name" >&2
+              exit 1
+            fi
+            echo "::add-mask::$value"
+          done
+          echo "core=$CORE_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          echo "deployment=$DEPLOYMENT_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+
       - name: Checkout exact Core source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          repository: mriekki/project-forge-core
+          repository: ${{ steps.sources.outputs.core }}
           ref: ${{ steps.pins.outputs.core }}
           path: .release-sources/core
           token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
           persist-credentials: false
 
-      - name: Checkout exact Deployment Kit source
+      - name: Checkout exact Deployment source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          repository: mriekki/project-forge-deployment-kit
+          repository: ${{ steps.sources.outputs.deployment }}
           ref: ${{ steps.pins.outputs.deployment }}
           path: .release-sources/deployment
           token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}

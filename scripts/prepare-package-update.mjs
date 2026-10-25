@@ -65,16 +65,15 @@ function assertCleanTracked(root, label) {
   if (status) throw new Error(`${label} has tracked working-tree changes`);
 }
 
-function assertExactAcceptedMain(root, expectedRepositories, label) {
+function assertExactAcceptedMain(root, label) {
   const resolved = path.resolve(root);
   if (!fs.existsSync(resolved)) throw new Error(`${label} checkout not found: ${resolved}`);
-  assertExpectedOrigin(resolved, expectedRepositories, label);
   assertCleanTracked(resolved, label);
   run('git', ['-C', resolved, 'fetch', '--quiet', 'origin', 'main'], { cwd: resolved, capture: false });
   const head = git(resolved, ['rev-parse', 'HEAD']);
   const main = git(resolved, ['rev-parse', 'origin/main']);
   if (head !== main) throw new Error(`${label} is not exact origin/main: HEAD ${head}, origin/main ${main}`);
-  return { root: resolved, commit: head };
+  return { root: resolved, revision: head };
 }
 
 function assertPlatformPreparationState(root) {
@@ -121,21 +120,16 @@ export function preparePackageUpdate(args, root = ROOT) {
   if (pkg.name !== '@mriekki/project-forge' || components.package !== pkg.name) {
     throw new Error('Unexpected package identity');
   }
+  if (components.schemaVersion !== 2) {
+    throw new Error('Package component provenance must use schemaVersion 2');
+  }
   if (pkg.version !== components.version || lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version) {
     throw new Error('Existing package version metadata is inconsistent');
   }
   assertVersionIncrease(pkg.version, args.version);
 
-  const core = assertExactAcceptedMain(
-    args.coreRoot,
-    ['mriekki/project-forge-core'],
-    'Project Forge Core'
-  );
-  const deployment = assertExactAcceptedMain(
-    args.deploymentRoot,
-    ['mriekki/project-forge-deployment-kit'],
-    'Project Forge Deployment Kit'
-  );
+  const core = assertExactAcceptedMain(args.coreRoot, 'Project Forge Core source');
+  const deployment = assertExactAcceptedMain(args.deploymentRoot, 'Project Forge Deployment source');
 
   const coreCompatibility = readJson(path.join(core.root, 'COMPATIBILITY.json'));
   const coreVersion = coreCompatibility.projectForgeCoreVersion;
@@ -143,9 +137,13 @@ export function preparePackageUpdate(args, root = ROOT) {
 
   const nextComponents = structuredClone(components);
   nextComponents.version = args.version;
-  nextComponents.components.core.commit = core.commit;
+  nextComponents.components.core.revision = core.revision;
   nextComponents.components.core.version = coreVersion;
-  nextComponents.components.deployment.commit = deployment.commit;
+  nextComponents.components.deployment.revision = deployment.revision;
+  for (const component of Object.values(nextComponents.components)) {
+    delete component.repository;
+    delete component.commit;
+  }
 
   const nextPackage = structuredClone(pkg);
   nextPackage.version = args.version;
@@ -178,8 +176,8 @@ export function preparePackageUpdate(args, root = ROOT) {
     package: nextPackage.name,
     fromVersion: pkg.version,
     version: args.version,
-    core: { commit: core.commit, version: coreVersion },
-    deployment: { commit: deployment.commit }
+    core: { revision: core.revision, version: coreVersion },
+    deployment: { revision: deployment.revision }
   };
 }
 
@@ -187,8 +185,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     const result = preparePackageUpdate(parseArgs(process.argv.slice(2)));
     console.log(`Prepared ${result.package} ${result.fromVersion} -> ${result.version}`);
-    console.log(`Core: ${result.core.version} ${result.core.commit}`);
-    console.log(`Deployment Kit: ${result.deployment.commit}`);
+    console.log(`Core: ${result.core.version} ${result.core.revision}`);
+    console.log(`Deployment: ${result.deployment.revision}`);
   } catch (error) {
     console.error(`Package update preparation failed: ${error.message}`);
     process.exitCode = 2;

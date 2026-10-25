@@ -27,29 +27,34 @@ function fixturePackage(temp, coreDescriptor, deploymentDescriptor, coreVersion 
   fs.writeFileSync(path.join(coreRoot, 'COMPATIBILITY.json'), JSON.stringify({ projectForgeCoreVersion: coreVersion }));
   fs.writeFileSync(path.join(deploymentRoot, 'distributions/greenfield-project.json'), JSON.stringify(deploymentDescriptor));
   fs.writeFileSync(path.join(deploymentRoot, 'src/b.txt'), 'deployment\n');
-  const coreCommit = gitRepo(coreRoot);
-  const deploymentCommit = gitRepo(deploymentRoot);
+  const coreRevision = gitRepo(coreRoot);
+  const deploymentRevision = gitRepo(deploymentRoot);
   fs.writeFileSync(path.join(packageRoot, 'package.json'), JSON.stringify({ name: '@mriekki/project-forge', version: '0.1.0' }));
   fs.writeFileSync(path.join(packageRoot, 'assets/core/distribution.json'), JSON.stringify(coreDescriptor));
   fs.writeFileSync(path.join(packageRoot, 'assets/deployment/distribution.json'), JSON.stringify(deploymentDescriptor));
   fs.writeFileSync(path.join(packageRoot, 'assets/components.json'), JSON.stringify({
+    schemaVersion: 2,
     package: '@mriekki/project-forge', version: '0.1.0', defaultProfile: 'greenfield-project', profiles: { 'greenfield-project': { components: ['core', 'deployment'] } },
     components: {
-      core: { repository: 'core', commit: coreCommit, version: coreVersion, distribution: 'greenfield-workspace', descriptor: 'assets/core/distribution.json', canonicalDescriptor: 'distributions/greenfield-workspace.json', sourceRoot: 'assets/generated/core' },
-      deployment: { repository: 'deployment', commit: deploymentCommit, distribution: 'greenfield-project', descriptor: 'assets/deployment/distribution.json', canonicalDescriptor: 'distributions/greenfield-project.json', sourceRoot: 'assets/generated/deployment' }
+      core: { revision: coreRevision, version: coreVersion, distribution: 'greenfield-workspace', descriptor: 'assets/core/distribution.json', canonicalDescriptor: 'distributions/greenfield-workspace.json', sourceRoot: 'assets/generated/core' },
+      deployment: { revision: deploymentRevision, distribution: 'greenfield-project', descriptor: 'assets/deployment/distribution.json', canonicalDescriptor: 'distributions/greenfield-project.json', sourceRoot: 'assets/generated/deployment' }
     }
   }));
   return { packageRoot, coreRoot, deploymentRoot, packageData: loadPackageData(packageRoot) };
 }
 
-test('assembly verifies exact commits/descriptors and creates a self-contained payload', () => {
+test('assembly verifies exact revisions/descriptors and creates a self-contained privacy-safe payload', () => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'project-forge-assembly-'));
   const coreDescriptor = { name: 'greenfield-workspace', mappings: [{ source: 'core/a.txt', destination: '.github/a.txt' }] };
   const deploymentDescriptor = { name: 'greenfield-project', schemaVersion: 1, mappings: [{ source: 'src/b.txt', destination: 'tools/b.txt' }] };
   const { packageRoot, coreRoot, deploymentRoot, packageData } = fixturePackage(temp, coreDescriptor, deploymentDescriptor);
   const result = assembleAssets(packageData, { core: coreRoot, deployment: deploymentRoot });
+  assert.equal(result.schemaVersion, 2);
   assert.equal(result.components.core.files.length, 1);
   assert.equal(result.components.deployment.files.length, 1);
+  assert.equal(result.components.core.revision, packageData.assets.components.core.revision);
+  assert.equal(Object.hasOwn(result.components.core, 'repository'), false);
+  assert.equal(Object.hasOwn(result.components.core, 'commit'), false);
   assert.equal(fs.readFileSync(path.join(packageRoot, 'assets/generated/core/core/a.txt'), 'utf8'), 'core\n');
   assert.equal(verifyAssets(packageData), 2);
 });
