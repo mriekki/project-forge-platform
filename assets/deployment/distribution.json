@@ -6,6 +6,8 @@
     {"source": "distribution/project-forge-deploy.py", "destination": "tools/project-forge-deployment/project-forge-deploy.py"},
     {"source": "src/project_forge_deployment/__init__.py", "destination": "tools/project-forge-deployment/project_forge_deployment/__init__.py"},
     {"source": "src/project_forge_deployment/__main__.py", "destination": "tools/project-forge-deployment/project_forge_deployment/__main__.py"},
+    {"source": "src/project_forge_deployment/access_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/access_cli.py"},
+    {"source": "src/project_forge_deployment/access_diagnosis.py", "destination": "tools/project-forge-deployment/project_forge_deployment/access_diagnosis.py"},
     {"source": "src/project_forge_deployment/app_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/app_cli.py"},
     {"source": "src/project_forge_deployment/app_deployment.py", "destination": "tools/project-forge-deployment/project_forge_deployment/app_deployment.py"},
     {"source": "src/project_forge_deployment/app_runtime.py", "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime.py"},
