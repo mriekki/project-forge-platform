@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/contracts/v12/USER_PROFILE.schema.json",
+  "title": "Project Forge Developer Profile",
+  "description": "Small user-specific profile appended after the canonical Project Forge instruction in ChatGPT Project instructions. Use it only for identity, local environment, and learning preferences. Never use this as Project state and never store secrets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "githubOwner"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "githubOwner": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$"
+    },
+    "operatingSystem": {
+      "enum": [
+        "windows",
+        "macos",
+        "linux",
+        "other"
+      ]
+    },
+    "shell": {
+      "enum": [
+        "powershell",
+        "bash",
+        "zsh",
+        "other"
+      ]
+    },
+    "editor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "workspaceRoot": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 260
+    },
+    "learningEmphasis": {
+      "enum": [
+        "minimal",
+        "normal",
+        "strong"
+      ]
+    },
+    "contractChannel": {
+      "const": "stable"
+    }
+  }
+}
