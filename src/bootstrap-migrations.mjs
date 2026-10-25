@@ -15,14 +15,19 @@ export function gitBlobSha(data) {
   return crypto.createHash('sha1').update(header).update(buffer).digest('hex');
 }
 
-function safeConsumerPath(root, relative) {
-  if (typeof relative !== 'string' || !relative || path.isAbsolute(relative)) {
-    throw new Error(`Unsafe Bootstrap migration destination: ${relative}`);
+function safeRelative(value, label) {
+  if (typeof value !== 'string' || !value || path.isAbsolute(value)) {
+    throw new Error(`Unsafe ${label}: ${value}`);
   }
-  const normalized = relative.replaceAll('\\', '/');
+  const normalized = value.replaceAll('\\', '/');
   if (normalized.split('/').some((part) => !part || part === '.' || part === '..')) {
-    throw new Error(`Unsafe Bootstrap migration destination: ${relative}`);
+    throw new Error(`Unsafe ${label}: ${value}`);
   }
+  return normalized;
+}
+
+function safeConsumerPath(root, relative) {
+  const normalized = safeRelative(relative, 'Bootstrap migration destination');
   const resolvedRoot = path.resolve(root);
   const resolved = path.resolve(resolvedRoot, ...normalized.split('/'));
   if (resolved !== resolvedRoot && !resolved.startsWith(`${resolvedRoot}${path.sep}`)) {
@@ -37,16 +42,21 @@ function loadManifest(packageData) {
   if (manifest.schemaVersion !== 1 || manifest.owner !== 'bootstrap') {
     throw new Error('Invalid Bootstrap migration manifest ownership/schema');
   }
+  if (manifest.source?.component !== 'bootstrap') {
+    throw new Error('Invalid Bootstrap migration logical source component');
+  }
   if (!/^[0-9a-f]{40}$/.test(manifest.source?.revision ?? '')) {
     throw new Error('Invalid Bootstrap migration source revision');
   }
+  safeRelative(manifest.source?.artifact, 'Bootstrap migration source artifact');
   if (!/^[0-9a-f]{40}$/.test(manifest.targetGitBlob ?? '')) {
     throw new Error('Invalid Bootstrap migration target Git blob');
   }
   if (!Array.isArray(manifest.supportedPredecessorGitBlobs) || !manifest.supportedPredecessorGitBlobs.every((value) => /^[0-9a-f]{40}$/.test(value))) {
     throw new Error('Invalid Bootstrap migration predecessor identities');
   }
-  const asset = path.join(packageData.root, ...manifest.asset.split('/'));
+  const assetRelative = safeRelative(manifest.asset, 'Bootstrap migration bundled asset');
+  const asset = path.join(packageData.root, ...assetRelative.split('/'));
   const bytes = fs.readFileSync(asset);
   if (gitBlobSha(bytes) !== manifest.targetGitBlob) {
     throw new Error('Bundled Bootstrap migration asset identity does not match its manifest');
