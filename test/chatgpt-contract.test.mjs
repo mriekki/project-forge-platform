@@ -9,6 +9,15 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const predecessorUpper = ['P', 'OC'].join('');
 const predecessorLower = predecessorUpper.toLowerCase();
+const requiredDocuments = [
+  'ADMIN.md',
+  'EXISTING_PROJECT.md',
+  'NEW_PROJECT.md',
+  'ONBOARDING.md',
+  'PROJECT_INSTRUCTIONS.md',
+  'PROJECT_RULES.md',
+  'USER_PROFILE.schema.json',
+];
 
 async function text(relative) {
   return readFile(path.join(root, relative), 'utf8');
@@ -32,16 +41,20 @@ function contractPath(value, name) {
   return `${value.snapshotPath}/${name}`;
 }
 
-test('public ChatGPT descriptor resolves immutable Project Forge contract v10', async () => {
+test('public ChatGPT descriptor resolves immutable Project Forge contract v11', async () => {
   const value = await descriptor();
   assert.equal(value.schemaVersion, 1);
   assert.equal(value.channel, 'stable');
-  assert.equal(value.contractVersion, 10);
-  assert.equal(value.snapshotPath, 'chatgpt/contracts/v10');
-  assert.equal(value.documents.length, 7);
+  assert.equal(value.contractVersion, 11);
+  assert.equal(value.snapshotPath, 'chatgpt/contracts/v11');
+  assert.deepEqual(value.documents.map((item) => path.basename(item.path)), requiredDocuments);
 
+  const seen = new Set();
   for (const document of value.documents) {
     assert.ok(document.path.startsWith(`${value.snapshotPath}/`));
+    assert.match(document.sha256, /^[0-9a-f]{64}$/);
+    assert.equal(seen.has(document.path), false, `duplicate document ${document.path}`);
+    seen.add(document.path);
     const digest = createHash('sha256').update(canonicalGitBlob(document.path)).digest('hex');
     assert.equal(digest, document.sha256, document.path);
   }
@@ -49,35 +62,49 @@ test('public ChatGPT descriptor resolves immutable Project Forge contract v10', 
 
 test('descriptor records exact canonical Project Forge provenance', async () => {
   const value = await descriptor();
+
   assert.equal(value.sourceProvenance.core.repository, 'mriekki/project-forge-core');
   assert.equal(value.sourceProvenance.core.commit, 'd106b1834a8c44bdae0b16e4af5d8dab0711a120');
+
   assert.equal(value.sourceProvenance.bootstrap.repository, 'mriekki/project-forge-bootstrap');
-  assert.equal(value.sourceProvenance.bootstrap.commit, 'fc1e62f2b5d19473f79d2b89d07cbf9c4079aa90');
+  assert.equal(value.sourceProvenance.bootstrap.commit, 'ea12cca2649d420d12656b87a4377c3e251dfc18');
+  assert.equal(
+    value.sourceProvenance.bootstrap.sources.find((item) => item.path === 'tools/generation_pipeline.py')?.blobSha,
+    'd1da5cc1dd1a970ddb87661a1d62854317a9a222',
+  );
+  assert.equal(
+    value.sourceProvenance.bootstrap.sources.find((item) => item.path === 'tests/test_workspace_welcome.py')?.blobSha,
+    '47da895a6850838750816bb410c549deb53f1695',
+  );
+
   assert.equal(value.sourceProvenance.controlPlane.repository, 'mriekki/project-forge-control-plane');
-  assert.equal(value.sourceProvenance.controlPlane.commit, 'ae5ff862bd5b3bfddf632aa7395a1de4d295451b');
+  assert.equal(value.sourceProvenance.controlPlane.commit, '12c2486889518c47f937eab4e0c0d531dd7a251d');
+  assert.equal(
+    value.sourceProvenance.controlPlane.sources.find((item) => item.path === 'docs/SETUP.md')?.blobSha,
+    '7828981c81610860d653d583cce2dcf638014218',
+  );
+  assert.equal(
+    value.sourceProvenance.controlPlane.sources.find((item) => item.path === 'tools/onboarding_portal.py')?.blobSha,
+    '4197e4c063a7233b6a335f5164d6a8bdec89a7c1',
+  );
+  assert.equal(
+    value.sourceProvenance.controlPlane.sources.find((item) => item.path === 'tools/public_contract.py')?.blobSha,
+    '157b9f4cccdcb0261ae7ef40f15c437cdd2e3a33',
+  );
 
   for (const key of ['core', 'bootstrap', 'controlPlane']) {
     assert.match(value.sourceProvenance[key].commit, /^[0-9a-f]{40}$/);
     assert.ok(value.sourceProvenance[key].sources.every((item) => /^[0-9a-f]{40}$/.test(item.blobSha)));
   }
+});
 
-  assert.ok(value.sourceProvenance.bootstrap.sources.some((item) => item.path === 'docs/PROJECT_DOCUMENTATION.md'));
-  assert.ok(value.sourceProvenance.bootstrap.sources.some((item) => item.path === 'docs/IMPORT_PROJECT_INPUT.md'));
-  assert.ok(value.sourceProvenance.bootstrap.sources.some((item) => item.path === 'docs/discovery/INITIAL_WORK_ITEM_PLANNING.md'));
-
-  const generateWorkflow = value.sourceProvenance.controlPlane.sources.find((item) => item.path === '.github/workflows/generate-project.yml');
-  assert.equal(generateWorkflow?.blobSha, 'c8bb866cc823889dccdc3deab680dc4f5526d67c');
-  const setupGuide = value.sourceProvenance.controlPlane.sources.find((item) => item.path === 'docs/SETUP.md');
-  assert.equal(setupGuide?.blobSha, '113eb5bce7d171e44742e563f6ecd53abb74e49e');
-  const contractResolver = value.sourceProvenance.controlPlane.sources.find((item) => item.path === 'tools/project_forge_contract.py');
-  assert.equal(contractResolver?.blobSha, '6849c49c9c89fcbce09a0d1b9905a6f02c062d89');
-
+test('generation uses the merged Bootstrap welcome revision without an npm bump', async () => {
+  const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
   assert.equal(value.generation.bootstrap.repository, 'mriekki/project-forge-bootstrap');
-  assert.equal(value.generation.bootstrap.commit, '3df0c8847acff9acc58c4d74bb1c5f3cd6dfc8bd');
+  assert.equal(value.generation.bootstrap.commit, 'ea12cca2649d420d12656b87a4377c3e251dfc18');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 12);
-  assert.notEqual(value.generation.bootstrap.commit, value.sourceProvenance.bootstrap.commit);
   assert.equal(value.generation.package, '@mriekki/project-forge');
   assert.equal(value.generation.packageVersion, '4.4.2');
   assert.equal(value.generation.profile, 'greenfield-project');
@@ -85,7 +112,7 @@ test('descriptor records exact canonical Project Forge provenance', async () => 
   assert.equal(value.bootstrapUrl, 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json');
 });
 
-test('stable generation contract distinguishes mutable Bootstrap pin from snapshot provenance', async () => {
+test('stable generation contract preserves the Bootstrap pin boundary', async () => {
   const value = await descriptor();
   const newProject = await text(contractPath(value, 'NEW_PROJECT.md'));
 
@@ -159,6 +186,28 @@ test('public contract makes repositories authoritative instead of legacy handoff
   assert.match(joined, /authoritative current state/i);
 });
 
+test('public contract makes one canonical instruction plus one personal profile explicit', async () => {
+  const value = await descriptor();
+  const onboarding = await text(contractPath(value, 'ONBOARDING.md'));
+  const instructions = await text(contractPath(value, 'PROJECT_INSTRUCTIONS.md'));
+  const schema = JSON.parse(await text(contractPath(value, 'USER_PROFILE.schema.json')));
+
+  assert.match(onboarding, /Every Builder uses the same canonical Project Forge Project instruction/);
+  assert.match(onboarding, /same ChatGPT Project instructions field/);
+  assert.match(onboarding, /Developer Profile is the only Builder-specific part/);
+  assert.match(onboarding, /Verify my Project Forge setup\./);
+  assert.match(instructions, /Use the Developer Profile in this ChatGPT Project only for identity/);
+
+  assert.equal(schema.title, 'Project Forge Developer Profile');
+  assert.equal(schema.additionalProperties, false);
+  assert.deepEqual(schema.required, ['schemaVersion', 'githubOwner']);
+  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v11/);
+
+  for (const forbidden of ['password', 'token', 'secret', `${predecessorLower}State`, 'projectState', 'workItem', 'commitSha']) {
+    assert.equal(Object.hasOwn(schema.properties, forbidden), false);
+  }
+});
+
 test('public contract carries current bounded-decision and work-item guidance', async () => {
   const value = await descriptor();
   const newProject = await text(contractPath(value, 'NEW_PROJECT.md'));
@@ -195,19 +244,6 @@ test('control-plane command descriptor matches the current public contract', asy
   assert.equal(value.controlPlane.acceptCommand, '/accept-project-forge');
   assert.equal(value.controlPlane.declineCommand, '/decline-project-forge');
   assert.equal(value.controlPlane.doctorCommand, '/project-forge-doctor');
-});
-
-test('developer profile remains small, secret-free, and not Project state', async () => {
-  const value = await descriptor();
-  const schema = JSON.parse(await text(contractPath(value, 'USER_PROFILE.schema.json')));
-  assert.equal(schema.title, 'Project Forge Developer Profile');
-  assert.equal(schema.additionalProperties, false);
-  assert.deepEqual(schema.required, ['schemaVersion', 'githubOwner']);
-  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v10/);
-
-  for (const forbidden of ['password', 'token', 'secret', `${predecessorLower}State`, 'projectState', 'workItem', 'commitSha']) {
-    assert.equal(Object.hasOwn(schema.properties, forbidden), false);
-  }
 });
 
 test('active public Builder pages use current Project Forge onboarding vocabulary', async () => {
