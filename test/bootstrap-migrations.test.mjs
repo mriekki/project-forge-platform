@@ -61,13 +61,14 @@ test('package-only consumer without PROJECT_BOOTSTRAP is outside Bootstrap migra
   assert.deepEqual(planBootstrapMigrations(packageData, root), { rows: [], unsafe: [] });
 });
 
-test('bundled migration asset records exact Bootstrap provenance and identity', () => {
+test('bundled migration asset records exact privacy-safe Bootstrap provenance and identity', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/managed-baseline-verifier/manifest.json'), 'utf8'));
   const asset = fs.readFileSync(path.join(ROOT, manifest.asset));
   assert.equal(manifest.owner, 'bootstrap');
-  assert.equal(manifest.source.repository, 'mriekki/project-forge-bootstrap');
+  assert.equal(manifest.source.component, 'bootstrap');
   assert.equal(manifest.source.revision, 'b5a83729d211e0492be5368ff7f1e59b63986419');
-  assert.equal(manifest.source.path, 'migration-assets/package-workspace/check-managed-baselines.py');
+  assert.equal(manifest.source.artifact, 'migration-assets/package-workspace/check-managed-baselines.py');
+  assert.equal(Object.hasOwn(manifest.source, 'repository'), false);
   assert.equal(manifest.targetGitBlob, TARGET_BLOB);
   assert(manifest.supportedPredecessorGitBlobs.includes(OLD_BLOB));
   assert.equal(gitBlobSha(asset), TARGET_BLOB);
