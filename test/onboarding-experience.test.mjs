@@ -6,17 +6,16 @@ async function text(path) {
   return readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 }
 
-test('welcome page leads with a static visual lifecycle infographic', async () => {
+test('welcome page leads with the approved static infographic without duplicating the lifecycle Mermaid', async () => {
   const welcome = await text('WELCOME.md');
-  const svg = await text('docs/images/project-forge-overview.svg');
-  const imageIndex = welcome.indexOf('docs/images/project-forge-overview.svg');
-  const mermaidIndex = welcome.indexOf('```mermaid');
+  const imageIndex = welcome.indexOf('docs/images/project-forge-welcome.jpg');
+  const mermaidCount = (welcome.match(/```mermaid/g) || []).length;
 
-  assert.ok(imageIndex >= 0, 'WELCOME.md must reference the static infographic');
-  assert.ok(mermaidIndex > imageIndex, 'static infographic must appear before Mermaid');
-  assert.match(svg, /Project Forge lifecycle overview/);
-  assert.match(svg, /HUMAN CONTROL/);
-  assert.match(svg, /DEPLOY WHEN READY/);
+  assert.ok(imageIndex >= 0, 'WELCOME.md must reference the approved static infographic');
+  assert.equal(mermaidCount, 1, 'WELCOME.md should keep only the non-duplicative human-control Mermaid');
+  assert.match(welcome, /AI handles mechanics; humans retain engineering authority/);
+  assert.doesNotMatch(welcome, /Project Forge at a glance/);
+  assert.doesNotMatch(welcome, /project-forge-overview\.svg/);
   assert.doesNotMatch(welcome, /\bMark\b|\bKyle\b/);
   assert.doesNotMatch(welcome, /\b[a-f0-9]{40}\b/i);
   assert.doesNotMatch(welcome, /sourceProvenance/);

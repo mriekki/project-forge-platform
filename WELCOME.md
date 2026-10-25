@@ -3,25 +3,12 @@
 **Build real software. Learn the engineering behind it.**
 
 <p align="center">
-  <img src="docs/images/project-forge-overview.svg" alt="Project Forge lifecycle: idea, define and approve, generate, set up, build and deliver, then deploy when ready — with human control over meaningful decisions." width="100%">
+  <img src="docs/images/project-forge-welcome.jpg" alt="Project Forge overview showing the journey from an idea through planning, GitHub repository generation, AI-assisted development, delivery, learning, and controlled deployment." width="100%">
 </p>
 
 Project Forge is an AI-guided software development and learning platform for turning a personal software idea into a reproducible engineering project while keeping meaningful decisions under human control.
 
 The goal is not just to generate source code. Project Forge creates an engineering operating model around the project: approved scope, explicit technology choices, deterministic generation, a self-contained VS Code workspace, setup/readiness checks, CI, delivery gates, optional learning, and controlled deployment boundaries.
-
-## Project Forge at a glance
-
-The visual above is the primary lifecycle map. The Mermaid version below is kept as an accessible text-native companion for environments that support Mermaid rendering.
-
-```mermaid
-flowchart LR
-    A["1 · New Project\nStart with an idea in ChatGPT"] --> B["2 · Define & Approve\nUsers · workflows · scope · stack · work items"]
-    B --> C["3 · Generate Repository\nApproved PROJECT_BOOTSTRAP.json\nDeterministic publication + CI"]
-    C --> D["4 · Set Up & Start Building\nClone · VS Code · setup · readiness\nHuman workspace acceptance"]
-    D --> E["5 · Build, Learn & Deliver\n/start-work · code · test · review · /deliver"]
-    E --> F["6 · Deploy When Ready\nNamed environments\nExplicit Production authorization"]
-```
 
 A typical journey is:
 
