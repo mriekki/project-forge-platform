@@ -17,15 +17,21 @@ test('welcome page leads with a static visual lifecycle infographic', async () =
   assert.match(svg, /Project Forge lifecycle overview/);
   assert.match(svg, /HUMAN CONTROL/);
   assert.match(svg, /DEPLOY WHEN READY/);
+  assert.doesNotMatch(welcome, /\bMark\b|\bKyle\b/);
+  assert.doesNotMatch(welcome, /\b[a-f0-9]{40}\b/i);
+  assert.doesNotMatch(welcome, /sourceProvenance/);
 });
 
 test('ChatGPT setup converges every Builder on one canonical instruction plus personal profile', async () => {
   const setup = await text('chatgpt/SETUP.md');
 
   assert.match(setup, /same for every Builder/i);
-  assert.match(setup, /same for Mark, Kyle, and every other Project Forge Builder/);
+  assert.match(setup, /same for every Project Forge Builder/);
   assert.match(setup, /Project Forge Developer Profile/);
   assert.match(setup, /Verify my Project Forge setup\./);
   assert.match(setup, /README welcome page/);
   assert.match(setup, /do \*\*not\*\* copy .*handoff/i);
+  assert.doesNotMatch(setup, /\bMark\b|\bKyle\b/);
+  assert.doesNotMatch(setup, /\b[a-f0-9]{40}\b/i);
+  assert.doesNotMatch(setup, /sourceProvenance/);
 });
