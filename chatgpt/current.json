@@ -47,7 +47,7 @@
   "generation": {
     "manifestFilename": "PROJECT_BOOTSTRAP.json",
     "bootstrap": {
-      "revision": "62e0bdaa6d9cbc18b5c19a4e2e87e194cc9f3b0a",
+      "revision": "49d8414c157ebefefec3562bade5966b69d6e357",
       "protocolVersion": 12,
       "catalogVersion": 12
     },
