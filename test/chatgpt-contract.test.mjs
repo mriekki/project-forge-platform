@@ -69,7 +69,7 @@ test('descriptor keeps private foundational source topology out of the public co
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'repository'), false);
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'commit'), false);
   assert.match(value.generation.bootstrap.revision, /^[0-9a-f]{40}$/);
-  assert.equal(value.generation.bootstrap.revision, '62e0bdaa6d9cbc18b5c19a4e2e87e194cc9f3b0a');
+  assert.equal(value.generation.bootstrap.revision, '49d8414c157ebefefec3562bade5966b69d6e357');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 12);
 });
@@ -77,7 +77,7 @@ test('descriptor keeps private foundational source topology out of the public co
 test('generation aligns the published package with the accepted Bootstrap revision', async () => {
   const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
-  assert.equal(value.generation.bootstrap.revision, '62e0bdaa6d9cbc18b5c19a4e2e87e194cc9f3b0a');
+  assert.equal(value.generation.bootstrap.revision, '49d8414c157ebefefec3562bade5966b69d6e357');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 12);
   assert.equal(value.generation.package, '@mriekki/project-forge');
