@@ -2,22 +2,26 @@
 
 **Build real software. Learn the engineering behind it.**
 
+<p align="center">
+  <img src="docs/images/project-forge-overview.svg" alt="Project Forge lifecycle: idea, define and approve, generate, set up, build and deliver, then deploy when ready — with human control over meaningful decisions." width="100%">
+</p>
+
 Project Forge is an AI-guided software development and learning platform for turning a personal software idea into a reproducible engineering project while keeping meaningful decisions under human control.
 
 The goal is not just to generate source code. Project Forge creates an engineering operating model around the project: approved scope, explicit technology choices, deterministic generation, a self-contained VS Code workspace, setup/readiness checks, CI, delivery gates, optional learning, and controlled deployment boundaries.
 
 ## Project Forge at a glance
 
+The visual above is the primary lifecycle map. The Mermaid version below is kept as an accessible text-native companion for environments that support Mermaid rendering.
+
 ```mermaid
 flowchart LR
     A["1 · New Project\nStart with an idea in ChatGPT"] --> B["2 · Define & Approve\nUsers · workflows · scope · stack · work items"]
     B --> C["3 · Generate Repository\nApproved PROJECT_BOOTSTRAP.json\nDeterministic publication + CI"]
-    C --> D["4 · Set Up & Start Building\nClone · VS Code · setup · doctor\nHuman workspace acceptance"]
+    C --> D["4 · Set Up & Start Building\nClone · VS Code · setup · readiness\nHuman workspace acceptance"]
     D --> E["5 · Build, Learn & Deliver\n/start-work · code · test · review · /deliver"]
-    E --> F["6 · Deploy When Ready\nLocal → Staging → Production\nExplicit Production authorization"]
+    E --> F["6 · Deploy When Ready\nNamed environments\nExplicit Production authorization"]
 ```
-
-The full visual concept is the same one used in the Project Forge integrated briefing: conversation and judgment where they help, deterministic tooling where reproducibility and safety matter, and explicit human gates where consequences are meaningful.
 
 A typical journey is:
 
@@ -29,8 +33,8 @@ idea
 → approved PROJECT_BOOTSTRAP.json + Work Items
 → deterministic private GitHub Project repository generation
 → generated development workspace
-→ setup + doctor + human workspace acceptance
-→ small Work Items
+→ setup + readiness + human workspace acceptance
+→ bounded Work Items
 → implementation + tests
 → meaningful review + pull-request delivery
 → optional learning/coaching
@@ -110,7 +114,7 @@ READY FOR PROJECT FORGE
 
 ## Configure ChatGPT once
 
-Follow [`chatgpt/SETUP.md`](chatgpt/SETUP.md). It installs only a small persistent Project Forge instruction and Developer Profile; it does not copy durable Project state into ChatGPT.
+Follow [`chatgpt/SETUP.md`](chatgpt/SETUP.md). Every Builder uses the same canonical Project Forge Project instruction; only the personal Developer Profile differs.
 
 Then start with:
 
