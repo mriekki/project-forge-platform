@@ -3,6 +3,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
+import { applyBootstrapMigrations, planBootstrapMigrations } from './bootstrap-migrations.mjs';
 import { applyProfile, checkProfile, loadProjectForgeBaseline, planProfile } from './engine.mjs';
 import { loadPackageData } from './package-data.mjs';
 
@@ -43,15 +44,20 @@ function inferConsumer(root) {
   return path.basename(root);
 }
 
-function printPlan(plan) {
+function printPlan(plan, bootstrapMigrations = { rows: [], unsafe: [] }) {
   console.log(`Project Forge profile: ${plan.profileName}`);
+  if (bootstrapMigrations.rows.length) {
+    console.log('\nBOOTSTRAP MIGRATIONS');
+    for (const row of bootstrapMigrations.rows) console.log(`${row.state.padEnd(30)} ${row.path}`);
+  }
   for (const component of plan.plans) {
     console.log(`\n${component.componentId.toUpperCase()} ${component.component.commit}`);
     for (const row of component.rows) console.log(`${row.state.padEnd(20)} ${row.path}`);
     for (const retired of component.retired) console.log(`${retired.state.padEnd(20)} ${retired.path}`);
   }
-  console.log(`\nUnsafe drift/conflicts: ${plan.unsafe.length}`);
-  for (const item of plan.unsafe) console.log(`  - ${item.component}: ${item.state}: ${item.path}`);
+  const unsafe = [...bootstrapMigrations.unsafe, ...plan.unsafe];
+  console.log(`\nUnsafe drift/conflicts: ${unsafe.length}`);
+  for (const item of unsafe) console.log(`  - ${item.owner ?? item.component}: ${item.state}: ${item.path}${item.detail ? ` — ${item.detail}` : ''}`);
 }
 
 async function shouldApply(options) {
@@ -113,13 +119,17 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
 
   if (command === 'check') {
     const result = checkProfile(packageData, profile, root);
+    const bootstrapMigrations = planBootstrapMigrations(packageData, root);
+    const bootstrapCurrent = bootstrapMigrations.rows.length === 0 && bootstrapMigrations.unsafe.length === 0;
     console.log(`Project Forge package baseline current: ${result.projectForgeCurrent ? 'yes' : 'no'}`);
+    console.log(`Bootstrap generated verifier: ${bootstrapCurrent ? 'PASS' : 'STALE OR UNSUPPORTED'}`);
     for (const component of result.plan.plans) {
       const clean = component.metadataCurrent && component.rows.every((row) => row.state === 'SAME') && component.retired.length === 0;
       console.log(`${component.componentId}: ${clean ? 'PASS' : 'STALE OR DRIFTED'}`);
     }
-    console.log(`Project Forge check: ${result.clean ? 'PASS' : 'STALE OR DRIFTED'}`);
-    return result.clean ? 0 : 1;
+    const clean = result.clean && bootstrapCurrent;
+    console.log(`Project Forge check: ${clean ? 'PASS' : 'STALE OR DRIFTED'}`);
+    return clean ? 0 : 1;
   }
 
   if (!['install', 'update'].includes(command)) throw new Error(`Unknown command: ${command}`);
@@ -127,10 +137,11 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
   if (command === 'update' && !Object.keys(installed).length) throw new Error('PROJECT_FORGE_BASELINE.json is missing; use install first');
   if (installed.profile && installed.profile !== profile) throw new Error(`Installed Project Forge profile is ${installed.profile}; refusing implicit profile change to ${profile}`);
 
+  const bootstrapMigrations = planBootstrapMigrations(packageData, root);
   const plan = planProfile(packageData, profile, root, options.acceptedRetired);
-  printPlan(plan);
-  if (plan.unsafe.length) {
-    console.log('\nRefusing apply. Resolve drift/conflicts and preview again. No managed files were changed.');
+  printPlan(plan, bootstrapMigrations);
+  if (plan.unsafe.length || bootstrapMigrations.unsafe.length) {
+    console.log('\nRefusing apply. Resolve drift/conflicts or the unsupported Bootstrap migration and preview again. No managed files were changed.');
     return 2;
   }
   const apply = await shouldApply(options);
@@ -144,6 +155,7 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
   if (baselineLabels.length > 1) throw new Error(`Component baselines disagree on consumer baseline: ${baselineLabels.join(', ')}`);
   const consumer = options.consumer ?? installed.consumer ?? baselineConsumers[0] ?? inferConsumer(root);
   const consumerBaseline = options.consumerBaseline ?? installed.consumerBaseline ?? baselineLabels[0] ?? `${packageData.pkg.name}@${packageData.pkg.version}`;
+  applyBootstrapMigrations(packageData, bootstrapMigrations, root);
   applyProfile(packageData, plan, root, consumer, consumerBaseline);
   console.log(`\nProject Forge ${command}: PASS (${packageData.pkg.name}@${packageData.pkg.version})`);
   return 0;
