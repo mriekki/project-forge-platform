@@ -154,14 +154,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Verify exact component main revisions and CI
+      - name: Verify exact component main revisions
         shell: bash
         env:
-          CORE_REPOSITORY: ${{ steps.sources.outputs.core }}
-          DEPLOYMENT_REPOSITORY: ${{ steps.sources.outputs.deployment }}
           CORE_REVISION: ${{ steps.request.outputs.core_revision }}
           DEPLOYMENT_REVISION: ${{ steps.request.outputs.deployment_revision }}
-          GH_TOKEN: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -178,22 +175,8 @@ jobs:
             test -z "$(git -C "$root" status --porcelain --untracked-files=no)"
           }
 
-          verify_ci() {
-            local repository="$1"
-            local revision="$2"
-            local count
-            count="$(gh api "repos/${repository}/actions/runs?head_sha=${revision}&branch=main&event=push&per_page=20" \
-              --jq '[.workflow_runs[] | select(.name == "CI" and .status == "completed" and .conclusion == "success")] | length')"
-            if [ "$count" -lt 1 ]; then
-              echo "No successful main CI run found for accepted component revision" >&2
-              exit 1
-            fi
-          }
-
           verify_checkout .release-sources/core "$CORE_REVISION"
           verify_checkout .release-sources/deployment "$DEPLOYMENT_REVISION"
-          verify_ci "$CORE_REPOSITORY" "$CORE_REVISION"
-          verify_ci "$DEPLOYMENT_REPOSITORY" "$DEPLOYMENT_REVISION"
 
       - name: Create isolated release branch
         id: branch

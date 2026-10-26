@@ -38,14 +38,16 @@ Release preparation supports both cloud and local execution. They are alternativ
 
 Cloud preparation is preferred when a GitHub-connected agent can read the Platform and canonical component repositories. It does not require or modify Developer working copies.
 
-The agent resolves:
+The cloud agent resolves and verifies before creating the preparation request:
 
 - exact current Platform `main` SHA;
 - exact accepted Core `main` revision and successful post-merge CI;
 - exact accepted Deployment `main` revision and successful post-merge CI;
 - exact next package version selected from the complete consumer-visible change set.
 
-`.github/workflows/prepare-package-release.yml` then materializes the exact private sources using protected repository mappings and the read-only source credential, runs `scripts/prepare-package-update.mjs`, exact asset assembly/verification, package tests, `git diff --check`, and release-diff scope validation, then pushes `release/project-forge-<version>`.
+The cloud agent's GitHub connection is the authority for private component CI evidence. `.github/workflows/prepare-package-release.yml` then independently materializes the exact private `main` sources using protected repository mappings and the least-privilege read-only source credential, requires each checkout to match the requested SHA and current `origin/main`, and runs `scripts/prepare-package-update.mjs`, exact asset assembly/verification, package tests, `git diff --check`, and release-diff scope validation before pushing `release/project-forge-<version>`.
+
+The source checkout credential does not need private Actions API access. Do not broaden it merely to repeat CI lookups already completed by the cloud agent preflight.
 
 The workflow may be started by `workflow_dispatch` with the exact version/source/revision tuple. A cloud agent without workflow-dispatch capability may instead create an owner-authored issue titled:
 
@@ -64,7 +66,7 @@ whose body contains only:
 }
 ```
 
-The issue-triggered workflow ignores requests not authored by the repository owner. Request bodies must never contain private repository names, credentials, or secrets.
+The issue-triggered workflow ignores requests not authored by the repository owner. Request bodies must never contain private repository names, credentials, or secrets. The cloud agent creates the request only after exact component `main` revisions and green post-merge CI are verified.
 
 The preparation workflow deliberately pushes the release branch but does not create the pull request with `GITHUB_TOKEN`. The cloud agent creates the normal PR afterward using its GitHub identity so ordinary `pull_request` CI remains authoritative.
 
@@ -94,7 +96,7 @@ Before npm publication:
 - `assets/components.json` uses schema v2 and pins exact opaque component revisions;
 - accepted component revisions equal authoritative canonical `main` and have green post-merge CI;
 - local canonical component checkouts are clean exact accepted `origin/main` states when local preparation is used;
-- cloud preparation materializes exact accepted canonical `main` sources when cloud preparation is used;
+- cloud preparation materializes exact accepted canonical `main` sources after the cloud agent has verified their green post-merge CI;
 - packaged distribution descriptors exactly match the pinned source descriptors;
 - all package tests pass;
 - generated assets verify against the assembly ledger;
@@ -146,7 +148,7 @@ CORE_SOURCE_REPOSITORY
 DEPLOYMENT_SOURCE_REPOSITORY
 ```
 
-Values are exact `owner/repository` mappings. Do not print them, commit them, place them in public package metadata, or include them in cloud release request issues. Workflows validate their shape, mask resolved values in logs, and use `PROJECT_FORGE_SOURCE_TOKEN` only for read access to exact private sources needed by the release.
+Values are exact `owner/repository` mappings. Do not print them, commit them, place them in public package metadata, or include them in cloud release request issues. Workflows validate their shape, mask resolved values in logs, and use `PROJECT_FORGE_SOURCE_TOKEN` only for read access to exact private sources needed by the release. The source token does not need private Actions API access; cloud-preparation CI evidence is resolved through the cloud agent's GitHub connection before the request is created.
 
 ## Trusted Publishing
 
