@@ -43,8 +43,10 @@ In cloud mode, use GitHub repository state directly:
 
 - resolve canonical `main` HEAD;
 - require the selected revision to equal that exact `main` HEAD;
-- require configured post-merge CI for that exact revision to have completed successfully;
+- require configured post-merge CI for that exact revision to have completed successfully before creating the cloud preparation request;
 - read canonical version metadata when the component defines one.
+
+The cloud agent's GitHub connection is the CI-evidence authority for private components. The cloud executor re-verifies the exact source revisions against canonical `origin/main`, but its least-privilege source checkout credential does not need private Actions API access.
 
 In local mode:
 
@@ -108,17 +110,21 @@ Before starting the cloud executor, require:
 - exact accepted Deployment `main` revision and green CI;
 - exact next package version selected under Section 3.
 
+Do not create or dispatch a cloud preparation request until those CI checks are complete and green. This preflight is performed through the cloud agent's GitHub connection, not through `PROJECT_FORGE_SOURCE_TOKEN`.
+
 The cloud executor is `.github/workflows/prepare-package-release.yml`. It accepts only the exact version/source/revision tuple and independently:
 
 1. requires the Platform checkout to equal current `origin/main` and the authorized source SHA;
 2. refuses an already-published version;
 3. resolves private source repositories only from protected mappings;
 4. checks out canonical Core and Deployment `main` with the protected read-only source credential;
-5. requires each checkout to equal the authorized exact revision and requires green main CI for it;
+5. requires each checkout to equal both the authorized exact revision and current canonical `origin/main`, with a clean tracked tree;
 6. creates a new `release/project-forge-<version>` branch from the exact Platform source;
 7. runs `scripts/prepare-package-update.mjs`, exact asset assembly/verification, `npm test`, `git diff --check`, and release-diff scope validation;
 8. commits and pushes the prepared release branch;
 9. never publishes npm and never changes stable contract pointers.
+
+`PROJECT_FORGE_SOURCE_TOKEN` is a least-privilege private-source checkout credential. Do not require or broaden it merely to read private Actions/CI APIs; CI evidence is resolved before request creation by the cloud agent.
 
 A cloud runtime that can dispatch workflows may invoke `prepare-package-release.yml` directly with `version`, `source_commit`, `core_revision`, and `deployment_revision`.
 
@@ -139,7 +145,7 @@ and body containing **only** this public-safe JSON shape:
 }
 ```
 
-The workflow must ignore issue-triggered requests not authored by the repository owner. The request must never contain private repository names, credentials, or other secrets.
+The workflow must ignore issue-triggered requests not authored by the repository owner. The request must never contain private repository names, credentials, or other secrets. The cloud agent may create this issue only after the exact private component `main` revisions and their green CI have been verified.
 
 After the cloud workflow pushes the release branch, the cloud agent must create the normal pull request to `main` using its GitHub identity and observe PR CI. The workflow intentionally does not create the PR with `GITHUB_TOKEN`, so the ordinary `pull_request` CI trigger remains authoritative.
 
@@ -201,7 +207,7 @@ CORE_SOURCE_REPOSITORY
 DEPLOYMENT_SOURCE_REPOSITORY
 ```
 
-These protected source-repository mappings must contain exact `owner/repository` values. Workflows validate and mask them. They use `PROJECT_FORGE_SOURCE_TOKEN` only for read access to exact private sources.
+These protected source-repository mappings must contain exact `owner/repository` values. Workflows validate and mask them. They use `PROJECT_FORGE_SOURCE_TOKEN` only for read access to exact private sources. Cloud-preparation CI evidence is read by the cloud agent through its GitHub connection before the preparation request; source-token Actions API access is not required.
 
 Normal publication uses `.github/workflows/npm-publish.yml` with npm Trusted Publishing (OIDC) and direct `npm publish`. No long-lived npm publish token is used.
 
