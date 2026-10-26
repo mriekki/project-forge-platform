@@ -35,9 +35,9 @@ jobs:
           npm test
           node scripts/check-chatgpt-contract-alignment.mjs
 
-          node <<'NODE'
-          const crypto = require('node:crypto');
-          const fs = require('node:fs');
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { readFileSync } from 'node:fs';
 
           const descriptorUrl = 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json';
           const platformBaseUrl = 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/';
@@ -55,7 +55,7 @@ jobs:
             return Buffer.from(await response.arrayBuffer());
           }
 
-          const localDescriptor = fs.readFileSync('chatgpt/current.json');
+          const localDescriptor = readFileSync('chatgpt/current.json');
           const liveDescriptorBytes = await fetchBytes(descriptorUrl);
           if (!liveDescriptorBytes.equals(localDescriptor)) {
             throw new Error('Live stable descriptor does not match checked-out main');
@@ -80,7 +80,7 @@ jobs:
               throw new Error('Live stable descriptor contains an invalid document pin');
             }
             const bytes = await fetchBytes(platformBaseUrl + document.path);
-            const digest = crypto.createHash('sha256').update(bytes).digest('hex');
+            const digest = createHash('sha256').update(bytes).digest('hex');
             if (digest !== document.sha256) {
               throw new Error(`Live immutable contract hash mismatch: ${document.path}`);
             }
