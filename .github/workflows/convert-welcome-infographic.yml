@@ -15,34 +15,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install image conversion tooling
+      - name: Install image tooling
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y imagemagick
+          sudo apt-get install -y imagemagick ffmpeg
 
-      - name: Inspect source image
+      - name: Inspect damaged source image
         shell: bash
         run: |
           set -euo pipefail
           file docs/images/project-forge-welcome.jpg | tee /tmp/source-file.txt
-          identify docs/images/project-forge-welcome.jpg | tee /tmp/source-identify.txt
-          identify -verbose docs/images/project-forge-welcome.jpg > /tmp/source-identify-verbose.txt
+          (identify docs/images/project-forge-welcome.jpg || true) 2>&1 | tee /tmp/source-identify.txt
 
-      - name: Convert exact decoded pixels to PNG
+      - name: Recover image pixels to clean PNG
         shell: bash
         run: |
           set -euo pipefail
-          convert docs/images/project-forge-welcome.jpg \
-            -strip \
-            -colorspace sRGB \
-            docs/images/project-forge-welcome.png
+          ffmpeg -hide_banner -loglevel warning -err_detect ignore_err -y \
+            -i docs/images/project-forge-welcome.jpg \
+            -frames:v 1 \
+            -vf format=rgb24 \
+            docs/images/project-forge-welcome.png \
+            2>&1 | tee /tmp/ffmpeg.txt
           file docs/images/project-forge-welcome.png | tee /tmp/png-file.txt
           identify docs/images/project-forge-welcome.png | tee /tmp/png-identify.txt
+          identify -verbose docs/images/project-forge-welcome.png > /tmp/png-identify-verbose.txt
           sha256sum docs/images/project-forge-welcome.jpg docs/images/project-forge-welcome.png | tee /tmp/hashes.txt
 
-      - name: Upload converted PNG and diagnostics
+      - name: Upload recovered PNG and diagnostics
         uses: actions/upload-artifact@v4
         with:
           name: project-forge-welcome-png
@@ -50,8 +52,9 @@ jobs:
             docs/images/project-forge-welcome.png
             /tmp/source-file.txt
             /tmp/source-identify.txt
-            /tmp/source-identify-verbose.txt
+            /tmp/ffmpeg.txt
             /tmp/png-file.txt
             /tmp/png-identify.txt
+            /tmp/png-identify-verbose.txt
             /tmp/hashes.txt
           if-no-files-found: error
