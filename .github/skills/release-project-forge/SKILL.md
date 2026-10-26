@@ -53,7 +53,7 @@ A release is needed when **either** of these is true:
 
 Never conclude that no release is warranted solely because Core and Deployment revisions are unchanged. Platform-owned CLI, updater, packaged assets, package metadata, or shipped README changes can independently require a package release.
 
-Inspect the complete consumer-visible change set from both sources and choose the next package version automatically. Do not require the user to choose `patch`, `minor`, or `major` when the classification is clear.
+Inspect the complete consumer-visible change set from both sources. Choose the next package version automatically. Do not require the user to choose `patch`, `minor`, or `major` when the classification is clear.
 
 For 1.0.0 and later:
 
