@@ -6,18 +6,36 @@ async function text(path) {
   return readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 }
 
-test('welcome page leads with the approved static infographic without duplicating the lifecycle Mermaid', async () => {
+test('welcome page leads with a renderer-native infographic and has no static image dependency', async () => {
   const welcome = await text('WELCOME.md');
-  const imageMarkdown = '![Project Forge overview showing the journey from an idea through planning, GitHub repository generation, AI-assisted development, delivery, learning, and controlled deployment.](./docs/images/project-forge-welcome.jpg)';
-  const imageIndex = welcome.indexOf(imageMarkdown);
-  const mermaidCount = (welcome.match(/```mermaid/g) || []).length;
+  const overviewHeading = '## Project Forge at a glance';
+  const headingIndex = welcome.indexOf(overviewHeading);
+  const firstMermaidIndex = welcome.indexOf('```mermaid');
+  const descriptionIndex = welcome.indexOf('Project Forge is an AI-guided software development and learning platform');
+  const mermaidBlocks = welcome.match(/```mermaid[\s\S]*?```/g) || [];
 
-  assert.ok(imageIndex >= 0, 'WELCOME.md must use the approved relative Markdown image reference');
-  assert.doesNotMatch(welcome, /<img\b/i, 'WELCOME.md should not use raw HTML for the welcome infographic');
-  assert.equal(mermaidCount, 1, 'WELCOME.md should keep only the non-duplicative human-control Mermaid');
+  assert.ok(headingIndex >= 0, 'WELCOME.md must lead with the Project Forge at-a-glance infographic');
+  assert.ok(firstMermaidIndex > headingIndex, 'the at-a-glance infographic must be Mermaid source after its heading');
+  assert.ok(descriptionIndex > firstMermaidIndex, 'the renderer-native infographic must appear before the prose introduction');
+  assert.equal(mermaidBlocks.length, 2, 'WELCOME.md should contain the at-a-glance and human-control Mermaid diagrams');
+
+  for (const required of [
+    'Idea',
+    'Guided discovery',
+    'PROJECT_BOOTSTRAP.json',
+    'Setup',
+    'Build',
+    'Review + deliver',
+    'Learn',
+    'Deploy',
+  ]) {
+    assert.match(mermaidBlocks[0], new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+
+  assert.doesNotMatch(welcome, /!\[[^\]]*\]\([^)]*\)/, 'WELCOME.md must not depend on a static Markdown image for the infographic');
+  assert.doesNotMatch(welcome, /<img\b/i, 'WELCOME.md must not depend on raw HTML images for the infographic');
+  assert.doesNotMatch(welcome, /project-forge-welcome\.(?:jpg|jpeg|png|webp|svg)/i);
   assert.match(welcome, /AI handles mechanics; humans retain engineering authority/);
-  assert.doesNotMatch(welcome, /Project Forge at a glance/);
-  assert.doesNotMatch(welcome, /project-forge-overview\.svg/);
   assert.doesNotMatch(welcome, /\bMark\b|\bKyle\b/);
   assert.doesNotMatch(welcome, /\b[a-f0-9]{40}\b/i);
   assert.doesNotMatch(welcome, /sourceProvenance/);
