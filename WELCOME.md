@@ -2,7 +2,18 @@
 
 **Build real software. Learn the engineering behind it.**
 
-![Project Forge overview showing the journey from an idea through planning, GitHub repository generation, AI-assisted development, delivery, learning, and controlled deployment.](./docs/images/project-forge-welcome.jpg)
+## Project Forge at a glance
+
+```mermaid
+flowchart LR
+    A["Idea"] --> B["Guided discovery\nscope · non-goals · choices"]
+    B --> C["Generate\nPROJECT_BOOTSTRAP.json · Work Items · GitHub Project"]
+    C --> D["Setup\nworkspace · readiness · human acceptance"]
+    D --> E["Build\nbounded Work Items · implementation · tests"]
+    E --> F["Review + deliver\nmeaningful review · PR · CI · merge gate"]
+    F --> G["Learn\noptional coaching"]
+    F --> H["Deploy\noptional · controlled gates"]
+```
 
 Project Forge is an AI-guided software development and learning platform for turning a personal software idea into a reproducible engineering project while keeping meaningful decisions under human control.
 
