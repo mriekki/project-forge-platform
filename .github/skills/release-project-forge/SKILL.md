@@ -56,7 +56,7 @@ In local mode:
 
 Do not pin an unmerged branch, dirty checkout, guessed revision, or revision with failing/pending default-branch CI. A component unchanged since the installed package stays on its existing exact revision.
 
-Treat local checkout validity and release-need detection as separate facts. A dirty or non-`origin/main` local component checkout may block **local** preparation, but it must not erase or downgrade evidence that a release is needed and must not block **cloud** preparation when authoritative GitHub sources are accessible.
+Treat local checkout validity and release-need detection as separate facts. A dirty or non-`origin/main` local component checkout may block deterministic release preparation in local mode, but it must not erase or downgrade evidence that a release is needed and must not block **cloud** preparation when authoritative GitHub sources are accessible.
 
 ## 3. Determine release need and select the package version automatically
 
