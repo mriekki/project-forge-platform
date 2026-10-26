@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1200" viewBox="0 0 1800 1200">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f7fbff"/></linearGradient>
+  <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e73be"/><stop offset="1" stop-color="#4fa3e3"/></linearGradient>
+  <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#28a36a"/><stop offset="1" stop-color="#63c890"/></linearGradient>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="9" flood-color="#17324d" flood-opacity="0.12"/></filter>
+  <style>
+    .font{font-family:Arial,Helvetica,sans-serif; fill:#17324d}
+    .title{font-size:76px;font-weight:800;letter-spacing:-1.4px}
+    .subtitle{font-size:30px;font-weight:650;fill:#3b536c}
+    .lede{font-size:21px;font-weight:450;fill:#5f7388}
+    .cardtitle{font-size:24px;font-weight:800}
+    .body{font-size:18px;font-weight:450;fill:#51687f}
+    .smalltitle{font-size:20px;font-weight:800}
+    .smallbody{font-size:16px;font-weight:450;fill:#5c7085}
+    .num{font-size:22px;font-weight:800;fill:white}
+  </style>
+</defs>
+<rect width="1800" height="1200" fill="url(#bg)"/>
+
+<!-- Header -->
+<text x="900" y="93" text-anchor="middle" class="font title">Welcome to Project Forge</text>
+<text x="900" y="141" text-anchor="middle" class="font subtitle">Turn your idea into real software with an AI-guided, GitHub-native engineering workflow.</text>
+<text x="900" y="184" text-anchor="middle" class="font lede">Project Forge structures the journey from discovery through delivery while keeping meaningful decisions under human control.</text>
+<text x="900" y="214" text-anchor="middle" class="font lede">You get reproducible project setup, bounded work, CI-backed delivery, optional learning, and explicit deployment gates.</text>
+
+<!-- Main cards -->
+<rect x="38" y="250" rx="22" width="320" height="470" fill="#f3f9fd" stroke="#d7e7f3" stroke-width="2" filter="url(#shadow)"/><circle cx="68" cy="286" r="22" fill="url(#blue)"/><text x="68" y="294" text-anchor="middle" class="font num">1</text><text x="100" y="293" class="font cardtitle">Start with Your Idea</text><g stroke="#4f657a" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M 143.0 463 C 123.0 390, 273.0 390, 253.0 463 C 243.0 490, 229.0 498, 224.0 519 H 172.0 C 167.0 498, 153.0 490, 143.0 463 Z" fill="#fff"/>
+        <path d="M 172.0 519 H 224.0 M 180.0 537 H 216.0"/>
+        <path d="M 198.0 343 V 367 M 102.0 385 L 122.0 399 M 294.0 385 L 274.0 399"/>
+        </g><circle cx="198.0" cy="445" r="38" fill="#ffd76a" opacity="0.85"/><text x="62" y="605" class="font body">Describe what you want to build.</text><text x="62" y="632" class="font body">Project Forge helps shape the idea</text><text x="62" y="659" class="font body">into a clear, bounded V1.</text><rect x="389" y="250" rx="22" width="320" height="470" fill="#f3f9fd" stroke="#d7e7f3" stroke-width="2" filter="url(#shadow)"/><circle cx="419" cy="286" r="22" fill="url(#blue)"/><text x="419" y="294" text-anchor="middle" class="font num">2</text><text x="451" y="293" class="font cardtitle">Project Forge</text><text x="451" y="321" class="font cardtitle">Guides the Plan</text><g stroke="#667b90" stroke-width="6" stroke-linejoin="round">
+        <rect x="484.0" y="365" width="130" height="178" rx="10" fill="#fff"/>
+        <rect x="505.0" y="410" width="25" height="25" rx="4" fill="#62c98c" stroke="#369e69"/>
+        <rect x="505.0" y="457" width="25" height="25" rx="4" fill="#62c98c" stroke="#369e69"/>
+        <rect x="505.0" y="504" width="25" height="25" rx="4" fill="#62c98c" stroke="#369e69"/>
+        <path d="M 545.0 423 H 591.0 M 545.0 470 H 591.0 M 545.0 517 H 591.0"/>
+        </g><rect x="515.0" y="346" width="68" height="26" rx="8" fill="#d9e5ef" stroke="#667b90" stroke-width="5"/><text x="413" y="605" class="font body">Confirm scope, stack, tests, data,</text><text x="413" y="632" class="font body">deployment intent, and coherent</text><text x="413" y="659" class="font body">Work Items before generation.</text><rect x="740" y="250" rx="22" width="320" height="470" fill="#f3f9fd" stroke="#d7e7f3" stroke-width="2" filter="url(#shadow)"/><circle cx="770" cy="286" r="22" fill="url(#blue)"/><text x="770" y="294" text-anchor="middle" class="font num">3</text><text x="802" y="293" class="font cardtitle">A Real GitHub</text><text x="802" y="321" class="font cardtitle">Project Repository</text><g stroke="#17324d" stroke-width="6" stroke-linejoin="round">
+        <circle cx="830.0" cy="447" r="58" fill="#101820"/>
+        <circle cx="830.0" cy="447" r="33" fill="#fff"/>
+        <path d="M 802.0 478 Q 830.0 507 858.0 478" fill="#101820"/>
+        <rect x="905.0" y="420" width="104" height="82" rx="10" fill="#4f9de3" stroke="#2f6fa8"/>
+        <path d="M 915.0 420 H 949.0 L 965.0 401 H 1001.0 Q 1009.0 401 1009.0 411 V 420" fill="#83b9ee"/>
+        <path d="M 897.0 459 H 905.0"/>
+        </g><path d="M 887.0 459 H 898.0 M 893.0 453 V 465" stroke="#317fc2" stroke-width="7" stroke-linecap="round"/><text x="764" y="605" class="font body">Generate a reproducible repository</text><text x="764" y="632" class="font body">with approved inputs, docs, CI,</text><text x="764" y="659" class="font body">workspace, and Project Forge state.</text><rect x="1091" y="250" rx="22" width="320" height="470" fill="#f3f9fd" stroke="#d7e7f3" stroke-width="2" filter="url(#shadow)"/><circle cx="1121" cy="286" r="22" fill="url(#blue)"/><text x="1121" y="294" text-anchor="middle" class="font num">4</text><text x="1153" y="293" class="font cardtitle">Develop with</text><text x="1153" y="321" class="font cardtitle">AI Assistance</text><g stroke="#50677d" stroke-width="7" stroke-linejoin="round">
+        <rect x="1165.0" y="380" width="172" height="120" rx="10" fill="#3c8ed9"/>
+        <rect x="1183.0" y="399" width="136" height="80" rx="4" fill="#0f5ca8" stroke="none"/>
+        <path d="M 1225.0 440 L 1203.0 454 L 1225.0 468 M 1277.0 440 L 1299.0 454 L 1277.0 468" stroke="#bfe3ff"/>
+        <path d="M 1246.0 431 L 1256.0 477" stroke="#bfe3ff"/>
+        <path d="M 1135.0 513 H 1367.0 L 1346.0 539 H 1156.0 Z" fill="#d5dde4"/>
+        </g><circle cx="1352.0" cy="508" r="29" fill="#768a9b"/><path d="M 1352.0 494 V 522 M 1338.0 508 H 1366.0" stroke="#fff" stroke-width="5"/><text x="1115" y="605" class="font body">Implement bounded Work Items</text><text x="1115" y="632" class="font body">in VS Code with tests,</text><text x="1115" y="659" class="font body">review evidence, and</text><text x="1115" y="686" class="font body">meaningful human gates.</text><rect x="1442" y="250" rx="22" width="320" height="470" fill="#f3f9fd" stroke="#d7e7f3" stroke-width="2" filter="url(#shadow)"/><circle cx="1472" cy="286" r="22" fill="url(#blue)"/><text x="1472" y="294" text-anchor="middle" class="font num">5</text><text x="1504" y="293" class="font cardtitle">A Working Project</text><g stroke="#5c7085" stroke-width="6" stroke-linejoin="round">
+        <rect x="1509.0" y="379" width="186" height="145" rx="9" fill="#fff"/>
+        <rect x="1509.0" y="379" width="186" height="30" rx="9" fill="#7e93a5"/>
+        <circle cx="1602.0" cy="455" r="38" fill="#4bb77d" stroke="#2f9660"/>
+        <path d="M 1585.0 455 L 1598.0 469 L 1623.0 437" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <path d="M 1548.0 505 H 1656.0"/>
+        </g><text x="1466" y="605" class="font body">Deliver through pull requests</text><text x="1466" y="632" class="font body">and CI, learn when useful,</text><text x="1466" y="659" class="font body">and deploy only when you</text><text x="1466" y="686" class="font body">explicitly authorize it.</text><path d="M 366 486 H 383" stroke="#8eb8d9" stroke-width="10" stroke-linecap="round"/><path d="M 376 470 L 394 486 L 376 502" fill="none" stroke="#8eb8d9" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M 717 486 H 734" stroke="#8eb8d9" stroke-width="10" stroke-linecap="round"/><path d="M 727 470 L 745 486 L 727 502" fill="none" stroke="#8eb8d9" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M 1068 486 H 1085" stroke="#8eb8d9" stroke-width="10" stroke-linecap="round"/><path d="M 1078 470 L 1096 486 L 1078 502" fill="none" stroke="#8eb8d9" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M 1419 486 H 1436" stroke="#8eb8d9" stroke-width="10" stroke-linecap="round"/><path d="M 1429 470 L 1447 486 L 1429 502" fill="none" stroke="#8eb8d9" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><text x="900" y="790" text-anchor="middle" class="font" style="font-size:34px;font-weight:800">Why Project Forge</text>
+<text x="900" y="825" text-anchor="middle" class="font" style="font-size:18px;font-weight:500;fill:#6a7e91">A guided engineering system—not a one-click code generator.</text><rect x="42" y="860" width="324" height="190" rx="18" fill="#ffffff" stroke="#dde9f2" stroke-width="2"/><circle cx="84" cy="904" r="25" fill="#4e8fd1" opacity="0.95"/><path d="M 84 888 L 97 894 V 907 C 97 919 89 927 84 930 C 79 927 71 919 71 907 V 894 Z" fill="none" stroke="#fff" stroke-width="4"/><text x="120" y="911" class="font smalltitle">Human control</text><text x="64" y="963" class="font smallbody">Scope, meaningful diffs, merge,</text><text x="64" y="989" class="font smallbody">release, and Production stay explicit.</text><rect x="390" y="860" width="324" height="190" rx="18" fill="#ffffff" stroke="#dde9f2" stroke-width="2"/><circle cx="432" cy="904" r="25" fill="#26384a" opacity="0.95"/><circle cx="432" cy="904" r="13" fill="none" stroke="#fff" stroke-width="4"/><path d="M 420 917 Q 432 926 444 917" fill="none" stroke="#fff" stroke-width="4"/><text x="468" y="911" class="font smalltitle">GitHub-native</text><text x="412" y="963" class="font smallbody">Repositories, pull requests, CI,</text><text x="412" y="989" class="font smallbody">and durable evidence are first-class.</text><rect x="738" y="860" width="324" height="190" rx="18" fill="#ffffff" stroke="#dde9f2" stroke-width="2"/><circle cx="780" cy="904" r="25" fill="#4e8fd1" opacity="0.95"/><path d="M 766 901 A 15 15 0 0 1 792 894 M 792 894 L 785 887 M 794 907 A 15 15 0 0 1 768 914 M 768 914 L 775 921" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><text x="816" y="911" class="font smalltitle">Reproducible</text><text x="760" y="963" class="font smallbody">Approved inputs and pinned tooling</text><text x="760" y="989" class="font smallbody">make generation repeatable.</text><rect x="1086" y="860" width="324" height="190" rx="18" fill="#ffffff" stroke="#dde9f2" stroke-width="2"/><circle cx="1128" cy="904" r="25" fill="#44b77c" opacity="0.95"/><path d="M 1113 899 L 1128 892 L 1143 899 L 1128 906 Z M 1117 903 V 915 Q 1128 923 1139 915 V 903" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"/><text x="1164" y="911" class="font smalltitle">Learning built in</text><text x="1108" y="963" class="font smallbody">Explanations and coaching are available</text><text x="1108" y="989" class="font smallbody">without blocking delivery.</text><rect x="1434" y="860" width="324" height="190" rx="18" fill="#ffffff" stroke="#dde9f2" stroke-width="2"/><circle cx="1476" cy="904" r="25" fill="#8f7bd4" opacity="0.95"/><path d="M 1466 915 V 893 H 1486 V 915 Z M 1471 893 V 887 H 1481 V 893" fill="none" stroke="#fff" stroke-width="4"/><path d="M 1471 909 L 1475 913 L 1483 903" fill="none" stroke="#fff" stroke-width="3"/><text x="1512" y="911" class="font smalltitle">Safe deployment</text><text x="1456" y="963" class="font smallbody">Environment boundaries and Production</text><text x="1456" y="989" class="font smallbody">gates remain deliberate.</text><rect x="42" y="1080" width="1716" height="76" rx="16" fill="#eaf5fb" stroke="#d5eaf5" stroke-width="2"/>
+<circle cx="87" cy="1118" r="26" fill="#26384a"/><path d="M 75 1126 L 87 1108 L 99 1126 M 80 1119 H 94" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="128" y="1112" class="font" style="font-size:24px;font-weight:800">Project Forge</text>
+<text x="128" y="1139" class="font" style="font-size:17px;font-weight:500;fill:#64788b">Real software • deliberate engineering • human control</text>
+<text x="1718" y="1126" text-anchor="end" class="font" style="font-size:17px;font-weight:650;fill:#3e6f97">From idea → repository → working Project</text>
+</svg>
