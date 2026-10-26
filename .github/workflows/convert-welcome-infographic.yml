@@ -1,0 +1,50 @@
+name: Convert Welcome Infographic
+
+on:
+  push:
+    branches:
+      - fix/welcome-infographic-png
+
+permissions:
+  contents: read
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Inspect source image
+        shell: bash
+        run: |
+          set -euo pipefail
+          file docs/images/project-forge-welcome.jpg | tee /tmp/source-file.txt
+          identify docs/images/project-forge-welcome.jpg | tee /tmp/source-identify.txt
+          identify -verbose docs/images/project-forge-welcome.jpg > /tmp/source-identify-verbose.txt
+
+      - name: Convert exact decoded pixels to PNG
+        shell: bash
+        run: |
+          set -euo pipefail
+          convert docs/images/project-forge-welcome.jpg \
+            -strip \
+            -colorspace sRGB \
+            docs/images/project-forge-welcome.png
+          file docs/images/project-forge-welcome.png | tee /tmp/png-file.txt
+          identify docs/images/project-forge-welcome.png | tee /tmp/png-identify.txt
+          sha256sum docs/images/project-forge-welcome.jpg docs/images/project-forge-welcome.png | tee /tmp/hashes.txt
+
+      - name: Upload converted PNG and diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-forge-welcome-png
+          path: |
+            docs/images/project-forge-welcome.png
+            /tmp/source-file.txt
+            /tmp/source-identify.txt
+            /tmp/source-identify-verbose.txt
+            /tmp/png-file.txt
+            /tmp/png-identify.txt
+            /tmp/hashes.txt
+          if-no-files-found: error
