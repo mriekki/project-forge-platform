@@ -103,28 +103,17 @@ The stable descriptor at `chatgpt/current.json` resolves an immutable Project Fo
 
 `@mriekki/project-forge` is the public distribution for Project Forge engineering assets used by generated projects.
 
-Project Forge assembles that package from approved private platform components using exact pinned source commits and deterministic distribution descriptors. Published packages are self-contained; Builders do not need access to the private implementation repositories to install or update managed assets.
+Project Forge assembles that package from approved private platform components using exact pinned source revisions and deterministic distribution descriptors. Published packages are self-contained; Builders do not need access to the private implementation repositories to install or update managed assets.
 
-Install:
+Generated Projects receive an exact approved package during deterministic generation. Existing generated Projects should normally adopt a newer supported package through:
 
-```powershell
-npx @mriekki/project-forge install
+```text
+/project-forge-update
 ```
 
-Update to the newest published package:
+That Project workflow resolves the supported exact package version and preserves the managed-baseline, drift, review, and delivery guardrails. Do not use a floating `@latest` package update as the normal Builder path: npm publication can intentionally occur before the stable public contract is advanced to the new version.
 
-```powershell
-npx @mriekki/project-forge@latest update
-```
-
-Inspect and verify:
-
-```powershell
-npx @mriekki/project-forge@latest status
-npx @mriekki/project-forge@latest check
-```
-
-Managed updates verify baselines and refuse unsafe drift or conflicts before modifying Project Forge-managed files.
+The package CLI remains available for exact-version troubleshooting and maintainer verification. Use the exact version recorded by the Project or selected by the Project Forge workflow rather than a floating tag.
 
 ## Maintainer system reference
 
@@ -137,7 +126,7 @@ The system reference deliberately does not duplicate current component SHAs, pac
 
 ## Maintainer release process
 
-Project Forge maintainers use a gated release workflow that resolves accepted component commits, verifies the assembled package, creates the package pull request, verifies CI, and stops at the explicit publication gate.
+Project Forge maintainers use a gated release workflow that resolves accepted component revisions, verifies the assembled package, creates the package pull request, verifies CI, and stops at the explicit publication gate.
 
 Publication uses npm Trusted Publishing (OIDC), reconstructs the exact package from pinned sources, verifies registry identity and integrity, and smoke-tests the public package from a neutral directory.
 
