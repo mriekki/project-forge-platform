@@ -6,7 +6,7 @@ Release preparation and npm publication are automated, but publication remains a
 
 ## Normal operator workflow
 
-Use the repository-local VS Code skill:
+Use the repository-local skill:
 
 ```text
 /release-project-forge
@@ -15,10 +15,10 @@ Use the repository-local VS Code skill:
 The normal flow is:
 
 ```text
-accepted component revisions
+accepted component revisions + Platform package drift
 → choose package version
-→ deterministic package metadata + descriptor update
-→ tests / asset verification
+→ CLOUD or LOCAL deterministic preparation
+→ release branch
 → release PR + PR CI
 → ONE PACKAGE PR MERGE GATE
 → post-merge main CI
@@ -30,13 +30,71 @@ accepted component revisions
 
 Publishing the package does not update consumers. Existing package-managed Projects adopt it separately through `/project-forge-update`.
 
+## Two first-class preparation modes
+
+Release preparation supports both cloud and local execution. They are alternative ways to supply the same deterministic scripts with exact accepted component sources; neither changes release semantics or publication authorization.
+
+### Cloud preparation
+
+Cloud preparation is preferred when a GitHub-connected agent can read the Platform and canonical component repositories. It does not require or modify Developer working copies.
+
+The agent resolves:
+
+- exact current Platform `main` SHA;
+- exact accepted Core `main` revision and successful post-merge CI;
+- exact accepted Deployment `main` revision and successful post-merge CI;
+- exact next package version selected from the complete consumer-visible change set.
+
+`.github/workflows/prepare-package-release.yml` then materializes the exact private sources using protected repository mappings and the read-only source credential, runs `scripts/prepare-package-update.mjs`, exact asset assembly/verification, package tests, `git diff --check`, and release-diff scope validation, then pushes `release/project-forge-<version>`.
+
+The workflow may be started by `workflow_dispatch` with the exact version/source/revision tuple. A cloud agent without workflow-dispatch capability may instead create an owner-authored issue titled:
+
+```text
+[project-forge-release] <version>
+```
+
+whose body contains only:
+
+```json
+{
+  "version": "<version>",
+  "sourceCommit": "<exact-platform-main-sha>",
+  "coreRevision": "<exact-core-main-sha>",
+  "deploymentRevision": "<exact-deployment-main-sha>"
+}
+```
+
+The issue-triggered workflow ignores requests not authored by the repository owner. Request bodies must never contain private repository names, credentials, or secrets.
+
+The preparation workflow deliberately pushes the release branch but does not create the pull request with `GITHUB_TOKEN`. The cloud agent creates the normal PR afterward using its GitHub identity so ordinary `pull_request` CI remains authoritative.
+
+### Local preparation
+
+Local preparation remains fully supported for a Developer working from canonical source checkouts. The Platform checkout must be clean and refreshed from `main`; Core and Deployment checkouts must be clean exact accepted `origin/main` revisions with green post-merge CI.
+
+The local path creates `release/project-forge-<version>` and runs:
+
+```text
+scripts/prepare-package-update.mjs
+→ exact asset assembly/verification
+→ npm test
+→ git diff --check
+→ meaningful diff review
+→ commit/push
+→ normal release PR
+```
+
+Dirty or stale local component checkouts block only local preparation. If authoritative GitHub sources are available, the release skill may switch to cloud preparation rather than requiring the Developer to disturb unrelated local work.
+
 ## Release invariants
 
 Before npm publication:
 
 - Project Forge Platform publication source is an exact clean `main` commit;
 - `assets/components.json` uses schema v2 and pins exact opaque component revisions;
-- local canonical component checkouts are clean exact accepted `origin/main` states when a release PR is prepared locally;
+- accepted component revisions equal authoritative canonical `main` and have green post-merge CI;
+- local canonical component checkouts are clean exact accepted `origin/main` states when local preparation is used;
+- cloud preparation materializes exact accepted canonical `main` sources when cloud preparation is used;
 - packaged distribution descriptors exactly match the pinned source descriptors;
 - all package tests pass;
 - generated assets verify against the assembly ledger;
@@ -60,14 +118,14 @@ It must not publish private source repository identities. New consumer baselines
 
 ## Deterministic package-update preparation
 
-The release skill runs `scripts/prepare-package-update.mjs` with local Core and Deployment source roots. The script refuses Platform `main`, requires clean exact component `origin/main` checkouts, validates canonical descriptors, and updates only:
+Both preparation modes ultimately run `scripts/prepare-package-update.mjs` against exact canonical source checkouts. The script refuses Platform `main`, requires clean exact component `origin/main` checkouts, validates canonical descriptors, and updates only:
 
 - `package.json` version;
 - `package-lock.json` version metadata;
 - `assets/components.json` package version and exact component revisions/versions;
 - packaged component distribution descriptors copied from those exact source checkouts.
 
-Private source repository names are not encoded in package metadata or required as public command arguments. After preparation, run package tests, asset assembly/verification, `git diff --check`, and meaningful diff review before PR delivery.
+Asset assembly then rebuilds `assets/generated/` from exact pinned Git blobs. Private source repository names are not encoded in package metadata or required as public command arguments.
 
 ## Package version policy
 
@@ -77,18 +135,18 @@ For `1.0.0` and later, use conventional semantic versioning:
 - minor — backward-compatible consumer-visible features;
 - major — breaking consumer contracts.
 
-The baseline provenance v2 migration is backward-compatible because schema v1 remains readable, so it is a minor release.
+Release need is the union of accepted component changes and Platform-owned npm payload drift. Unchanged component revisions are not evidence that no release is needed when shipped Platform files changed.
 
 ## Protected source-repository mappings
 
-The publication workflow resolves private source locations only from protected Actions secrets on Project Forge Platform:
+Cloud preparation and publication resolve private source locations only from protected Actions secrets on Project Forge Platform:
 
 ```text
 CORE_SOURCE_REPOSITORY
 DEPLOYMENT_SOURCE_REPOSITORY
 ```
 
-Values are exact `owner/repository` mappings. Do not print them, commit them, or place them in public package metadata. The workflow validates their shape, masks resolved values in logs, and uses `PROJECT_FORGE_SOURCE_TOKEN` only for read access to the exact private sources needed by the release.
+Values are exact `owner/repository` mappings. Do not print them, commit them, place them in public package metadata, or include them in cloud release request issues. Workflows validate their shape, mask resolved values in logs, and use `PROJECT_FORGE_SOURCE_TOKEN` only for read access to exact private sources needed by the release.
 
 ## Trusted Publishing
 
@@ -157,4 +215,4 @@ After registry verification, compare live `chatgpt/current.json` with the exact 
 
 ## What release does not imply
 
-Publishing `@mriekki/project-forge` does not regenerate existing Projects, update consumers, deploy an application, publish component GitHub releases/tags, or perform Production changes. Those remain separately authorized actions.
+Preparing or publishing `@mriekki/project-forge` does not regenerate existing Projects, update consumers, deploy an application, publish component GitHub releases/tags, or perform Production changes. Those remain separately authorized actions.
