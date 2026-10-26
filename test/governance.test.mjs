@@ -46,6 +46,10 @@ test('stable platform health continuously verifies live contract and exact stabl
   assert.match(workflow, /schedule:/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /scripts\/check-chatgpt-contract-alignment\.mjs/);
+  assert.match(workflow, /node --input-type=module <<'NODE'/);
+  assert.match(workflow, /import \{ createHash \} from 'node:crypto';/);
+  assert.match(workflow, /import \{ readFileSync \} from 'node:fs';/);
+  assert.doesNotMatch(workflow, /const crypto = require\('node:crypto'\)/);
   assert.match(workflow, /Live immutable contract hash mismatch/);
   assert.match(workflow, /invitationPolicyUrl/);
   assert.match(workflow, /npm view "\$\{PACKAGE\}@\$\{VERSION\}" version/);
