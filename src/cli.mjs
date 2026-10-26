@@ -44,6 +44,11 @@ function inferConsumer(root) {
   return path.basename(root);
 }
 
+export function componentRevisionForDisplay(component) {
+  const revision = component?.revision ?? component?.commit;
+  return typeof revision === 'string' && revision ? revision : '<unknown revision>';
+}
+
 function printPlan(plan, bootstrapMigrations = { rows: [], unsafe: [] }) {
   console.log(`Project Forge profile: ${plan.profileName}`);
   if (bootstrapMigrations.rows.length) {
@@ -51,7 +56,7 @@ function printPlan(plan, bootstrapMigrations = { rows: [], unsafe: [] }) {
     for (const row of bootstrapMigrations.rows) console.log(`${row.state.padEnd(30)} ${row.path}`);
   }
   for (const component of plan.plans) {
-    console.log(`\n${component.componentId.toUpperCase()} ${component.component.commit}`);
+    console.log(`\n${component.componentId.toUpperCase()} ${componentRevisionForDisplay(component.component)}`);
     for (const row of component.rows) console.log(`${row.state.padEnd(20)} ${row.path}`);
     for (const retired of component.retired) console.log(`${retired.state.padEnd(20)} ${retired.path}`);
   }
@@ -112,7 +117,7 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
     console.log(`Available package: ${packageData.pkg.name}@${packageData.pkg.version}`);
     console.log(`Profile: ${installed.profile}`);
     for (const [name, component] of Object.entries(installed.components ?? {})) {
-      console.log(`${name}: ${component.version ? component.version + ' @ ' : ''}${component.commit}`);
+      console.log(`${name}: ${component.version ? component.version + ' @ ' : ''}${componentRevisionForDisplay(component)}`);
     }
     return 0;
   }

@@ -1,0 +1,190 @@
+name: Stable Platform Health
+
+on:
+  schedule:
+    - cron: '17 14 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  stable-health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project Forge Platform
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install package dependencies
+        run: npm ci
+
+      - name: Audit stable public platform
+        id: audit
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npm test
+          node scripts/check-chatgpt-contract-alignment.mjs
+
+          node <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+
+          const descriptorUrl = 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json';
+          const platformBaseUrl = 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/';
+
+          async function fetchBytes(url) {
+            const response = await fetch(url, {
+              headers: {
+                'cache-control': 'no-cache',
+                'user-agent': 'project-forge-stable-health'
+              }
+            });
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status} fetching ${url}`);
+            }
+            return Buffer.from(await response.arrayBuffer());
+          }
+
+          const localDescriptor = fs.readFileSync('chatgpt/current.json');
+          const liveDescriptorBytes = await fetchBytes(descriptorUrl);
+          if (!liveDescriptorBytes.equals(localDescriptor)) {
+            throw new Error('Live stable descriptor does not match checked-out main');
+          }
+
+          const descriptor = JSON.parse(liveDescriptorBytes.toString('utf8'));
+          if (descriptor.schemaVersion !== 1 || descriptor.channel !== 'stable') {
+            throw new Error('Live stable descriptor identity is invalid');
+          }
+          if (descriptor.controlPlane?.repository !== 'mriekki/project-forge-control-plane') {
+            throw new Error('Live stable descriptor points at an unexpected Control Plane');
+          }
+          if (descriptor.bootstrapUrl !== descriptorUrl) {
+            throw new Error('Live stable descriptor bootstrapUrl is not canonical');
+          }
+          if (!Array.isArray(descriptor.documents) || descriptor.documents.length === 0) {
+            throw new Error('Live stable descriptor has no immutable document set');
+          }
+
+          for (const document of descriptor.documents) {
+            if (typeof document?.path !== 'string' || !/^[0-9a-f]{64}$/.test(document?.sha256 ?? '')) {
+              throw new Error('Live stable descriptor contains an invalid document pin');
+            }
+            const bytes = await fetchBytes(platformBaseUrl + document.path);
+            const digest = crypto.createHash('sha256').update(bytes).digest('hex');
+            if (digest !== document.sha256) {
+              throw new Error(`Live immutable contract hash mismatch: ${document.path}`);
+            }
+          }
+
+          const policyUrl = descriptor.controlPlane?.invitationPolicyUrl;
+          if (typeof policyUrl !== 'string' || !policyUrl.startsWith('https://')) {
+            throw new Error('Live stable descriptor has no HTTPS invitation policy URL');
+          }
+          const policy = JSON.parse((await fetchBytes(policyUrl)).toString('utf8'));
+          if (policy.schemaVersion !== 1 || !Number.isInteger(policy.expiryDays) || policy.expiryDays < 1) {
+            throw new Error('Live invitation policy is unavailable or invalid');
+          }
+
+          console.log(`Live stable contract v${descriptor.contractVersion}: verified`);
+          console.log(`Live invitation policy: verified (${policy.expiryDays} days)`);
+          NODE
+
+          PACKAGE="$(node -p "require('./chatgpt/current.json').generation.package")"
+          VERSION="$(node -p "require('./chatgpt/current.json').generation.packageVersion")"
+          ACTUAL_VERSION="$(npm view "${PACKAGE}@${VERSION}" version)"
+          test "$ACTUAL_VERSION" = "$VERSION"
+
+          SMOKE_ROOT="$(mktemp -d)"
+          trap 'rm -rf "$SMOKE_ROOT"' EXIT
+          cd "$SMOKE_ROOT"
+          ACTUAL_CLI="$(npx --yes "${PACKAGE}@${VERSION}" version)"
+          test "$ACTUAL_CLI" = "${PACKAGE} ${VERSION}"
+
+          echo "Stable package ${PACKAGE}@${VERSION}: registry and neutral CLI smoke verified"
+
+      - name: Open or update stable health incident
+        if: steps.audit.outcome != 'success'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const title = '[project-forge-health] Stable platform audit failing';
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find((item) => !item.pull_request && item.title === title);
+            const body = [
+              'The automated stable Project Forge health audit failed.',
+              '',
+              `Platform commit: \`${context.sha}\``,
+              `Workflow run: ${process.env.RUN_URL}`,
+              '',
+              'The audit checks repository tests, stable descriptor/package alignment, live immutable contract hashes, invitation policy availability, exact npm package visibility, and a neutral exact-version CLI smoke.',
+              '',
+              'This issue is managed automatically and will be closed after a successful health run.',
+            ].join('\n');
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+              });
+            }
+
+      - name: Close recovered stable health incident
+        if: steps.audit.outcome == 'success'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const title = '[project-forge-health] Stable platform audit failing';
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const incidents = issues.filter((item) => !item.pull_request && item.title === title);
+            for (const incident of incidents) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: incident.number,
+                body: `Stable platform health recovered. Successful run: ${process.env.RUN_URL}`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: incident.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+            }
+
+      - name: Fail the health workflow when audit failed
+        if: steps.audit.outcome != 'success'
+        shell: bash
+        run: exit 1

@@ -73,6 +73,13 @@ test('CLI apply success line uses canonical Project Forge identity', () => {
   );
 });
 
+test('public Builder guidance routes managed updates through Project Forge instead of floating npm latest', () => {
+  const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  assert.match(readme, /\/project-forge-update/);
+  assert.match(readme, /exact approved package/i);
+  assert.doesNotMatch(readme, /@latest\s+(?:update|status|check)\b/i);
+});
+
 test('active package and release surfaces do not expose private foundational repository names', () => {
   const forbidden = [
     'mriekki/' + 'project-forge-' + 'core',
