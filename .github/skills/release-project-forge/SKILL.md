@@ -9,16 +9,23 @@ disable-model-invocation: true
 
 `/release-project-forge` owns the Platform package transport workflow. Canonical private component sources own reusable behavior; public package metadata exposes logical component IDs plus exact opaque revisions, not private repository topology.
 
+Release preparation has two first-class execution modes:
+
+- **Cloud preparation** — a GitHub-connected cloud agent resolves authoritative component `main` revisions and CI, then uses `.github/workflows/prepare-package-release.yml` to materialize exact private sources and prepare a release branch without relying on the Developer's local working copies.
+- **Local preparation** — a Developer uses clean canonical local component checkouts and `scripts/prepare-package-update.mjs` directly.
+
+Both modes must produce equivalent package metadata/assets, use the same exact accepted component revisions, pass the same package tests and asset verification, create a normal release PR, and stop at the same merge and npm publication gates. Prefer the mode that is available and least disruptive; local checkout dirtiness must not block cloud preparation.
+
 ## 1. Resume from observed state
 
-Inspect current Platform Git/GitHub state, package metadata, component revisions, open release PRs, CI, registry state, live `chatgpt/current.json`, and the local canonical component checkouts supplied by the operator environment. Use repository facts rather than memory.
+Inspect current Platform Git/GitHub state, package metadata, component revisions, open release PRs, CI, registry state, live `chatgpt/current.json`, and available release-preparation mode. Use repository facts rather than memory.
 
 Before declaring that no package release is needed, resolve the exact published Platform source for the current npm version:
 
 1. read the current published version with `npm view @mriekki/project-forge version`;
 2. inspect successful `npm-publish.yml` runs on `main`, newest first;
 3. for each candidate run, inspect `package.json` at the run's exact `head_sha`; the first run whose package version equals the current published npm version is the exact published Platform source;
-4. require that exact 40-character source SHA and run `node scripts/check-package-release-drift.mjs --baseline <published-source-sha> --json` from clean Platform `main`.
+4. require that exact 40-character source SHA and run `node scripts/check-package-release-drift.mjs --baseline <published-source-sha> --json` from clean Platform `main` when a local shell is available, or reproduce the same repository comparison from GitHub facts in cloud mode.
 
 The drift check compares the current npm payload owned by the Platform (`package.json`, npm-always-included metadata such as README/LICENSE, and every current `package.json#files` entry) against the exact source that was actually published. If the exact published source cannot be resolved or the drift check cannot prove its baseline, fail closed and do not claim that no release is warranted.
 
@@ -26,21 +33,30 @@ If an open/prepared release already advances source package metadata beyond npm 
 
 Routine releases do not require a local npm login. GitHub Actions uses OIDC. Inspect npm trusted-publisher settings only for initial setup/migration, workflow or repository identity changes, or an OIDC trust failure; a successful exact workflow publish is sufficient evidence for later routine releases. Do not query `npm trust list` on every routine release.
 
-Private source locations belong only in local checkout configuration and protected source-repository mappings. Never add them to public package metadata, public baselines, release prose, or workflow literals.
+Private source locations belong only in local checkout configuration and protected source-repository mappings. Never add them to public package metadata, public baselines, release prose, cloud request bodies, or workflow literals.
 
 ## 2. Resolve accepted component revisions
 
-For each logical component in `assets/components.json`:
+For each logical component in `assets/components.json`, resolve the accepted revision from the canonical source repository's authoritative default branch and require green post-merge CI for that exact revision.
+
+In cloud mode, use GitHub repository state directly:
+
+- resolve canonical `main` HEAD;
+- require the selected revision to equal that exact `main` HEAD;
+- require configured post-merge CI for that exact revision to have completed successfully;
+- read canonical version metadata when the component defines one.
+
+In local mode:
 
 - require the corresponding canonical source checkout;
 - fetch its default branch and require a clean tracked working tree at exact `origin/main` before release preparation;
-- verify the selected revision is the accepted merged revision intended for the package;
+- require local HEAD to equal the accepted authoritative revision;
 - verify configured post-merge CI for that exact revision succeeded;
 - read canonical version metadata when the component defines one.
 
 Do not pin an unmerged branch, dirty checkout, guessed revision, or revision with failing/pending default-branch CI. A component unchanged since the installed package stays on its existing exact revision.
 
-Treat checkout validity and release-need detection as separate facts. A dirty or non-`origin/main` local component checkout may block deterministic release preparation, but it must not erase or downgrade evidence that a release is needed because the published package payload or an accepted component revision changed.
+Treat local checkout validity and release-need detection as separate facts. A dirty or non-`origin/main` local component checkout may block deterministic release preparation in local mode, but it must not erase or downgrade evidence that a release is needed and must not block **cloud** preparation when authoritative GitHub sources are accessible.
 
 ## 3. Determine release need and select the package version automatically
 
@@ -49,7 +65,7 @@ Default invocation is `/release-project-forge` with no version argument.
 A release is needed when **either** of these is true:
 
 - an accepted component revision/version differs from the current published package; or
-- `scripts/check-package-release-drift.mjs` reports shipped Platform payload drift from the exact published Platform source.
+- `scripts/check-package-release-drift.mjs` (or an equivalent exact GitHub comparison in cloud mode) reports shipped Platform payload drift from the exact published Platform source.
 
 Never conclude that no release is warranted solely because Core and Deployment revisions are unchanged. Platform-owned CLI, updater, packaged assets, package metadata, or shipped README changes can independently require a package release.
 
@@ -77,7 +93,70 @@ Core: unchanged
 Deployment: unchanged
 ```
 
-If a release is needed but local canonical component checkouts are dirty, stale, or otherwise invalid for deterministic preparation, report the release need first and stop with an actionable blocker instead of saying no release is warranted:
+## 4. Prepare the release PR automatically
+
+Invoking `/release-project-forge` authorizes safe release-preparation mechanics in either preparation mode but does **not** authorize npm publication.
+
+### Cloud preparation
+
+Use cloud preparation when the runtime has GitHub access to the Platform and canonical component repositories. Do not require or mutate the Developer's local component checkouts.
+
+Before starting the cloud executor, require:
+
+- exact current Platform `main` SHA;
+- exact accepted Core `main` revision and green CI;
+- exact accepted Deployment `main` revision and green CI;
+- exact next package version selected under Section 3.
+
+The cloud executor is `.github/workflows/prepare-package-release.yml`. It accepts only the exact version/source/revision tuple and independently:
+
+1. requires the Platform checkout to equal current `origin/main` and the authorized source SHA;
+2. refuses an already-published version;
+3. resolves private source repositories only from protected mappings;
+4. checks out canonical Core and Deployment `main` with the protected read-only source credential;
+5. requires each checkout to equal the authorized exact revision and requires green main CI for it;
+6. creates a new `release/project-forge-<version>` branch from the exact Platform source;
+7. runs `scripts/prepare-package-update.mjs`, exact asset assembly/verification, `npm test`, `git diff --check`, and release-diff scope validation;
+8. commits and pushes the prepared release branch;
+9. never publishes npm and never changes stable contract pointers.
+
+A cloud runtime that can dispatch workflows may invoke `prepare-package-release.yml` directly with `version`, `source_commit`, `core_revision`, and `deployment_revision`.
+
+A cloud runtime that cannot dispatch workflows but can create GitHub issues may open one owner-authored command issue with title:
+
+```text
+[project-forge-release] <version>
+```
+
+and body containing **only** this public-safe JSON shape:
+
+```json
+{
+  "version": "<version>",
+  "sourceCommit": "<exact-platform-main-sha>",
+  "coreRevision": "<exact-core-main-sha>",
+  "deploymentRevision": "<exact-deployment-main-sha>"
+}
+```
+
+The workflow must ignore issue-triggered requests not authored by the repository owner. The request must never contain private repository names, credentials, or other secrets.
+
+After the cloud workflow pushes the release branch, the cloud agent must create the normal pull request to `main` using its GitHub identity and observe PR CI. The workflow intentionally does not create the PR with `GITHUB_TOKEN`, so the ordinary `pull_request` CI trigger remains authoritative.
+
+### Local preparation
+
+When local preparation is selected:
+
+1. require Platform tracked state clean and refresh `main` fast-forward-only;
+2. require clean canonical component checkouts at the exact accepted `origin/main` revisions;
+3. create/switch to `release/project-forge-<version>` unless it already exists safely;
+4. run `scripts/prepare-package-update.mjs` with `--version`, `--core-root`, and `--deployment-root` pointing to those canonical source checkouts;
+5. run package tests, exact asset assembly/verification, `git diff --check`, and meaningful diff review;
+6. commit/push the branch, create the normal release PR, and observe PR CI.
+
+The deterministic preparation script updates only package version metadata, exact component revisions/versions, and packaged descriptors copied from exact accepted source revisions. Component revisions may legitimately remain unchanged for a Platform-only package release.
+
+If local preparation is blocked by dirty/stale component checkouts but cloud preparation is available, switch to cloud preparation rather than asking the Developer to clean unrelated local work. If neither mode can prove exact accepted sources, report:
 
 ```text
 PACKAGE RELEASE PREPARATION BLOCKED
@@ -86,21 +165,9 @@ Proposed version: <version>
 Release reason: <Platform payload drift | component revision change | both>
 Published Platform source: <exact sha>
 Platform payload changes: <files or NONE>
-Component checkout blockers: <exact blockers>
+Cloud blocker: <exact blocker or NONE>
+Local blocker: <exact blocker or NONE>
 ```
-
-## 4. Prepare the release PR automatically
-
-Invoking `/release-project-forge` authorizes safe release-preparation mechanics but does **not** authorize npm publication.
-
-When preparation has not happened:
-
-1. require Platform tracked state clean and refresh `main` fast-forward-only;
-2. create/switch to `release/project-forge-<version>` unless it already exists safely;
-3. run `scripts/prepare-package-update.mjs` with `--version`, `--core-root`, and `--deployment-root` pointing to the operator's canonical source checkouts;
-4. run `npm test`, asset assembly/verification, `git diff --check`, and meaningful diff review.
-
-The deterministic preparation script updates only package version metadata, exact component revisions/versions, and packaged descriptors copied from exact accepted source revisions. Component revisions may legitimately remain unchanged for a Platform-only package release.
 
 After successful verification, routine branch/stage/commit/push/PR creation and PR-CI observation are authorized. Do not publish npm from a release branch or PR.
 
@@ -114,6 +181,7 @@ PACKAGE RELEASE PR READY
 Version: <version>
 Core: <exact revision/version>
 Deployment: <exact revision>
+Preparation: CLOUD | LOCAL
 PR CI: GREEN
 Diff: expected release-preparation files only
 
@@ -126,14 +194,14 @@ Merge authorization does not authorize npm publication. After merge, verify exac
 
 ## 6. Protected source mappings and trusted publishing
 
-The public publish workflow resolves private source repositories only from protected Actions secrets:
+Cloud preparation and publication resolve private source repositories only from protected Actions secrets:
 
 ```text
 CORE_SOURCE_REPOSITORY
 DEPLOYMENT_SOURCE_REPOSITORY
 ```
 
-These protected source-repository mappings must contain exact `owner/repository` values. The workflow validates and masks them. It uses the existing read-only source credential only to fetch exact revisions.
+These protected source-repository mappings must contain exact `owner/repository` values. Workflows validate and mask them. They use `PROJECT_FORGE_SOURCE_TOKEN` only for read access to exact private sources.
 
 Normal publication uses `.github/workflows/npm-publish.yml` with npm Trusted Publishing (OIDC) and direct `npm publish`. No long-lived npm publish token is used.
 
@@ -237,6 +305,7 @@ Package: @mriekki/project-forge@<version>
 Project Forge Platform source: <sha>
 Core: <revision/version>
 Deployment: <revision>
+Preparation: CLOUD | LOCAL
 Publish workflow: GREEN
 Registry verification: GREEN
 Neutral npx smoke: GREEN

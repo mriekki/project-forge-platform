@@ -1,0 +1,292 @@
+name: Prepare npm Release Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact next @mriekki/project-forge version
+        required: true
+        type: string
+      source_commit:
+        description: Exact current Project Forge Platform main commit
+        required: true
+        type: string
+      core_revision:
+        description: Exact accepted Project Forge Core main revision
+        required: true
+        type: string
+      deployment_revision:
+        description: Exact accepted Project Forge Deployment main revision
+        required: true
+        type: string
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  actions: read
+
+jobs:
+  prepare:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       github.event.issue.user.login == github.repository_owner &&
+       startsWith(github.event.issue.title, '[project-forge-release]'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project Forge Platform main
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install package dependencies
+        run: npm ci
+
+      - name: Resolve exact preparation request
+        id: request
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_VERSION: ${{ inputs.version }}
+          DISPATCH_SOURCE_COMMIT: ${{ inputs.source_commit }}
+          DISPATCH_CORE_REVISION: ${{ inputs.core_revision }}
+          DISPATCH_DEPLOYMENT_REVISION: ${{ inputs.deployment_revision }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+          const request = process.env.EVENT_NAME === 'workflow_dispatch'
+            ? {
+                version: process.env.DISPATCH_VERSION,
+                sourceCommit: process.env.DISPATCH_SOURCE_COMMIT,
+                coreRevision: process.env.DISPATCH_CORE_REVISION,
+                deploymentRevision: process.env.DISPATCH_DEPLOYMENT_REVISION
+              }
+            : JSON.parse(event.issue?.body ?? '');
+
+          if (!/^\d+\.\d+\.\d+$/.test(request.version ?? '')) {
+            throw new Error('release request version must be semantic X.Y.Z');
+          }
+          for (const field of ['sourceCommit', 'coreRevision', 'deploymentRevision']) {
+            if (!/^[0-9a-f]{40}$/.test(request[field] ?? '')) {
+              throw new Error(`release request ${field} must be an exact lowercase 40-character SHA`);
+            }
+          }
+
+          for (const [key, value] of Object.entries({
+            version: request.version,
+            source_commit: request.sourceCommit,
+            core_revision: request.coreRevision,
+            deployment_revision: request.deploymentRevision
+          })) {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
+          }
+          NODE
+
+      - name: Verify exact current Platform main source
+        shell: bash
+        env:
+          EXPECTED_SOURCE: ${{ steps.request.outputs.source_commit }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin main
+          ACTUAL="$(git rev-parse HEAD)"
+          MAIN="$(git rev-parse origin/main)"
+          test "$ACTUAL" = "$EXPECTED_SOURCE"
+          test "$MAIN" = "$EXPECTED_SOURCE"
+
+      - name: Refuse an already-published version
+        shell: bash
+        env:
+          VERSION: ${{ steps.request.outputs.version }}
+        run: |
+          set -euo pipefail
+          if npm view "@mriekki/project-forge@${VERSION}" version >/dev/null 2>&1; then
+            echo "@mriekki/project-forge@${VERSION} is already published" >&2
+            exit 1
+          fi
+
+      - name: Resolve protected source repositories
+        id: sources
+        shell: bash
+        env:
+          CORE_SOURCE_REPOSITORY: ${{ secrets.CORE_SOURCE_REPOSITORY }}
+          DEPLOYMENT_SOURCE_REPOSITORY: ${{ secrets.DEPLOYMENT_SOURCE_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          for name in CORE_SOURCE_REPOSITORY DEPLOYMENT_SOURCE_REPOSITORY; do
+            value="${!name:-}"
+            if [[ ! "$value" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+              echo "Missing or invalid protected source repository mapping: $name" >&2
+              exit 1
+            fi
+            echo "::add-mask::$value"
+          done
+          echo "core=$CORE_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          echo "deployment=$DEPLOYMENT_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout accepted Core main
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.sources.outputs.core }}
+          ref: main
+          path: .release-sources/core
+          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Checkout accepted Deployment main
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.sources.outputs.deployment }}
+          ref: main
+          path: .release-sources/deployment
+          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact component main revisions and CI
+        shell: bash
+        env:
+          CORE_REPOSITORY: ${{ steps.sources.outputs.core }}
+          DEPLOYMENT_REPOSITORY: ${{ steps.sources.outputs.deployment }}
+          CORE_REVISION: ${{ steps.request.outputs.core_revision }}
+          DEPLOYMENT_REVISION: ${{ steps.request.outputs.deployment_revision }}
+          GH_TOKEN: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          verify_checkout() {
+            local root="$1"
+            local expected="$2"
+            local actual
+            local main
+            actual="$(git -C "$root" rev-parse HEAD)"
+            git -C "$root" fetch --quiet origin main
+            main="$(git -C "$root" rev-parse origin/main)"
+            test "$actual" = "$expected"
+            test "$main" = "$expected"
+            test -z "$(git -C "$root" status --porcelain --untracked-files=no)"
+          }
+
+          verify_ci() {
+            local repository="$1"
+            local revision="$2"
+            local count
+            count="$(gh api "repos/${repository}/actions/runs?head_sha=${revision}&branch=main&event=push&per_page=20" \
+              --jq '[.workflow_runs[] | select(.name == "CI" and .status == "completed" and .conclusion == "success")] | length')"
+            if [ "$count" -lt 1 ]; then
+              echo "No successful main CI run found for accepted component revision" >&2
+              exit 1
+            fi
+          }
+
+          verify_checkout .release-sources/core "$CORE_REVISION"
+          verify_checkout .release-sources/deployment "$DEPLOYMENT_REVISION"
+          verify_ci "$CORE_REPOSITORY" "$CORE_REVISION"
+          verify_ci "$DEPLOYMENT_REPOSITORY" "$DEPLOYMENT_REVISION"
+
+      - name: Create isolated release branch
+        id: branch
+        shell: bash
+        env:
+          VERSION: ${{ steps.request.outputs.version }}
+        run: |
+          set -euo pipefail
+          BRANCH="release/project-forge-${VERSION}"
+          if git ls-remote --exit-code --heads origin "refs/heads/${BRANCH}" >/dev/null 2>&1; then
+            echo "Release branch already exists: ${BRANCH}" >&2
+            exit 1
+          fi
+          git switch -c "$BRANCH"
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare deterministic package metadata and descriptors
+        shell: bash
+        env:
+          VERSION: ${{ steps.request.outputs.version }}
+        run: >-
+          node scripts/prepare-package-update.mjs
+          --version "$VERSION"
+          --core-root .release-sources/core
+          --deployment-root .release-sources/deployment
+
+      - name: Assemble and verify exact package assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/assemble-assets.mjs \
+            --core-root .release-sources/core \
+            --deployment-root .release-sources/deployment
+          node scripts/verify-assets.mjs
+          npm test
+          git diff --check
+
+      - name: Verify preparation diff scope
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+
+          const changed = execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' })
+            .trim()
+            .split(/\r?\n/)
+            .filter(Boolean);
+          if (!changed.length) throw new Error('release preparation produced no changes');
+
+          const exact = new Set([
+            'package.json',
+            'package-lock.json',
+            'assets/components.json',
+            'assets/core/distribution.json',
+            'assets/deployment/distribution.json'
+          ]);
+          const unexpected = changed.filter((file) => !exact.has(file));
+          if (unexpected.length) {
+            throw new Error(`unexpected release-preparation paths: ${unexpected.join(', ')}`);
+          }
+          NODE
+
+      - name: Commit and push prepared release branch
+        shell: bash
+        env:
+          VERSION: ${{ steps.request.outputs.version }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json assets/components.json assets/core/distribution.json assets/deployment/distribution.json
+          git commit -m "Prepare Project Forge ${VERSION}"
+          git push origin "HEAD:refs/heads/${BRANCH}"
+
+      - name: Record cloud preparation result
+        shell: bash
+        env:
+          BRANCH: ${{ steps.branch.outputs.name }}
+          VERSION: ${{ steps.request.outputs.version }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### Cloud release preparation ready"
+            echo
+            echo "- Version: \`${VERSION}\`"
+            echo "- Branch: \`${BRANCH}\`"
+            echo "- Publication: not authorized or attempted"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ github.event_name }}" = "issues" ]; then
+            gh issue comment "$ISSUE_NUMBER" --body "Cloud release preparation ready on branch \`${BRANCH}\`. Publication was not authorized or attempted."
+            gh issue close "$ISSUE_NUMBER" --reason completed
+          fi
