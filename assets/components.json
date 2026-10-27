@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.8.1",
+  "version": "4.9.0",
   "defaultProfile": "greenfield-project",
   "profiles": {
     "greenfield-project": {
@@ -21,7 +21,7 @@
       "canonicalDescriptor": "distributions/greenfield-workspace.json"
     },
     "deployment": {
-      "revision": "aaf5d24c897b3d89b3d1791c79bed4979414ca40",
+      "revision": "fd2cf23fa9e3d4fa27e142ce3a963f51b39cba36",
       "distribution": "greenfield-project",
       "descriptor": "assets/deployment/distribution.json",
       "sourceRoot": "assets/generated/deployment",
