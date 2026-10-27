@@ -47,12 +47,12 @@
   "generation": {
     "manifestFilename": "PROJECT_BOOTSTRAP.json",
     "bootstrap": {
-      "revision": "b5a83729d211e0492be5368ff7f1e59b63986419",
+      "revision": "07f9e70a9ad1be6317ff85d51d0fa811df76386d",
       "protocolVersion": 12,
-      "catalogVersion": 12
+      "catalogVersion": 13
     },
     "package": "@mriekki/project-forge",
-    "packageVersion": "4.8.0",
+    "packageVersion": "4.9.0",
     "profile": "greenfield-project",
     "bootstrapProtocolVersion": 12
   },
