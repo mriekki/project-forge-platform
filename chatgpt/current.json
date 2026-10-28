@@ -10,7 +10,7 @@
     },
     {
       "path": "chatgpt/contracts/v14/EXISTING_PROJECT.md",
-      "sha256": "6f7aa862332e4e776810e0be36afaf92bca81304174b0b3b793ee6597e5167ed"
+      "sha256": "6f7aa862332e4e776810e0be36af98b2ca81304174b0b3b793ee6597e5167ed"
     },
     {
       "path": "chatgpt/contracts/v14/NEW_PROJECT.md",
@@ -52,7 +52,7 @@
       "catalogVersion": 13
     },
     "package": "@mriekki/project-forge",
-    "packageVersion": "4.9.0",
+    "packageVersion": "4.10.0",
     "profile": "greenfield-project",
     "bootstrapProtocolVersion": 12
   },
