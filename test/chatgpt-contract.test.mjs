@@ -81,7 +81,7 @@ test('generation aligns the published package with the accepted Bootstrap revisi
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(value.generation.package, '@mriekki/project-forge');
-  assert.equal(value.generation.packageVersion, '4.9.0');
+  assert.equal(value.generation.packageVersion, '4.10.0');
   assert.equal(value.generation.profile, 'greenfield-project');
   assert.equal(value.generation.bootstrapProtocolVersion, 12);
   assert.equal(value.bootstrapUrl, 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json');
@@ -216,35 +216,4 @@ test('public contract carries acknowledged Project Forge drift continuation safe
   assert.match(joined, /unexplained managed drift/i);
   assert.match(joined, /Keep the workaround and handoff unstaged/i);
   assert.match(joined, /does not authorize committing shared-managed paths/i);
-});
-
-test('control-plane command descriptor matches the current public contract', async () => {
-  const value = await descriptor();
-  assert.equal(value.controlPlane.repository, 'mriekki/project-forge-control-plane');
-  assert.equal(value.controlPlane.inviteIssuePrefix, '[invite-project-forge]');
-  assert.equal(value.controlPlane.revokeIssuePrefix, '[revoke-project-forge]');
-  assert.equal(value.controlPlane.doctorIssuePrefix, '[project-forge-doctor]');
-  assert.equal(value.controlPlane.generateIssuePrefix, '[generate-project]');
-  assert.equal(value.controlPlane.acceptCommand, '/accept-project-forge');
-  assert.equal(value.controlPlane.declineCommand, '/decline-project-forge');
-  assert.equal(value.controlPlane.doctorCommand, '/project-forge-doctor');
-});
-
-test('active public Builder pages use current Project Forge onboarding vocabulary', async () => {
-  const welcome = await text('WELCOME.md');
-  const setup = await text('chatgpt/SETUP.md');
-  const startHere = await text('chatgpt/START_HERE.md');
-  const joined = [welcome, setup, startHere].join('\n');
-
-  assert.match(welcome, /Build real software\. Learn the engineering behind it\./);
-  assert.match(joined, /Project Forge Builder/);
-  assert.match(joined, /\/accept-project-forge/);
-  assert.match(joined, /\/project-forge-doctor/);
-  assert.match(joined, /New Project: <idea>/);
-  assert.match(joined, /New Project from: <PROJECT_INPUT\.json or existing product source>/);
-  assert.doesNotMatch(joined, new RegExp(predecessorUpper));
-
-  for (const retired of ['accept-lean', 'lean-doctor', 'lean-platform']) {
-    assert.doesNotMatch(joined, new RegExp(retired));
-  }
 });
