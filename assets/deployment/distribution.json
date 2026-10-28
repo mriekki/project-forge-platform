@@ -19,6 +19,7 @@
     {"source": "src/project_forge_deployment/cloudflare_api.py", "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_api.py"},
     {"source": "src/project_forge_deployment/cloudflare_ingress.py", "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_ingress.py"},
     {"source": "src/project_forge_deployment/cloudflare_ingress_remote.py", "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_ingress_remote.py"},
+    {"source": "src/project_forge_deployment/cloudflare_route_apply.py", "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_route_apply.py"},
     {"source": "src/project_forge_deployment/cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/cli.py"},
     {"source": "src/project_forge_deployment/doctor.py", "destination": "tools/project-forge-deployment/project_forge_deployment/doctor.py"},
     {"source": "src/project_forge_deployment/entrypoint.py", "destination": "tools/project-forge-deployment/project_forge_deployment/entrypoint.py"},
