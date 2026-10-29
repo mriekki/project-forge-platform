@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadReleaseReceipt } from './release-receipt.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SHA40 = /^[0-9a-f]{40}$/;
@@ -88,7 +89,21 @@ export function evaluateAlignment(packageVersion, descriptor) {
 export async function checkRepository(repositoryRoot = root) {
   const packageJson = JSON.parse(await readFile(path.join(repositoryRoot, 'package.json'), 'utf8'));
   const descriptor = JSON.parse(await readFile(path.join(repositoryRoot, 'chatgpt/current.json'), 'utf8'));
-  return evaluateAlignment(packageJson.version, descriptor);
+  const alignment = evaluateAlignment(packageJson.version, descriptor);
+  if (!alignment.aligned) {
+    return alignment;
+  }
+
+  try {
+    await loadReleaseReceipt(descriptor.generation.packageVersion, repositoryRoot);
+  } catch (error) {
+    return failure(`Durable release receipt: ${error.message}`);
+  }
+
+  return {
+    aligned: true,
+    message: `${alignment.message}; durable release receipt verified`,
+  };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
