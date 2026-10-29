@@ -52,7 +52,7 @@
       "catalogVersion": 13
     },
     "package": "@mriekki/project-forge",
-    "packageVersion": "4.10.4",
+    "packageVersion": "4.10.5",
     "profile": "greenfield-project",
     "bootstrapProtocolVersion": 12
   },
