@@ -49,7 +49,7 @@ test('cloud release preparation is owner-gated, exact-source, and non-publishing
   assert.doesNotMatch(workflow, /gh pr create/);
 });
 
-test('release skill supports equivalent cloud and local preparation modes', () => {
+test('release skill supports equivalent cloud and local preparation modes with durable historical evidence', () => {
   const skill = read('.github/skills/release-project-forge/SKILL.md');
 
   assert.match(skill, /\*\*Cloud preparation\*\*/);
@@ -59,9 +59,11 @@ test('release skill supports equivalent cloud and local preparation modes', () =
   assert.match(skill, /local checkout dirtiness must not block cloud preparation/i);
   assert.match(skill, /same merge and npm publication gates/i);
   assert.match(skill, /does \*\*not\*\* authorize npm publication/);
-  assert.match(skill, /cloud agent's GitHub connection is the CI-evidence authority/i);
+  assert.match(skill, /cloud agent's GitHub connection is the live CI-evidence authority for changed private components/i);
+  assert.match(skill, /changed.*component revision must have live green post-merge CI/i);
+  assert.match(skill, /unchanged.*component revision.*validated durable receipt/i);
   assert.match(skill, /least-privilege private-source checkout credential/i);
-  assert.match(skill, /Do not create or dispatch a cloud preparation request until those CI checks are complete and green/i);
+  assert.match(skill, /Changed component revisions require live green CI; unchanged revisions may use the validated current-published durable receipt/i);
 });
 
 test('release process documents both preparation modes without weakening publication gates', () => {
@@ -74,6 +76,8 @@ test('release process documents both preparation modes without weakening publica
   assert.match(process, /ONE PACKAGE PR MERGE GATE/);
   assert.match(process, /ONE EXACT NPM PUBLISH GATE/);
   assert.match(process, /Dirty or stale local component checkouts block only local preparation/);
-  assert.match(process, /cloud agent.*green post-merge CI/i);
+  assert.match(process, /changed component revision requires successful live post-merge CI/i);
+  assert.match(process, /unchanged component revision.*validated durable receipt/i);
   assert.match(process, /does not need private Actions API access/i);
+  assert.match(process, /## Actions retention boundary/);
 });
