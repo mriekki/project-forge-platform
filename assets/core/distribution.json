@@ -18,6 +18,7 @@
     {"source":"core/skills/progress/SKILL.md","destination":".github/skills/progress/SKILL.md"},
     {"source":"core/skills/next-step/SKILL.md","destination":".github/skills/next-step/SKILL.md"},
     {"source":"core/skills/deliver/SKILL.md","destination":".github/skills/deliver/SKILL.md"},
+    {"source":"core/skills/work-item-status/SKILL.md","destination":".github/skills/work-item-status/SKILL.md"},
     {"source":"core/skills/cleanup-branches/SKILL.md","destination":".github/skills/cleanup-branches/SKILL.md"},
     {"source":"core/skills/pull-latest/SKILL.md","destination":".github/skills/pull-latest/SKILL.md"},
     {"source":"core/skills/project-forge-update/SKILL.md","destination":".github/skills/project-forge-update/SKILL.md"},
@@ -63,6 +64,10 @@
     {"source":"tools/db_lab/sqlite_workbench.py","destination":"tools/project-forge-db-lab/sqlite-workbench.py"},
     {"source":"tools/system_lab/system_workbench.py","destination":"tools/project-forge-system-lab/system-workbench.py"},
     {"source":"tools/docs_site/docs_site.py","destination":"tools/project-forge-docs/docs-site.py"},
+    {"source":"tools/vscode_work_item_status/install.py","destination":"tools/project-forge-vscode/work-item-status/install.py"},
+    {"source":"tools/vscode_work_item_status/extension/package.json","destination":"tools/project-forge-vscode/work-item-status/extension/package.json"},
+    {"source":"tools/vscode_work_item_status/extension/extension.js","destination":"tools/project-forge-vscode/work-item-status/extension/extension.js"},
+    {"source":"tools/vscode_work_item_status/extension/README.md","destination":"tools/project-forge-vscode/work-item-status/extension/README.md"},
     {"source":"tools/package/check_baseline.py","destination":"tools/project-forge-core/check-core-baseline.py"},
     {"source":"tools/package/check_upstream.py","destination":"tools/project-forge-core/check-core-upstream.py"}
   ]
