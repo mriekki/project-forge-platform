@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { checkRepository } from '../scripts/check-chatgpt-contract-alignment.mjs';
 import {
   loadReleaseReceipt,
   parseArgs,
@@ -29,6 +30,12 @@ test('checked-in release receipts are valid privacy-safe durable evidence', asyn
     assert.doesNotMatch(serialized, /mriekki\/project-forge-deployment-kit/);
     assert.doesNotMatch(serialized, /sourceRepository/);
   }
+});
+
+test('stable contract alignment verifies the durable receipt for the selected package', async () => {
+  const result = await checkRepository(ROOT);
+  assert.equal(result.aligned, true);
+  assert.match(result.message, /durable release receipt verified/i);
 });
 
 test('release receipt validation rejects incomplete publication evidence', () => {
