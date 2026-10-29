@@ -89,6 +89,10 @@ test('release skill cannot equate unchanged component revisions with no package 
   const skill = fs.readFileSync(path.join(ROOT, '.github', 'skills', 'release-project-forge', 'SKILL.md'), 'utf8');
   assert.match(skill, /exact published Platform source/i);
   assert.match(skill, /check-package-release-drift\.mjs/);
+  assert.match(skill, /release\/receipts\/<version>\.json/);
+  assert.match(skill, /release-receipt\.mjs/);
+  assert.match(skill, /Historical Actions runs are supporting evidence, not the durable release ledger/i);
+  assert.match(skill, /changed component revision must have live green post-merge CI/i);
   assert.match(skill, /Never conclude that no release is warranted solely because Core and Deployment revisions are unchanged/i);
   assert.match(skill, /dirty or non-`origin\/main` local component checkout may block deterministic release preparation/i);
   assert.match(skill, /must not erase or downgrade evidence that a release is needed/i);
