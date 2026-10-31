@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import path from 'node:path';
@@ -11,24 +11,22 @@ const validatorPath = 'chatgpt/bootstrap-contracts/project_requirements.py';
 const bootstrapSchemaBlobSha = 'cfcde2662742e51dc0f4addb5f2c048a18b32b39';
 const bootstrapValidatorBlobSha = '0e045087f4e123ba6f8fde3875d38ba46a193593';
 
-async function bytes(relative) {
-  return readFile(path.join(root, relative));
-}
-
 async function text(relative) {
   return readFile(path.join(root, relative), 'utf8');
 }
 
-function gitBlobSha(content) {
-  return createHash('sha1')
-    .update(Buffer.from(`blob ${content.length}\0`, 'utf8'))
-    .update(content)
-    .digest('hex');
+function canonicalGitBlobSha(relative) {
+  const result = spawnSync('git', ['rev-parse', `HEAD:${relative}`], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, `Unable to resolve canonical Git blob ${relative}: ${result.stderr ?? ''}`);
+  return result.stdout.trim();
 }
 
-test('portable requirements mirrors preserve exact Bootstrap source bytes', async () => {
-  assert.equal(gitBlobSha(await bytes(schemaPath)), bootstrapSchemaBlobSha);
-  assert.equal(gitBlobSha(await bytes(validatorPath)), bootstrapValidatorBlobSha);
+test('portable requirements mirrors preserve exact Bootstrap source bytes', () => {
+  assert.equal(canonicalGitBlobSha(schemaPath), bootstrapSchemaBlobSha);
+  assert.equal(canonicalGitBlobSha(validatorPath), bootstrapValidatorBlobSha);
 });
 
 test('portable requirements mirrors are public-distribution safe', async () => {
