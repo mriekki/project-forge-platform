@@ -5,6 +5,7 @@
   "mappings": [
     {"source":"core/agents/reviewer.agent.md","destination":".github/agents/reviewer.agent.md"},
     {"source":"core/instructions/project-forge-workflow.instructions.md","destination":".github/instructions/project-forge-workflow.instructions.md"},
+    {"source":"core/instructions/project-forge-local-development.instructions.md","destination":".github/instructions/project-forge-local-development.instructions.md"},
     {"source":"core/instructions/project-forge-docs.instructions.md","destination":".github/instructions/project-forge-docs.instructions.md"},
     {"source":"core/skills/define-feature/SKILL.md","destination":".github/skills/define-feature/SKILL.md"},
     {"source":"core/skills/grill-me/SKILL.md","destination":".github/skills/grill-me/SKILL.md"},
@@ -48,6 +49,7 @@
     {"source":"core/process/OPERATION_JOURNAL.md","destination":"docs/process/OPERATION_JOURNAL.md"},
     {"source":"core/process/PROJECT_REQUIREMENTS_EXPORT.md","destination":"docs/process/PROJECT_REQUIREMENTS_EXPORT.md"},
     {"source":"core/process/APPLICATION_VERSIONING.md","destination":"docs/process/APPLICATION_VERSIONING.md"},
+    {"source":"core/process/LOCAL_DEVELOPMENT_COMMANDS.md","destination":"docs/process/LOCAL_DEVELOPMENT_COMMANDS.md"},
     {"source":"core/templates/PULL_REQUEST_TEMPLATE.md","destination":".github/PULL_REQUEST_TEMPLATE.md"},
     {"source":"core/templates/PRODUCT_BRIEF_TEMPLATE.md","destination":"docs/templates/PRODUCT_BRIEF_TEMPLATE.md"},
     {"source":"core/templates/FEATURE_BRIEF_TEMPLATE.md","destination":"docs/templates/FEATURE_BRIEF_TEMPLATE.md"},
