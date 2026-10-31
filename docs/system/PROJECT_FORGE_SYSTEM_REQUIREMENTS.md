@@ -143,9 +143,11 @@ Publishing a new public package MUST NOT silently mutate existing consumers. Con
 
 A generated consumer carrying `PROJECT_FORGE_BASELINE.json` MUST use the public Project Forge package/update contract as its reusable update boundary rather than bypassing it with direct component synchronization.
 
-### PF-SYS-028 — Baseline drift safety
+### PF-SYS-028 — Baseline drift safety and Exact Managed Set
 
 Reusable update/apply mechanics MUST detect managed local drift, deletion, retired-path conflicts, and ownership collisions and MUST fail closed unless the applicable contract explicitly resolves ownership.
+
+After a successful package-managed apply or update, Project Forge MUST converge its owned files to the **Exact Managed Set**: every current managed path MUST match the selected package/profile, every previously managed path absent from the new distribution MUST be removed or explicitly transferred out of Project Forge ownership, and the new component baseline MUST enumerate exactly the current managed paths. Unmanaged consumer files MUST remain outside this convergence and MUST NOT be pruned merely because they are absent from the distribution.
 
 ### PF-SYS-029 — No republish of immutable npm version
 
