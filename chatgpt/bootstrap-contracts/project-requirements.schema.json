@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/bootstrap-contracts/project-requirements.schema.json",
+  "title": "Project Forge Portable Project Requirements",
+  "type": "object",
+  "required": ["schemaVersion", "state", "source", "project", "product", "features", "roadmap", "sourceArtifacts"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "state": {"enum": ["draft", "review", "approved"]},
+    "source": {
+      "type": "object",
+      "required": ["repository", "commit"],
+      "properties": {
+        "repository": {"type": "string", "pattern": "^[^/\\s]+/[^/\\s]+$"},
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "exportedAt": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "slug": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "description": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "product": {
+      "type": "object",
+      "required": ["sourcePath", "goal", "users", "nonGoals", "successCriteria"],
+      "properties": {
+        "sourcePath": {"type": "string", "minLength": 1},
+        "authority": {"type": "string", "minLength": 1},
+        "status": {"type": "string", "minLength": 1},
+        "problem": {"type": "string"},
+        "goal": {"type": "string", "minLength": 1},
+        "users": {"type": "array", "items": {"type": "string"}},
+        "outcomes": {"type": "array", "items": {"type": "string"}},
+        "scope": {"type": "array", "items": {"type": "string"}},
+        "nonGoals": {"type": "array", "items": {"type": "string"}},
+        "workflows": {"type": "array", "items": {"type": "string"}},
+        "successCriteria": {"type": "array", "items": {"type": "string"}},
+        "openDecisions": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sourceId", "title", "sourcePath", "target", "targetDisposition", "status", "summary"],
+        "properties": {
+          "sourceId": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "sourcePath": {"type": "string", "minLength": 1},
+          "target": {"enum": ["V1", "V2", "V3"]},
+          "targetDisposition": {"enum": ["committed", "planned", "directional"]},
+          "status": {"type": "string", "minLength": 1},
+          "authority": {"type": "string", "minLength": 1},
+          "summary": {"type": "string", "minLength": 1},
+          "userOutcomes": {"type": "array", "items": {"type": "string"}},
+          "scope": {"type": "array", "items": {"type": "string"}},
+          "nonScope": {"type": "array", "items": {"type": "string"}},
+          "workflows": {"type": "array", "items": {"type": "string"}},
+          "businessRules": {"type": "array", "items": {"type": "string"}},
+          "acceptanceCriteria": {"type": "array", "items": {"type": "string"}},
+          "dependencies": {"type": "array", "items": {"type": "string"}},
+          "learningObjectives": {"type": "array", "items": {"type": "string"}},
+          "openQuestions": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": true
+      }
+    },
+    "domain": {
+      "type": "object",
+      "properties": {
+        "concepts": {"type": "array", "items": {"type": ["string", "object"]}},
+        "relationships": {"type": "array", "items": {"type": ["string", "object"]}},
+        "invariants": {"type": "array", "items": {"type": "string"}},
+        "businessRules": {"type": "array", "items": {"type": "string"}},
+        "lifecycleRules": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "experience": {
+      "type": "object",
+      "properties": {
+        "designPrinciples": {"type": "array", "items": {"type": "string"}},
+        "responsiveRequirements": {"type": "array", "items": {"type": "string"}},
+        "accessibilityRequirements": {"type": "array", "items": {"type": "string"}},
+        "interactionPatterns": {"type": "array", "items": {"type": ["string", "object"]}}
+      },
+      "additionalProperties": true
+    },
+    "crossCuttingRequirements": {
+      "type": "object",
+      "properties": {
+        "securityPrivacy": {"type": "array", "items": {"type": "string"}},
+        "reliability": {"type": "array", "items": {"type": "string"}},
+        "performance": {"type": "array", "items": {"type": "string"}},
+        "data": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "roadmap": {
+      "type": "object",
+      "required": ["milestones"],
+      "properties": {
+        "sourcePath": {"type": "string", "minLength": 1},
+        "milestones": {"type": "array", "items": {"type": ["string", "object"]}},
+        "sequencingNotes": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "decisions": {"type": "array", "items": {"type": "object"}},
+    "learningIntent": {
+      "type": "object",
+      "properties": {
+        "goals": {"type": "array", "items": {"type": "string"}},
+        "futureIdeas": {"type": "array", "items": {"type": ["string", "object"]}}
+      },
+      "additionalProperties": true
+    },
+    "sourceArtifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "kind", "authority", "treatment"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "kind": {"type": "string", "minLength": 1},
+          "authority": {"type": "string", "minLength": 1},
+          "treatment": {"enum": ["preserve", "reconcile", "reference", "exclude"]},
+          "reason": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
