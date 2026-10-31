@@ -1,6 +1,6 @@
 {
   "name": "@mriekki/project-forge",
-  "version": "4.13.0",
+  "version": "4.13.1",
   "description": "Public consumer distribution and updater for Project Forge engineering assets.",
   "type": "module",
   "bin": {
