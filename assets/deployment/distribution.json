@@ -42,6 +42,7 @@
     {"source": "src/project_forge_deployment/profiles.py", "destination": "tools/project-forge-deployment/project_forge_deployment/profiles.py"},
     {"source": "src/project_forge_deployment/project_topology.py", "destination": "tools/project-forge-deployment/project_forge_deployment/project_topology.py"},
     {"source": "src/project_forge_deployment/proof_receipt.py", "destination": "tools/project-forge-deployment/project_forge_deployment/proof_receipt.py"},
+    {"source": "src/project_forge_deployment/recovery_scope.py", "destination": "tools/project-forge-deployment/project_forge_deployment/recovery_scope.py"},
     {"source": "src/project_forge_deployment/registry_access.py", "destination": "tools/project-forge-deployment/project_forge_deployment/registry_access.py"},
     {"source": "src/project_forge_deployment/registry_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/registry_cli.py"},
     {"source": "src/project_forge_deployment/route_registry.py", "destination": "tools/project-forge-deployment/project_forge_deployment/route_registry.py"},
@@ -62,6 +63,7 @@
     {"source": "docs/WORKSPACE_INSTANCES.md", "destination": "docs/project-forge/WORKSPACE_INSTANCES.md"},
     {"source": "docs/ENVIRONMENT_PROOF.md", "destination": "docs/project-forge/ENVIRONMENT_PROOF.md"},
     {"source": "docs/PROJECT_TOPOLOGY_BINDING.md", "destination": "docs/project-forge/PROJECT_TOPOLOGY_BINDING.md"},
+    {"source": "docs/RECOVERY_READINESS.md", "destination": "docs/project-forge/RECOVERY_READINESS.md"},
     {"source": "docs/images/developer-environment-journey.svg", "destination": "docs/project-forge/images/developer-environment-journey.svg"},
     {"source": "docs/images/personal-environment-architecture.svg", "destination": "docs/project-forge/images/personal-environment-architecture.svg"},
     {"source": "docs/images/project-environment-model.svg", "destination": "docs/project-forge/images/project-environment-model.svg"}
