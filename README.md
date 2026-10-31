@@ -113,6 +113,8 @@ Generated Projects receive an exact approved package during deterministic genera
 
 That Project workflow resolves the supported exact package version and preserves the managed-baseline, drift, review, and delivery guardrails. Do not use a floating `@latest` package update as the normal Builder path: npm publication can intentionally occur before the stable public contract is advanced to the new version.
 
+Package-managed updates follow the **Exact Managed Set** invariant: after a successful update, every path still managed by the selected package/profile has the package-defined content, and every previously managed path that the new package retires has either been removed or explicitly transferred out of Project Forge ownership. Unmanaged consumer files are not directory-mirrored or pruned. See [`docs/system/PROJECT_FORGE_EXACT_MANAGED_SET.md`](docs/system/PROJECT_FORGE_EXACT_MANAGED_SET.md).
+
 The package CLI remains available for exact-version troubleshooting and maintainer verification. Use the exact version recorded by the Project or selected by the Project Forge workflow rather than a floating tag.
 
 ## Maintainer system reference
