@@ -30,6 +30,16 @@ test('public adoption projection matches the advertised protocol shape', async (
   assert.equal(adoption.properties.repositoryRelationship.properties.upstreamWrites.const, false);
   assert.equal(adoption.properties.operationsProfile.oneOf[1].$ref, 'project-forge-operations.schema.json');
   assert.deepEqual(
+    adoption.properties.engineeringContext.properties.repositoryWorkflow.required,
+    ['commitMessage', 'pullRequest'],
+  );
+  assert.deepEqual(
+    adoption.properties.engineeringContext.properties.repositoryWorkflow.properties.pullRequest.properties.body.oneOf.map(
+      (shape) => shape.properties.mode.const,
+    ),
+    ['project-forge-summary', 'repository-template'],
+  );
+  assert.deepEqual(
     operations.properties.status.enum,
     ['human-confirmed', 'user-corrected'],
   );
