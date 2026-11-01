@@ -1,12 +1,12 @@
-# Remote Existing-Repository Adoption — System Design Proposal
+# Remote Existing-Repository Adoption — System Design
 
 ## Status
 
-**Proposal for system review.**
+**Accepted system design; implementation is staged by canonical owner.**
 
-This document defines the proposed cross-repository design for turning an existing GitHub repository into a Project Forge Project through ChatGPT without treating the existing application as greenfield-generated source.
+This document defines the accepted cross-repository design for turning an existing GitHub repository into a Project Forge Project through ChatGPT without treating the existing application as greenfield-generated source.
 
-It is intentionally a review surface before implementation. After acceptance, the stable invariants belong in `PROJECT_FORGE_SYSTEM_REQUIREMENTS.md` and `PROJECT_FORGE_SYSTEM_DESIGN.md`; detailed schemas, CLIs, analyzers, and workflows remain owned by their foundational repositories.
+The stable invariants are promoted into `PROJECT_FORGE_SYSTEM_REQUIREMENTS.md` and `PROJECT_FORGE_SYSTEM_DESIGN.md`. Detailed schemas, CLIs, analyzers, workflows, and current support state remain owned by their foundational repositories. This document is the detailed design and acceptance reference; it does not by itself advertise remote adoption as runnable until the owning implementations and Platform public contract are accepted.
 
 ## Goals
 
@@ -27,7 +27,7 @@ The first high-complexity acceptance Project is intended to be a mature reposito
 
 ## Non-goals
 
-This proposal does not:
+This design does not:
 
 - redefine existing-repository adoption as greenfield generation;
 - authorize Bootstrap to overwrite populated repositories;
@@ -352,7 +352,7 @@ A major adoption outcome is that the Builder should not have to repeatedly redis
 
 Current generic Core skills may remain reusable orchestration, but adopted Projects should carry a **human-confirmed Project-owned operations profile** produced during analysis/adoption.
 
-Proposed repository-owned artifact:
+Accepted repository-owned artifact:
 
 ```text
 .github/project-forge-operations.json
@@ -390,9 +390,7 @@ Large repositories may have multiple valid targets. The profile should expose st
 
 The Builder should not be asked to remember framework-specific commands once adoption has established the mapping.
 
-### Proposed shape
-
-Conceptually:
+### Conceptual shape
 
 ```json
 {
@@ -433,7 +431,7 @@ Conceptually:
 }
 ```
 
-The actual owning schema belongs to Adoption/Core design work and should avoid embedding secrets or workstation-specific absolute paths.
+The exact owning schema belongs to Adoption Kit/Core implementation and must avoid embedding secrets or workstation-specific absolute paths.
 
 ### Resolution rules
 
@@ -457,15 +455,15 @@ low-friction deterministic Project behavior
 
 ## 9. Adoption execution authority
 
-Existing-repository adoption should use an Adoption-owned approved manifest rather than pretending the repository was greenfield-generated.
+Existing-repository adoption uses an Adoption-owned approved manifest rather than pretending the repository was greenfield-generated.
 
-Proposed filename:
+Accepted filename:
 
 ```text
 PROJECT_ADOPTION.json
 ```
 
-The exact schema is Adoption-owned, but the manifest should carry enough approved state to identify:
+The exact schema is Adoption-owned, but the manifest carries enough approved state to identify:
 
 - accepted Adoption revision/protocol;
 - discovery/Bootstrap provenance used to reconstruct the Project;
@@ -499,7 +497,7 @@ The same principle applies to material AI asset changes, operations-profile evid
 
 ## 11. Remote Control Plane flow
 
-A distinct public request should be used for adoption rather than overloading `[generate-project]`, because adoption and greenfield generation have different safety and provenance semantics.
+A distinct public request is used for adoption rather than overloading `[generate-project]`, because adoption and greenfield generation have different safety and provenance semantics.
 
 Conceptually:
 
@@ -591,55 +589,28 @@ For a newly selected fork with no downstream commits but a stale upstream positi
 
 ---
 
-## 14. Proposed normative requirements
+## 14. Normative requirements
 
-The following requirement concepts should be promoted into the canonical system requirements if this proposal is accepted. Final IDs/text are reviewable; numbers intentionally avoid renumbering existing requirements.
+The stable remote-adoption invariants are now canonical in `PROJECT_FORGE_SYSTEM_REQUIREMENTS.md` as PF-SYS-110 through PF-SYS-119:
 
-### PF-SYS-110 — Deep imported-repository analysis
+- deep imported-repository analysis;
+- exact analyzed source state;
+- AI/agentic asset reconciliation;
+- single effective agentic authority;
+- explicit and traceable AI-asset retirement/replacement;
+- independent review for consumer-derived Project Forge techniques;
+- confirmed operational entry points;
+- repository-owned non-secret operations profiles;
+- explicit fork directionality; and
+- remote adoption remaining distinct from greenfield generation.
 
-Imported discovery for in-place adoption MUST reconstruct material product/domain, technical, engineering, and repository-policy context from live source evidence and MUST surface material contradictions/uncertainty rather than silently resolving them.
-
-### PF-SYS-111 — Adoption uses exact analyzed source state
-
-An approved remote adoption MUST identify the exact analyzed target commit and MUST fail closed when the target source state changes materially before deterministic apply unless the analysis is explicitly refreshed/reconciled.
-
-### PF-SYS-112 — AI/agentic assets require reconciliation
-
-When an existing repository contains material AI/agentic workflow assets, adoption MUST inventory and reconcile their capabilities before installing overlapping Project Forge behavior.
-
-### PF-SYS-113 — Single effective agentic authority
-
-Adoption MUST NOT knowingly leave conflicting authoritative agentic workflows for the same responsibility. Hybrid coexistence MAY preserve both systems when effective responsibility/authority is explicitly partitioned.
-
-### PF-SYS-114 — Existing AI asset retirement is explicit and traceable
-
-Adoption MUST NOT silently remove or replace existing AI/agentic assets. Retirement/replacement MUST be human-approved, collision-guarded against the reviewed source state, and recoverable through repository history/provenance.
-
-### PF-SYS-115 — Consumer agentic techniques do not silently redefine Project Forge
-
-Discovery MAY identify generalizable AI/agentic techniques as Project Forge improvement candidates, but consumer techniques MUST NOT become reusable Project Forge behavior without independent review and implementation in the owning foundational repository.
-
-### PF-SYS-116 — Adopted Projects have confirmed operational entry points
-
-Adoption SHOULD establish a human-confirmed repository-owned operations profile for setup/build/run/validation when those operations are material, so routine Core skills can use approved Project-specific targets rather than repeatedly guessing repository commands.
-
-### PF-SYS-117 — Operational profiles remain repository-owned and non-secret
-
-Project-specific operations profiles MUST remain repository-owned, MUST resolve to repository-defined commands or wrappers, MUST NOT contain secrets or workstation-specific absolute paths, and MUST fail visibly when stale rather than silently substituting guessed commands.
-
-### PF-SYS-118 — Fork directionality is explicit
-
-For adopted forks, material upstream-tracking and contribution intent MUST be explicit. A downstream-only configuration MUST NOT grant or imply Project Forge write authority to the upstream repository.
-
-### PF-SYS-119 — Remote adoption remains distinct from generation
-
-GitHub-first existing-repository adoption MUST use Adoption-owned provenance/apply authority and a distinct Control Plane operation; it MUST NOT masquerade as successful greenfield generation merely to reuse `PROJECT_BOOTSTRAP.json` or `[generate-project]` semantics.
+The canonical requirements file governs if this explanatory list and the normative text ever differ.
 
 ---
 
-## 15. Proposed implementation sequence
+## 15. Implementation sequence
 
-1. **Platform system review** — accept/refine this design and promote stable invariants into the canonical system requirements/design.
+1. **Platform system review** — promote the accepted stable invariants into the canonical system requirements/design.
 2. **Adoption Kit contract** — define `PROJECT_ADOPTION.json`, exact-base preflight, project-artifact mutation semantics, AI reconciliation representation, operations-profile schema/materialization, validation, and provenance.
 3. **Bootstrap imported discovery** — add deep GitHub repository archaeology, evidence reconciliation, AI/agentic analysis, operations-profile proposal, and routing to Adoption rather than greenfield generation for in-place adoption.
 4. **Control Plane** — add an adoption request type and exact-target orchestration without exposing private project definition publicly.
@@ -647,7 +618,7 @@ GitHub-first existing-repository adoption MUST use Adoption-owned provenance/app
 6. **Platform public contract** — expose accepted Adoption compatibility/provenance and update immutable ChatGPT contract snapshots after owning capabilities are accepted.
 7. **Acceptance** — prove small non-fork adoption, synthetic fork/divergence/policy-conflict cases, then exercise a mature repository such as Actual Budget.
 
-Implementation should remain staged by canonical owner rather than landing one giant cross-repository change.
+Implementation remains staged by canonical owner rather than landing one giant cross-repository change. Until the owning implementations and public contract reach the required evidence state, the stable user-facing contract must continue to withhold unsupported in-place adoption.
 
 ---
 
@@ -679,9 +650,9 @@ Before remote deep adoption is called supported, evidence should cover at least:
 
 ---
 
-## 17. Design checkpoints before implementation
+## 17. Accepted design checkpoints
 
-System review should explicitly confirm or revise these choices before detailed implementation starts:
+The accepted design choices are:
 
 1. `PROJECT_ADOPTION.json` is the distinct Adoption-owned deterministic authority for in-place adoption.
 2. `.github/project-forge-operations.json` is the preferred Project-owned actionable setup/build/run/validation profile rather than overloading descriptive engineering context.
@@ -693,4 +664,4 @@ System review should explicitly confirm or revise these choices before detailed 
 8. remote adoption uses a distinct Control Plane request from greenfield generation.
 9. operational targets are discovered/reviewed during adoption so `/setup`, `/build`, `/run`, and validation are low-friction immediately after adoption.
 
-These decisions intentionally precede Bootstrap, Adoption Kit, Control Plane, or Core implementation changes.
+These decisions define the cross-repository implementation target; current implementation/support status must still be verified from live owning repositories and the Platform public descriptor.
