@@ -47,11 +47,11 @@
   "generation": {
     "manifestFilename": "PROJECT_BOOTSTRAP.json",
     "bootstrap": {
-      "revision": "0c45eb332a815ad79ea061443f337500b9dc5712",
+      "revision": "b75ed98468b9bfc18546b840cac3c03eaff9e703",
       "protocolVersion": 12,
       "catalogVersion": 13,
       "portableRequirements": {
-        "bootstrapRevision": "0c45eb332a815ad79ea061443f337500b9dc5712",
+        "bootstrapRevision": "b75ed98468b9bfc18546b840cac3c03eaff9e703",
         "schema": {
           "path": "schemas/project-requirements.schema.json",
           "url": "https://raw.githubusercontent.com/mriekki/project-forge-platform/e76b6bd488448a76ae5f4cd5195d11e75fdb45b8/chatgpt/bootstrap-contracts/project-requirements.schema.json",
@@ -65,7 +65,7 @@
       }
     },
     "package": "@mriekki/project-forge",
-    "packageVersion": "4.13.3",
+    "packageVersion": "4.13.4",
     "profile": "greenfield-project",
     "bootstrapProtocolVersion": 12
   },
