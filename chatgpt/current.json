@@ -47,11 +47,11 @@
   "generation": {
     "manifestFilename": "PROJECT_BOOTSTRAP.json",
     "bootstrap": {
-      "revision": "b75ed98468b9bfc18546b840cac3c03eaff9e703",
+      "revision": "05d5f7144cc78b78a087a9ed95c334eae6fa90e9",
       "protocolVersion": 12,
       "catalogVersion": 13,
       "portableRequirements": {
-        "bootstrapRevision": "b75ed98468b9bfc18546b840cac3c03eaff9e703",
+        "bootstrapRevision": "05d5f7144cc78b78a087a9ed95c334eae6fa90e9",
         "schema": {
           "path": "schemas/project-requirements.schema.json",
           "url": "https://raw.githubusercontent.com/mriekki/project-forge-platform/e76b6bd488448a76ae5f4cd5195d11e75fdb45b8/chatgpt/bootstrap-contracts/project-requirements.schema.json",
