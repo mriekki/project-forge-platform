@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
@@ -11,8 +12,12 @@ async function readJson(relative) {
   return JSON.parse(await readFile(path.join(root, relative), 'utf8'));
 }
 
-async function sha256(relative) {
-  return createHash('sha256').update(await readFile(path.join(root, relative))).digest('hex');
+function canonicalGitBlob(relative) {
+  return execFileSync('git', ['show', `HEAD:${relative}`], { cwd: root, encoding: null });
+}
+
+function sha256(relative) {
+  return createHash('sha256').update(canonicalGitBlob(relative)).digest('hex');
 }
 
 test('public adoption projection matches the advertised protocol shape', async () => {
@@ -29,11 +34,11 @@ test('public adoption projection matches the advertised protocol shape', async (
     ['human-confirmed', 'user-corrected'],
   );
   assert.equal(
-    await sha256('chatgpt/adoption-contracts/project-adoption.schema.json'),
+    sha256('chatgpt/adoption-contracts/project-adoption.schema.json'),
     descriptor.adoption.contract.schema.sha256,
   );
   assert.equal(
-    await sha256('chatgpt/adoption-contracts/project-forge-operations.schema.json'),
+    sha256('chatgpt/adoption-contracts/project-forge-operations.schema.json'),
     descriptor.adoption.contract.operationsSchema.sha256,
   );
 });
