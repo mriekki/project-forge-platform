@@ -125,7 +125,7 @@ Current package component identity MUST be machine-resolvable from Platform-owne
 
 ### PF-SYS-023 — Stable descriptor separation
 
-The public ChatGPT descriptor MUST distinguish immutable resolved contract snapshot provenance from mutable current generation pointers.
+The public ChatGPT descriptor MUST distinguish immutable resolved contract snapshot provenance from mutable current generation and adoption pointers.
 
 ### PF-SYS-024 — Consumer provenance layers
 
@@ -271,7 +271,7 @@ Private product definitions, consumer source, secrets, and baseline detail MUST 
 
 ### PF-SYS-061 — Request author/owner authorization
 
-GitHub-first generation/update requests MUST validate the authorized requester and exact target ownership/capability before private target access or mutation.
+GitHub-first generation/adoption/update requests MUST validate the authorized requester and exact target ownership/capability before private target access or mutation.
 
 ### PF-SYS-062 — Short-lived scoped credentials
 
@@ -404,6 +404,50 @@ A reusable defect found in a consumer SHOULD be fixed in its canonical foundatio
 ### PF-SYS-103 — Destructive recovery is separately authorized
 
 Recovery that deletes persistent data, takes ownership of existing infrastructure, rewrites history, or performs another destructive/out-of-band action MUST require authorization appropriate to that action and MUST NOT be implied by a prior setup/deploy/delivery approval.
+
+---
+
+## M. Remote existing-repository adoption
+
+### PF-SYS-110 — Deep imported-repository analysis
+
+Imported discovery for in-place adoption MUST reconstruct material product/domain, technical, engineering, and repository-policy context from live source evidence and MUST surface material contradictions/uncertainty rather than silently resolving them.
+
+### PF-SYS-111 — Adoption uses exact analyzed source state
+
+An approved remote adoption MUST identify the exact analyzed target commit and MUST fail closed when the target source state changes materially before deterministic apply unless the analysis is explicitly refreshed/reconciled.
+
+### PF-SYS-112 — AI/agentic assets require reconciliation
+
+When an existing repository contains material AI/agentic workflow assets, adoption MUST inventory and reconcile their capabilities before installing overlapping Project Forge behavior.
+
+### PF-SYS-113 — Single effective agentic authority
+
+Adoption MUST NOT knowingly leave conflicting authoritative agentic workflows for the same responsibility. Hybrid coexistence MAY preserve both systems when effective responsibility/authority is explicitly partitioned.
+
+### PF-SYS-114 — Existing AI asset retirement is explicit and traceable
+
+Adoption MUST NOT silently remove or replace existing AI/agentic assets. Retirement/replacement MUST be human-approved, collision-guarded against the reviewed source state, and recoverable through repository history/provenance.
+
+### PF-SYS-115 — Consumer agentic techniques do not silently redefine Project Forge
+
+Discovery MAY identify generalizable AI/agentic techniques as Project Forge improvement candidates, but consumer techniques MUST NOT become reusable Project Forge behavior without independent review and implementation in the owning foundational repository.
+
+### PF-SYS-116 — Adopted Projects have confirmed operational entry points
+
+Adoption SHOULD establish a human-confirmed repository-owned operations profile for setup/build/run/validation when those operations are material, so routine Core skills can use approved Project-specific targets rather than repeatedly guessing repository commands.
+
+### PF-SYS-117 — Operational profiles remain repository-owned and non-secret
+
+Project-specific operations profiles MUST remain repository-owned, MUST resolve to repository-defined commands or wrappers, MUST NOT contain secrets or workstation-specific absolute paths, and MUST fail visibly when stale rather than silently substituting guessed commands.
+
+### PF-SYS-118 — Fork directionality is explicit
+
+For adopted forks, material upstream-tracking and contribution intent MUST be explicit. A downstream-only configuration MUST NOT grant or imply Project Forge write authority to the upstream repository.
+
+### PF-SYS-119 — Remote adoption remains distinct from generation
+
+GitHub-first existing-repository adoption MUST use Adoption-owned provenance/apply authority and a distinct Control Plane operation; it MUST NOT masquerade as successful greenfield generation merely to reuse `PROJECT_BOOTSTRAP.json` or `[generate-project]` semantics.
 
 ---
 
