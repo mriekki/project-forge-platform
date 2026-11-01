@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/contracts/v15/USER_PROFILE.schema.json",
+  "$id": "https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/contracts/v16/USER_PROFILE.schema.json",
   "title": "Project Forge Developer Profile",
   "description": "Small user-specific profile appended after the canonical Project Forge instruction in ChatGPT Project instructions. Use it only for identity, local environment, and learning preferences. Never use this as Project state and never store secrets.",
   "type": "object",
