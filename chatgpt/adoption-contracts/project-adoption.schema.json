@@ -76,7 +76,29 @@
         "schemaVersion": { "const": 1 },
         "status": { "enum": ["human-confirmed", "user-corrected"] },
         "source": { "const": "project-forge-adoption-discovery" },
-        "projectFiles": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        "projectFiles": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "repositoryWorkflow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["commitMessage", "pullRequest"],
+          "properties": {
+            "commitMessage": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[^\\r\\n]+$" },
+            "pullRequest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "body"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\r\\n]+$" },
+                "body": {
+                  "oneOf": [
+                    { "type": "object", "additionalProperties": false, "required": ["mode"], "properties": { "mode": { "const": "project-forge-summary" } } },
+                    { "type": "object", "additionalProperties": false, "required": ["mode", "templatePath"], "properties": { "mode": { "const": "repository-template" }, "templatePath": { "type": "string", "minLength": 1 } } }
+                  ]
+                }
+              }
+            }
+          }
+        }
       }
     },
     "operationsProfile": { "oneOf": [{ "type": "null" }, { "$ref": "project-forge-operations.schema.json" }] },
