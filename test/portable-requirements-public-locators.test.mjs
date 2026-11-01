@@ -9,7 +9,7 @@ import { test } from 'node:test';
 const schemaMirrorPath = 'chatgpt/bootstrap-contracts/project-requirements.schema.json';
 const validatorMirrorPath = 'chatgpt/bootstrap-contracts/project_requirements.py';
 const platformSource = 'e76b6bd488448a76ae5f4cd5195d11e75fdb45b8';
-const bootstrapRevision = '05d5f7144cc78b78a087a9ed95c334eae6fa90e9';
+const bootstrapRevision = '8754b1a06f23c61f3fa437fd32690f5d3322325a';
 
 function canonicalGitBlob(relative) {
   return execFileSync('git', ['show', `HEAD:${relative}`], { encoding: null });
