@@ -41,12 +41,12 @@ function contractPath(value, name) {
   return `${value.snapshotPath}/${name}`;
 }
 
-test('public ChatGPT descriptor resolves immutable Project Forge contract v14', async () => {
+test('public ChatGPT descriptor resolves immutable Project Forge contract v15', async () => {
   const value = await descriptor();
   assert.equal(value.schemaVersion, 1);
   assert.equal(value.channel, 'stable');
-  assert.equal(value.contractVersion, 14);
-  assert.equal(value.snapshotPath, 'chatgpt/contracts/v14');
+  assert.equal(value.contractVersion, 15);
+  assert.equal(value.snapshotPath, 'chatgpt/contracts/v15');
   assert.deepEqual(value.documents.map((item) => path.basename(item.path)), requiredDocuments);
 
   const actual = {};
@@ -60,7 +60,7 @@ test('public ChatGPT descriptor resolves immutable Project Forge contract v14', 
     actual[document.path] = createHash('sha256').update(canonicalGitBlob(document.path)).digest('hex');
     declared[document.path] = document.sha256;
   }
-  assert.deepEqual(declared, actual, 'descriptor hashes must match immutable v14 document bytes');
+  assert.deepEqual(declared, actual, 'descriptor hashes must match immutable v15 document bytes');
 });
 
 test('descriptor keeps private foundational source topology out of the public contract', async () => {
@@ -69,7 +69,7 @@ test('descriptor keeps private foundational source topology out of the public co
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'repository'), false);
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'commit'), false);
   assert.match(value.generation.bootstrap.revision, /^[0-9a-f]{40}$/);
-  assert.equal(value.generation.bootstrap.revision, 'b75ed98468b9bfc18546b840cac3c03eaff9e703');
+  assert.equal(value.generation.bootstrap.revision, '05d5f7144cc78b78a087a9ed95c334eae6fa90e9');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
 });
@@ -77,7 +77,7 @@ test('descriptor keeps private foundational source topology out of the public co
 test('generation aligns the published package with the accepted Bootstrap revision', async () => {
   const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
-  assert.equal(value.generation.bootstrap.revision, 'b75ed98468b9bfc18546b840cac3c03eaff9e703');
+  assert.equal(value.generation.bootstrap.revision, '05d5f7144cc78b78a087a9ed95c334eae6fa90e9');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(value.generation.bootstrap.portableRequirements.bootstrapRevision, value.generation.bootstrap.revision);
@@ -152,8 +152,27 @@ test('active Project Forge contract uses current public identifiers without priv
     assert.doesNotMatch(joined, new RegExp(retired.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 
-  assert.match(joined, /New Project: <idea>/);
-  assert.match(joined, /New Project from: <PROJECT_INPUT\.json or existing product source>/);
+  assert.match(joined, /New Project/);
+  assert.doesNotMatch(joined, /New Project: <idea>/);
+  assert.doesNotMatch(joined, /New Project from:/);
+});
+
+test('public contract teaches one guided New Project prompt', async () => {
+  const value = await descriptor();
+  const newProject = await text(contractPath(value, 'NEW_PROJECT.md'));
+  const onboarding = await text(contractPath(value, 'ONBOARDING.md'));
+  const instructions = await text(contractPath(value, 'PROJECT_INSTRUCTIONS.md'));
+  const rules = await text(contractPath(value, 'PROJECT_RULES.md'));
+  const joined = `${newProject}\n${onboarding}\n${instructions}\n${rules}`;
+
+  assert.match(newProject, /only user-facing ChatGPT Project-creation prompt/i);
+  assert.match(newProject, /```text\r?\nNew Project\r?\n```/);
+  assert.match(newProject, /Start from an idea/);
+  assert.match(newProject, /Start from an existing product or source/);
+  assert.match(newProject, /Not sure — recommend a path/);
+  assert.match(joined, /Do not teach.*separate greenfield\/import command syntax/is);
+  assert.doesNotMatch(joined, /New Project: <idea>/);
+  assert.doesNotMatch(joined, /New Project from:/);
 });
 
 test('public contract makes repositories authoritative instead of legacy handoffs', async () => {
@@ -186,7 +205,7 @@ test('public contract makes one canonical instruction plus one personal profile 
   assert.equal(schema.title, 'Project Forge Developer Profile');
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.required, ['schemaVersion', 'githubOwner']);
-  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v14/);
+  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v15/);
 
   for (const forbidden of ['password', 'token', 'secret', `${predecessorLower}State`, 'projectState', 'workItem', 'commitSha']) {
     assert.equal(Object.hasOwn(schema.properties, forbidden), false);
@@ -235,14 +254,17 @@ test('active public Builder pages use current Project Forge onboarding vocabular
   const welcome = await text('WELCOME.md');
   const setup = await text('chatgpt/SETUP.md');
   const startHere = await text('chatgpt/START_HERE.md');
-  const joined = [welcome, setup, startHere].join('\n');
+  const readme = await text('README.md');
+  const joined = [welcome, setup, startHere, readme].join('\n');
 
   assert.match(welcome, /Build real software\. Learn the engineering behind it\./);
   assert.match(joined, /Project Forge Builder/);
   assert.match(joined, /\/accept-project-forge/);
   assert.match(joined, /\/project-forge-doctor/);
-  assert.match(joined, /New Project: <idea>/);
-  assert.match(joined, /New Project from: <PROJECT_INPUT\.json or existing product source>/);
+  assert.match(joined, /```text\r?\nNew Project\r?\n```/);
+  assert.match(joined, /supported start mode/i);
+  assert.doesNotMatch(joined, /New Project: <idea>/);
+  assert.doesNotMatch(joined, /New Project from:/);
   assert.doesNotMatch(joined, new RegExp(predecessorUpper));
 
   for (const retired of ['accept-lean', 'lean-doctor', 'lean-platform']) {

@@ -101,8 +101,10 @@ READY FOR PROJECT FORGE
 
 Follow [`chatgpt/SETUP.md`](chatgpt/SETUP.md). Every Builder uses the same canonical Project Forge Project instruction; only the personal Developer Profile differs.
 
-Then start with:
+Then start with the one Project-creation prompt:
 
 ```text
-New Project: <your idea>
+New Project
 ```
+
+ChatGPT presents the currently supported ways to start, explains each option, and walks you through the path you select.

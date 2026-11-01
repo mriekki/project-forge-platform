@@ -78,17 +78,15 @@ If the public descriptor or immutable snapshot cannot be loaded and verified, co
 
 ## 5. Start a Project
 
-When GitHub onboarding says `READY FOR PROJECT FORGE` and ChatGPT setup verification passes, start greenfield discovery with:
+When GitHub onboarding says `READY FOR PROJECT FORGE` and ChatGPT setup verification passes, start with the single Project-creation prompt:
 
 ```text
-New Project: <your idea>
+New Project
 ```
 
-For imported discovery from an existing product definition or validated `PROJECT_INPUT.json`, start with:
+ChatGPT presents the currently supported ways to start, with a short description and guidance for each. Choose the path that matches what you have—for example a new idea or an existing product/source—and Project Forge walks you through only the relevant discovery or reconciliation steps.
 
-```text
-New Project from: <PROJECT_INPUT.json or existing product source>
-```
+You do not need to memorize separate greenfield/import commands or know Bootstrap artifact names before choosing a path.
 
 Project Forge guides discovery before creating anything.
 
