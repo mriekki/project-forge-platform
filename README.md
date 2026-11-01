@@ -8,13 +8,13 @@ The Builder brings the idea and makes the material decisions. Project Forge supp
 
 ## What it feels like
 
-Start with an idea:
+Start with the one Project-creation prompt:
 
 ```text
-New Project: I want to build a hiking trail tracker.
+New Project
 ```
 
-Project Forge guides the Builder through:
+Project Forge presents the currently supported ways to begin, explains each option, and then guides the Builder through the path they select. A greenfield path looks like:
 
 ```text
 idea
@@ -72,7 +72,8 @@ open personal invitation
 → accept invitation
 → automatic readiness verification
 → configure one ChatGPT coding Project
-→ New Project: <idea>
+→ New Project
+→ choose a supported start mode
 ```
 
 **Project Forge Builder** is the GitHub App used for Project Forge authorization and project orchestration.
