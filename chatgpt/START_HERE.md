@@ -10,7 +10,7 @@ For a product overview, start with [`../WELCOME.md`](../WELCOME.md). For one-tim
 2. Resolve the exact immutable contract snapshot named there.
 3. Use that snapshot for the current conversation/session.
 4. Keep identity and local working/learning preferences in a small Developer Profile only.
-5. Treat `New Project: <idea>` as the greenfield discovery trigger and `New Project from: <PROJECT_INPUT.json or existing product source>` as the imported-discovery trigger for the same Bootstrap-owned Project Discovery contract.
+5. Treat `New Project` as the single user-facing Project-creation prompt. Present the currently supported start modes with concise descriptions and guidance, then walk the Developer through the selected mode.
 6. For an existing generated Project, treat its repository and Project-owned artifacts as authoritative.
 
 If the descriptor or referenced snapshot cannot be loaded and verified, do not perform consequential generation or platform writes using remembered rules.
@@ -38,7 +38,8 @@ PENDING
 → readiness verified automatically
 → READY FOR PROJECT FORGE
 → configure ChatGPT Project once
-→ New Project: <idea>
+→ New Project
+→ choose a supported start mode
 ```
 
 `/project-forge-doctor` is the readiness retry/diagnostic path when needed; it is not a normal happy-path step.
