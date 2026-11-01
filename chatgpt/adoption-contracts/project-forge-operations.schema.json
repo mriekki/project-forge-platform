@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-forge.dev/schema/project-forge-operations.schema.json",
+  "title": "Project Forge Repository Operations Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "status", "source"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "enum": ["human-confirmed", "user-corrected"] },
+    "source": { "const": "project-forge-adoption-discovery" },
+    "setup": { "$ref": "#/$defs/operation" },
+    "build": { "$ref": "#/$defs/operation" },
+    "run": { "$ref": "#/$defs/operation" },
+    "test": { "$ref": "#/$defs/operation" },
+    "lint": { "$ref": "#/$defs/operation" },
+    "typecheck": { "$ref": "#/$defs/operation" },
+    "validation": { "$ref": "#/$defs/operation" }
+  },
+  "anyOf": [
+    { "required": ["setup"] },
+    { "required": ["build"] },
+    { "required": ["run"] },
+    { "required": ["test"] },
+    { "required": ["lint"] },
+    { "required": ["typecheck"] },
+    { "required": ["validation"] }
+  ],
+  "$defs": {
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "workingDirectory"],
+      "properties": {
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "workingDirectory": { "type": "string", "minLength": 1 },
+        "longRunning": { "type": "boolean" },
+        "health": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["url"],
+          "properties": {
+            "url": { "type": "string", "format": "uri" }
+          }
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targets"],
+      "properties": {
+        "defaultTarget": { "type": "string", "minLength": 1 },
+        "targets": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/target" }
+        }
+      }
+    }
+  }
+}

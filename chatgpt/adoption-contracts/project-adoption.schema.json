@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://project-forge.dev/schema/project-adoption.schema.json",
+  "title": "Project Forge Approved Remote Adoption Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "state", "adoptionKit", "discovery", "target", "repositoryRelationship", "workspace", "engineeringContext", "operationsProfile", "aiReconciliation", "projectArtifacts"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "state": { "const": "approved" },
+    "adoptionKit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit", "protocolVersion"],
+      "properties": {
+        "repository": { "const": "mriekki/project-forge-adoption-kit" },
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$|^[0-9a-f]{64}$" },
+        "protocolVersion": { "const": 1 }
+      }
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "bootstrapRepository", "bootstrapCommit"],
+      "properties": {
+        "source": { "const": "project-forge-bootstrap" },
+        "bootstrapRepository": { "const": "mriekki/project-forge-bootstrap" },
+        "bootstrapCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$|^[0-9a-f]{64}$" }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "defaultBranch", "analyzedCommit"],
+      "properties": {
+        "repository": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "defaultBranch": { "type": "string", "minLength": 1 },
+        "analyzedCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$|^[0-9a-f]{64}$" }
+      }
+    },
+    "repositoryRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "upstream", "syncIntent", "contributionIntent", "upstreamWrites", "integrationStrategy"],
+      "properties": {
+        "kind": { "enum": ["repository", "fork"] },
+        "upstream": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "object", "additionalProperties": false, "required": ["repository", "defaultBranch"], "properties": { "repository": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" }, "defaultBranch": { "type": "string", "minLength": 1 } } }
+          ]
+        },
+        "syncIntent": { "enum": ["none", "manual-periodic"] },
+        "contributionIntent": { "enum": ["downstream-only", "may-contribute"] },
+        "upstreamWrites": { "const": false },
+        "integrationStrategy": { "const": "reviewed-merge" }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workItemSource", "jira", "productBriefs", "featureBriefs", "capabilities", "preserveExisting"],
+      "properties": {
+        "workItemSource": { "enum": ["jira", "github-issues", "local-docs", "hybrid"] },
+        "jira": { "type": "object", "additionalProperties": false, "required": ["accessMode", "baseUrl", "epics"], "properties": { "accessMode": { "enum": ["none", "browser-assisted", "api", "mcp", "api+mcp", "auto"] }, "baseUrl": { "type": "string" }, "epics": { "const": "supported-analyze-role" } } },
+        "productBriefs": { "$ref": "#/$defs/briefPolicy" },
+        "featureBriefs": { "$ref": "#/$defs/briefPolicy" },
+        "capabilities": { "oneOf": [{ "const": ["team-safe-core"] }, { "const": ["team-safe-core", "coach"] }, { "const": ["team-safe-core", "coach", "learning"] }] },
+        "preserveExisting": { "type": "object", "additionalProperties": false, "required": ["readme", "prTemplate", "ci", "branchConventions", "rootCopilotInstructions"], "properties": { "readme": { "const": true }, "prTemplate": { "const": true }, "ci": { "const": true }, "branchConventions": { "const": true }, "rootCopilotInstructions": { "const": true } } }
+      }
+    },
+    "engineeringContext": {
+      "type": "object",
+      "required": ["schemaVersion", "status", "source"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "status": { "enum": ["human-confirmed", "user-corrected"] },
+        "source": { "const": "project-forge-adoption-discovery" },
+        "projectFiles": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "operationsProfile": { "oneOf": [{ "type": "null" }, { "$ref": "project-forge-operations.schema.json" }] },
+    "aiReconciliation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "assets"],
+      "properties": {
+        "status": { "enum": ["not-applicable", "human-confirmed"] },
+        "assets": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["path", "disposition", "expectedSha256", "reason"], "properties": { "path": { "type": "string", "minLength": 1 }, "disposition": { "enum": ["PRESERVE", "INTEGRATE", "REPLACE_WITH_PROJECT_FORGE", "RETIRE"] }, "expectedSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "reason": { "type": "string", "minLength": 1 }, "replacementContent": { "type": "string" }, "replacementSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } } }
+      }
+    },
+    "projectArtifacts": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["action", "path", "content", "sha256"], "properties": { "action": { "enum": ["add", "replace"] }, "path": { "type": "string", "minLength": 1 }, "content": { "type": "string" }, "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "expectedTargetSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } } }
+  },
+  "$defs": { "briefPolicy": { "type": "object", "additionalProperties": false, "required": ["mode"], "properties": { "mode": { "enum": ["not-used", "read-existing", "supplemental-experimental", "authoritative", "suggest-complex"] } } } }
+}
