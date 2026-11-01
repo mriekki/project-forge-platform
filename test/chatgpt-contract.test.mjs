@@ -41,12 +41,16 @@ function contractPath(value, name) {
   return `${value.snapshotPath}/${name}`;
 }
 
-test('public ChatGPT descriptor resolves immutable Project Forge contract v15', async () => {
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+test('public ChatGPT descriptor resolves immutable Project Forge contract v16', async () => {
   const value = await descriptor();
   assert.equal(value.schemaVersion, 1);
   assert.equal(value.channel, 'stable');
-  assert.equal(value.contractVersion, 15);
-  assert.equal(value.snapshotPath, 'chatgpt/contracts/v15');
+  assert.equal(value.contractVersion, 16);
+  assert.equal(value.snapshotPath, 'chatgpt/contracts/v16');
   assert.deepEqual(value.documents.map((item) => path.basename(item.path)), requiredDocuments);
 
   const actual = {};
@@ -60,24 +64,29 @@ test('public ChatGPT descriptor resolves immutable Project Forge contract v15', 
     actual[document.path] = createHash('sha256').update(canonicalGitBlob(document.path)).digest('hex');
     declared[document.path] = document.sha256;
   }
-  assert.deepEqual(declared, actual, 'descriptor hashes must match immutable v15 document bytes');
+  assert.deepEqual(declared, actual, 'descriptor hashes must match immutable v16 document bytes');
 });
 
-test('descriptor keeps private foundational source topology out of the public contract', async () => {
+test('descriptor keeps private foundational source topology out of the active public contract', async () => {
   const value = await descriptor();
   assert.equal(Object.hasOwn(value, 'sourceProvenance'), false);
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'repository'), false);
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'commit'), false);
   assert.match(value.generation.bootstrap.revision, /^[0-9a-f]{40}$/);
-  assert.equal(value.generation.bootstrap.revision, '05d5f7144cc78b78a087a9ed95c334eae6fa90e9');
+  assert.equal(value.generation.bootstrap.revision, '8754b1a06f23c61f3fa437fd32690f5d3322325a');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
+  assert.equal(Object.hasOwn(value.adoption.kit, 'repository'), false);
+  assert.equal(Object.hasOwn(value.adoption.kit, 'commit'), false);
+  assert.match(value.adoption.kit.revision, /^[0-9a-f]{40}$/);
+  assert.equal(value.adoption.kit.revision, '67c044f369a9471724aad4de626be06bb0ebe069');
+  assert.equal(value.adoption.kit.protocolVersion, 1);
 });
 
 test('generation aligns the published package with the accepted Bootstrap revision', async () => {
   const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
-  assert.equal(value.generation.bootstrap.revision, '05d5f7144cc78b78a087a9ed95c334eae6fa90e9');
+  assert.equal(value.generation.bootstrap.revision, '8754b1a06f23c61f3fa437fd32690f5d3322325a');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(value.generation.bootstrap.portableRequirements.bootstrapRevision, value.generation.bootstrap.revision);
@@ -86,6 +95,27 @@ test('generation aligns the published package with the accepted Bootstrap revisi
   assert.equal(value.generation.profile, 'greenfield-project');
   assert.equal(value.generation.bootstrapProtocolVersion, 12);
   assert.equal(value.bootstrapUrl, 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json');
+});
+
+test('adoption advertises exact manifest, kit and immutable public schema projections', async () => {
+  const value = await descriptor();
+  assert.equal(value.adoption.manifestFilename, 'PROJECT_ADOPTION.json');
+  assert.equal(value.adoption.kit.revision, '67c044f369a9471724aad4de626be06bb0ebe069');
+  assert.equal(value.adoption.kit.protocolVersion, 1);
+
+  for (const [name, relative] of [
+    ['schema', 'chatgpt/adoption-contracts/project-adoption.schema.json'],
+    ['operationsSchema', 'chatgpt/adoption-contracts/project-forge-operations.schema.json'],
+  ]) {
+    const contract = value.adoption.contract[name];
+    assert.match(contract.sha256, /^[0-9a-f]{64}$/);
+    assert.match(contract.url, /^https:\/\/raw\.githubusercontent\.com\/mriekki\/project-forge-platform\/[0-9a-f]{40}\//);
+    assert.equal(
+      createHash('sha256').update(canonicalGitBlob(relative)).digest('hex'),
+      contract.sha256,
+      `${name} public projection hash must match`,
+    );
+  }
 });
 
 test('stable generation contract preserves a privacy-safe Bootstrap pin boundary', async () => {
@@ -113,17 +143,19 @@ test('active Project Forge contract uses current public identifiers without priv
 
   for (const required of [
     'PROJECT_BOOTSTRAP.json',
+    'PROJECT_ADOPTION.json',
     'PROJECT_INPUT.json',
     'docs/product/PROJECT_DECISION_LOG.md',
     '@mriekki/project-forge',
     '[generate-project]',
+    '[adopt-project]',
     '[invite-project-forge]',
     '/accept-project-forge',
     '/project-forge-doctor',
     'mriekki/project-forge-platform',
     'mriekki/project-forge-control-plane',
   ]) {
-    assert.match(joined, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(joined, new RegExp(escapeRegex(required)));
   }
 
   for (const forbidden of [
@@ -133,7 +165,7 @@ test('active Project Forge contract uses current public identifiers without priv
     'mriekki/project-forge-adoption-kit',
     'sourceProvenance',
   ]) {
-    assert.doesNotMatch(joined, new RegExp(forbidden.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.doesNotMatch(joined, new RegExp(escapeRegex(forbidden)));
   }
 
   for (const retired of [
@@ -149,7 +181,7 @@ test('active Project Forge contract uses current public identifiers without priv
     'LEAN_BASELINE.json',
     'Project_INPUT.json',
   ]) {
-    assert.doesNotMatch(joined, new RegExp(retired.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.doesNotMatch(joined, new RegExp(escapeRegex(retired)));
   }
 
   assert.match(joined, /New Project/);
@@ -157,7 +189,7 @@ test('active Project Forge contract uses current public identifiers without priv
   assert.doesNotMatch(joined, /New Project from:/);
 });
 
-test('public contract teaches one guided New Project prompt', async () => {
+test('public contract teaches one guided New Project prompt with adoption', async () => {
   const value = await descriptor();
   const newProject = await text(contractPath(value, 'NEW_PROJECT.md'));
   const onboarding = await text(contractPath(value, 'ONBOARDING.md'));
@@ -169,10 +201,36 @@ test('public contract teaches one guided New Project prompt', async () => {
   assert.match(newProject, /```text\r?\nNew Project\r?\n```/);
   assert.match(newProject, /Start from an idea/);
   assert.match(newProject, /Start from an existing product or source/);
+  assert.match(newProject, /Adopt an existing repository/);
   assert.match(newProject, /Not sure — recommend a path/);
   assert.match(joined, /Do not teach.*separate greenfield\/import command syntax/is);
   assert.doesNotMatch(joined, /New Project: <idea>/);
   assert.doesNotMatch(joined, /New Project from:/);
+});
+
+test('adoption flow is exact-base, reviewed and distinct from generation', async () => {
+  const value = await descriptor();
+  const newProject = await text(contractPath(value, 'NEW_PROJECT.md'));
+  const rules = await text(contractPath(value, 'PROJECT_RULES.md'));
+  const joined = `${newProject}\n${rules}`;
+
+  for (const required of [
+    'Apply adoption [WRITE]?',
+    'PROJECT_ADOPTION.json',
+    'project-forge/adopt-<opaque-request-id>',
+    '[adopt-project] owner/repository <opaque-request-id>',
+    'CI NOT OBSERVED',
+    'upstreamWrites',
+    'MANUAL_DECISION',
+    '.github/project-forge-operations.json',
+  ]) {
+    assert.match(joined, new RegExp(escapeRegex(required)));
+  }
+  assert.match(joined, /read-only/i);
+  assert.match(joined, /exact analyzed/i);
+  assert.match(joined, /must change only `PROJECT_ADOPTION\.json`/i);
+  assert.match(joined, /Do not force-push/i);
+  assert.match(joined, /human merge\/finalize/i);
 });
 
 test('public contract makes repositories authoritative instead of legacy handoffs', async () => {
@@ -205,7 +263,7 @@ test('public contract makes one canonical instruction plus one personal profile 
   assert.equal(schema.title, 'Project Forge Developer Profile');
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.required, ['schemaVersion', 'githubOwner']);
-  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v15/);
+  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v16/);
 
   for (const forbidden of ['password', 'token', 'secret', `${predecessorLower}State`, 'projectState', 'workItem', 'commitSha']) {
     assert.equal(Object.hasOwn(schema.properties, forbidden), false);
@@ -245,6 +303,7 @@ test('control-plane command descriptor matches the current public contract', asy
   assert.equal(value.controlPlane.revokeIssuePrefix, '[revoke-project-forge]');
   assert.equal(value.controlPlane.doctorIssuePrefix, '[project-forge-doctor]');
   assert.equal(value.controlPlane.generateIssuePrefix, '[generate-project]');
+  assert.equal(value.controlPlane.adoptIssuePrefix, '[adopt-project]');
   assert.equal(value.controlPlane.acceptCommand, '/accept-project-forge');
   assert.equal(value.controlPlane.declineCommand, '/decline-project-forge');
   assert.equal(value.controlPlane.doctorCommand, '/project-forge-doctor');
