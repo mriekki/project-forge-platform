@@ -69,7 +69,7 @@ test('descriptor keeps private foundational source topology out of the public co
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'repository'), false);
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'commit'), false);
   assert.match(value.generation.bootstrap.revision, /^[0-9a-f]{40}$/);
-  assert.equal(value.generation.bootstrap.revision, 'b75ed98468b9bfc18546b840cac3c03eaff9e703');
+  assert.equal(value.generation.bootstrap.revision, '05d5f7144cc78b78a087a9ed95c334eae6fa90e9');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
 });
@@ -77,7 +77,7 @@ test('descriptor keeps private foundational source topology out of the public co
 test('generation aligns the published package with the accepted Bootstrap revision', async () => {
   const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
-  assert.equal(value.generation.bootstrap.revision, 'b75ed98468b9bfc18546b840cac3c03eaff9e703');
+  assert.equal(value.generation.bootstrap.revision, '05d5f7144cc78b78a087a9ed95c334eae6fa90e9');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(value.generation.bootstrap.portableRequirements.bootstrapRevision, value.generation.bootstrap.revision);
@@ -166,7 +166,7 @@ test('public contract teaches one guided New Project prompt', async () => {
   const joined = `${newProject}\n${onboarding}\n${instructions}\n${rules}`;
 
   assert.match(newProject, /only user-facing ChatGPT Project-creation prompt/i);
-  assert.match(newProject, /```text\nNew Project\n```/);
+  assert.match(newProject, /```text\r?\nNew Project\r?\n```/);
   assert.match(newProject, /Start from an idea/);
   assert.match(newProject, /Start from an existing product or source/);
   assert.match(newProject, /Not sure — recommend a path/);
@@ -261,7 +261,7 @@ test('active public Builder pages use current Project Forge onboarding vocabular
   assert.match(joined, /Project Forge Builder/);
   assert.match(joined, /\/accept-project-forge/);
   assert.match(joined, /\/project-forge-doctor/);
-  assert.match(joined, /```text\nNew Project\n```/);
+  assert.match(joined, /```text\r?\nNew Project\r?\n```/);
   assert.match(joined, /supported start mode/i);
   assert.doesNotMatch(joined, /New Project: <idea>/);
   assert.doesNotMatch(joined, /New Project from:/);
