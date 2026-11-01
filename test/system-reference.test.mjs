@@ -63,12 +63,35 @@ test('system design points mutable facts to machine-readable owning sources', as
     'chatgpt/current.json',
     'catalog/CATALOG.json',
     'PROJECT_BOOTSTRAP.json',
+    'PROJECT_ADOPTION.json',
     'PROJECT_FORGE_BASELINE.json',
     'CORE_BASELINE.json',
     'DEPLOYMENT_BASELINE.json',
+    '.github/project-forge-operations.json',
   ]) {
     assert.match(design, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), required);
   }
+});
+
+test('remote existing-repository adoption remains distinct, exact-base, and owner-routed', async () => {
+  const design = await text(DESIGN);
+  const requirements = await text(REQUIREMENTS);
+
+  for (let id = 110; id <= 119; id += 1) {
+    assert.match(requirements, new RegExp(`PF-SYS-${id}`), `missing PF-SYS-${id}`);
+  }
+
+  assert.match(requirements, /GitHub-first existing-repository adoption MUST use Adoption-owned provenance\/apply authority/);
+  assert.match(requirements, /distinct Control Plane operation/);
+  assert.match(requirements, /exact analyzed target commit/);
+  assert.match(requirements, /downstream-only configuration MUST NOT grant or imply Project Forge write authority/);
+
+  assert.match(design, /bounded public \[adopt-project\]/);
+  assert.match(design, /approved target-private `PROJECT_ADOPTION\.json`/);
+  assert.match(design, /verify target default branch still equals approved base/);
+  assert.match(design, /CI NOT OBSERVED/);
+  assert.match(design, /Bootstrap.*does not become mutation authority/s);
+  assert.match(design, /Control Plane orchestrates Bootstrap for greenfield generation and Adoption Kit for in-place adoption/);
 });
 
 test('system reference does not become a duplicate volatile version ledger', async () => {
