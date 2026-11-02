@@ -58,22 +58,32 @@ test('stable platform health continuously verifies live contract and exact stabl
   assert.doesNotMatch(workflow, /@latest/);
 });
 
-test('npm publication is bound to the protected publication environment', () => {
+test('npm publication is owner-authorized, exact-source, CI-gated, and OIDC published', () => {
   const workflow = fs.readFileSync(path.join(WORKFLOWS, 'npm-publish.yml'), 'utf8');
-  assert.match(workflow, /\r?\n  publish:\r?\n    environment: npm-production\r?\n/);
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /issues:\s*\n\s*types: \[opened\]/);
+  assert.match(workflow, /github\.event\.issue\.user\.login == github\.repository_owner/);
+  assert.match(workflow, /\[project-forge-publish\]/);
   assert.match(workflow, /source_commit:/);
   assert.match(workflow, /version:/);
+  assert.match(workflow, /actions:\s*read/);
   assert.match(workflow, /id-token:\s*write/);
+  assert.match(workflow, /issues:\s*write/);
+  assert.match(workflow, /Verify exact post-merge Platform CI/);
+  assert.match(workflow, /actions\/workflows\/ci\.yml\/runs/);
   assert.match(workflow, /npm publish .*--access public/);
+  assert.match(workflow, /PROJECT_FORGE_PUBLICATION_EVIDENCE_BEGIN/);
+  assert.doesNotMatch(workflow, /environment:\s*npm-production/);
 });
 
-test('Platform governance documentation keeps admin controls narrow', () => {
+test('Platform governance documentation keeps admin controls narrow without duplicate publication approval', () => {
   const doc = fs.readFileSync(path.join(ROOT, 'docs', 'GITHUB_GOVERNANCE.md'), 'utf8');
   assert.match(doc, /CI \/ required/);
-  assert.match(doc, /npm-production/);
-  assert.match(doc, /required human reviewer/i);
+  assert.match(doc, /\[project-forge-publish\] <version>/);
+  assert.match(doc, /single explicit end-to-end release authorization/i);
+  assert.match(doc, /independently verifies current `main` plus post-merge CI/i);
   assert.match(doc, /use no bypass actor by default/i);
-  assert.match(doc, /does not authorize merge, Project generation, consumer updates/i);
+  assert.match(doc, /Neither trigger authorizes unrelated merges, Project generation, consumer updates/i);
   assert.match(doc, /Stable Platform Health/);
+  assert.doesNotMatch(doc, /required human reviewer/i);
 });

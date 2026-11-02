@@ -68,12 +68,16 @@ test('packed CLI resolves through npm exec from a neutral directory', () => {
   }
 });
 
-test('trusted publish workflow is exact-source, private-source-mapped OIDC publication with verification', () => {
+test('trusted publish workflow is owner-authorized, exact-source, private-source-mapped OIDC publication with verification', () => {
   const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'npm-publish.yml'), 'utf8');
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /issues:\s*\n\s*types: \[opened\]/);
+  assert.match(workflow, /github\.event\.issue\.user\.login == github\.repository_owner/);
+  assert.match(workflow, /\[project-forge-publish\]/);
   assert.match(workflow, /source_commit:/);
   assert.match(workflow, /version:/);
   assert.match(workflow, /id-token:\s*write/);
+  assert.match(workflow, /actions:\s*read/);
   assert.match(workflow, /actions\/checkout@d23441a48e516b6c34aea4fa41551a30e30af803/);
   assert.match(workflow, /secrets\.CORE_SOURCE_REPOSITORY/);
   assert.match(workflow, /secrets\.DEPLOYMENT_SOURCE_REPOSITORY/);
@@ -85,6 +89,8 @@ test('trusted publish workflow is exact-source, private-source-mapped OIDC publi
   assert.match(workflow, /actions\/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38/);
   assert.doesNotMatch(workflow, /uses:\s+actions\/(?:checkout|setup-node)@v\d+/);
   assert.match(workflow, /npm install --global npm@11\.21\.0/);
+  assert.match(workflow, /Verify exact post-merge Platform CI/);
+  assert.match(workflow, /actions\/workflows\/ci\.yml\/runs/);
   assert.match(workflow, /prepare-release\.mjs/);
   assert.match(workflow, /npm publish .*--access public/);
   assert.match(workflow, /npm view/);
@@ -94,11 +100,14 @@ test('trusted publish workflow is exact-source, private-source-mapped OIDC publi
   assert.match(workflow, /after 10 minutes/);
   assert.match(workflow, /Last npm registry query error/);
   assert.match(workflow, /npx --yes/);
+  assert.match(workflow, /PROJECT_FORGE_PUBLICATION_EVIDENCE_BEGIN/);
+  assert.match(workflow, /transparencyLogUrl/);
+  assert.doesNotMatch(workflow, /environment:\s*npm-production/);
   assert.doesNotMatch(workflow, /npm stage publish|npm stage approve/);
   assert.equal(fs.existsSync(path.join(ROOT, '.github', 'workflows', 'npm-stage.yml')), false);
 });
 
-test('release skill owns automatic version selection, protected source mapping, exact publish gate, and consumer handoff', () => {
+test('release skill owns automatic version selection, one-approval automation, protected source mapping, and consumer handoff', () => {
   const skill = fs.readFileSync(path.join(ROOT, '.github', 'skills', 'release-project-forge', 'SKILL.md'), 'utf8');
   assert.match(skill, /name: release-project-forge/);
   assert.doesNotMatch(skill, /^argument-hint:/m);
@@ -106,6 +115,9 @@ test('release skill owns automatic version selection, protected source mapping, 
   assert.match(skill, /Choose the next package version automatically/);
   assert.match(skill, /Do not require the user to choose `patch`, `minor`, or `major`/);
   assert.match(skill, /Explicit bump or exact-version arguments are optional overrides/);
+  assert.match(skill, /End-to-end release authorization/);
+  assert.match(skill, /Do not ask for repeated ceremonial confirmations/i);
+  assert.match(skill, /\[project-forge-publish\] <version>/);
   assert.match(skill, /prepare-package-update\.mjs/);
   assert.match(skill, /protected source-repository mappings/i);
   assert.match(skill, /Routine releases do not require a local npm login/);
