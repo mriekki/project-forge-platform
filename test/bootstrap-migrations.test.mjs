@@ -11,6 +11,12 @@ const OLD_FIXTURE = path.join(ROOT, 'test/fixtures/bootstrap-verifiers/schema1-c
 const DESTINATION = 'tools/project-forge-package/check-managed-baselines.py';
 const OLD_BLOB = 'f7ccfc0e8efaac4d6aed6ed5d8e2130d4fb3dc9d';
 const TARGET_BLOB = '26496854ed5d6ad47c7b6136078b2114473ac773';
+const WSL_PREDECESSOR_BOOTSTRAP = '0c45eb332a815ad79ea061443f337500b9dc5712';
+const WSL_TARGET_BOOTSTRAP = '173203baaf36935d04eb81c89f1d016131a40442';
+const WSL_LAUNCHER = 'scripts/setup.sh';
+const WSL_RUNTIME = 'tools/dev-environment/setup-wsl.py';
+const WSL_LAUNCHER_BLOB = '4e8c48a3d33c6a8ae4534ec860c2ee0205e417aa';
+const WSL_RUNTIME_BLOB = '6731910246fb99887c58b9f3a8a14fec1bf02c01';
 
 function generatedConsumer() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'project-forge-bootstrap-migration-'));
@@ -19,6 +25,18 @@ function generatedConsumer() {
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.copyFileSync(OLD_FIXTURE, destination);
   return { root, destination };
+}
+
+function wslGeneratedConsumer() {
+  const { root, destination } = generatedConsumer();
+  fs.writeFileSync(path.join(root, 'PROJECT_BOOTSTRAP.json'), JSON.stringify({
+    bootstrap: { commit: WSL_PREDECESSOR_BOOTSTRAP }
+  }, null, 2) + '\n');
+  const launcher = path.join(root, WSL_LAUNCHER);
+  fs.mkdirSync(path.dirname(launcher), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup.sh'), launcher);
+  fs.mkdirSync(path.join(root, 'tools/dev-environment'), { recursive: true });
+  return { root, destination, launcher, runtime: path.join(root, WSL_RUNTIME) };
 }
 
 const packageData = { root: ROOT };
@@ -61,7 +79,7 @@ test('package-only consumer without PROJECT_BOOTSTRAP is outside Bootstrap migra
   assert.deepEqual(planBootstrapMigrations(packageData, root), { rows: [], unsafe: [] });
 });
 
-test('bundled migration asset records exact privacy-safe Bootstrap provenance and identity', () => {
+test('bundled verifier migration asset records exact privacy-safe Bootstrap provenance and identity', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/managed-baseline-verifier/manifest.json'), 'utf8'));
   const asset = fs.readFileSync(path.join(ROOT, manifest.asset));
   assert.equal(manifest.owner, 'bootstrap');
@@ -72,4 +90,37 @@ test('bundled migration asset records exact privacy-safe Bootstrap provenance an
   assert.equal(manifest.targetGitBlob, TARGET_BLOB);
   assert(manifest.supportedPredecessorGitBlobs.includes(OLD_BLOB));
   assert.equal(gitBlobSha(asset), TARGET_BLOB);
+});
+
+test('recognized generated Project can add the WSL setup runtime without changing Bootstrap provenance', () => {
+  const { root, destination, runtime } = wslGeneratedConsumer();
+  // Keep the legacy verifier out of the migration plan for this focused test.
+  fs.copyFileSync(path.join(ROOT, 'assets/bootstrap-migrations/managed-baseline-verifier/check-managed-baselines.py'), destination);
+
+  const plan = planBootstrapMigrations(packageData, root);
+  assert.equal(plan.unsafe.length, 0);
+  assert.deepEqual(plan.rows.map((row) => [row.state, row.path, row.toGitBlob]), [[
+    'ADD_BOOTSTRAP_FILE', WSL_RUNTIME, WSL_RUNTIME_BLOB
+  ]]);
+
+  applyBootstrapMigrations(packageData, plan, root);
+  assert.equal(gitBlobSha(fs.readFileSync(runtime)), WSL_RUNTIME_BLOB);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'PROJECT_BOOTSTRAP.json'), 'utf8')).bootstrap.commit, WSL_PREDECESSOR_BOOTSTRAP);
+  assert.deepEqual(planBootstrapMigrations(packageData, root), { rows: [], unsafe: [] });
+});
+
+test('WSL Bootstrap migration assets are exact and pinned to the recognized predecessor generation', () => {
+  const launcherManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-launcher.manifest.json'), 'utf8'));
+  const runtimeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-wsl.manifest.json'), 'utf8'));
+  const launcher = fs.readFileSync(path.join(ROOT, launcherManifest.asset));
+  const runtime = fs.readFileSync(path.join(ROOT, runtimeManifest.asset));
+
+  assert.equal(launcherManifest.source.revision, WSL_TARGET_BOOTSTRAP);
+  assert.equal(runtimeManifest.source.revision, WSL_TARGET_BOOTSTRAP);
+  assert.deepEqual(launcherManifest.supportedBootstrapRevisions, [WSL_PREDECESSOR_BOOTSTRAP]);
+  assert.deepEqual(runtimeManifest.supportedBootstrapRevisions, [WSL_PREDECESSOR_BOOTSTRAP]);
+  assert(launcherManifest.supportedPredecessorGitBlobs.includes('ec941c079da066785ac628d6bbb7dd6b668494f2'));
+  assert.equal(runtimeManifest.allowMissing, true);
+  assert.equal(gitBlobSha(launcher), WSL_LAUNCHER_BLOB);
+  assert.equal(gitBlobSha(runtime), WSL_RUNTIME_BLOB);
 });
