@@ -49,7 +49,7 @@ test('cloud release preparation is owner-gated, exact-source, and non-publishing
   assert.doesNotMatch(workflow, /gh pr create/);
 });
 
-test('release skill supports equivalent cloud and local preparation modes with durable historical evidence', () => {
+test('release skill supports equivalent cloud and local preparation with optional one-approval completion', () => {
   const skill = read('.github/skills/release-project-forge/SKILL.md');
 
   assert.match(skill, /\*\*Cloud preparation\*\*/);
@@ -57,8 +57,9 @@ test('release skill supports equivalent cloud and local preparation modes with d
   assert.match(skill, /prepare-package-release\.yml/);
   assert.match(skill, /\[project-forge-release\] <version>/);
   assert.match(skill, /local checkout dirtiness must not block cloud preparation/i);
-  assert.match(skill, /same merge and npm publication gates/i);
-  assert.match(skill, /does \*\*not\*\* authorize npm publication/);
+  assert.match(skill, /End-to-end release authorization/);
+  assert.match(skill, /Granular authorization/);
+  assert.match(skill, /bare `\/release-project-forge` invocation authorizes safe release-preparation mechanics but not npm publication/i);
   assert.match(skill, /cloud agent's GitHub connection is the live CI-evidence authority for changed private components/i);
   assert.match(skill, /changed.*component revision must have live green post-merge CI/i);
   assert.match(skill, /unchanged.*component revision.*validated durable receipt/i);
@@ -66,15 +67,15 @@ test('release skill supports equivalent cloud and local preparation modes with d
   assert.match(skill, /Changed component revisions require live green CI; unchanged revisions may use the validated current-published durable receipt/i);
 });
 
-test('release process documents both preparation modes without weakening publication gates', () => {
+test('release process documents cloud/local preparation and bounded end-to-end authorization', () => {
   const process = read('docs/RELEASE_PROCESS.md');
 
   assert.match(process, /## Two first-class preparation modes/);
   assert.match(process, /### Cloud preparation/);
   assert.match(process, /### Local preparation/);
   assert.match(process, /prepare-package-release\.yml/);
-  assert.match(process, /ONE PACKAGE PR MERGE GATE/);
-  assert.match(process, /ONE EXACT NPM PUBLISH GATE/);
+  assert.match(process, /end-to-end release authorization/i);
+  assert.match(process, /\[project-forge-publish\] <version>/);
   assert.match(process, /Dirty or stale local component checkouts block only local preparation/);
   assert.match(process, /changed component revision requires successful live post-merge CI/i);
   assert.match(process, /unchanged component revision.*validated durable receipt/i);
