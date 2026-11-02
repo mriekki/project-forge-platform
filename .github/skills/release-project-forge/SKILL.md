@@ -1,17 +1,17 @@
 ---
 name: release-project-forge
-description: Prepare, deliver, publish, and verify an exact @mriekki/project-forge package release from accepted Project Forge component revisions and Platform-owned package changes.
+description: Prepare, deliver, publish, recover verification for, and verify an exact @mriekki/project-forge package release from accepted Project Forge component revisions and Platform-owned package changes.
 user-invocable: true
 disable-model-invocation: true
 ---
 
 # Release Project Forge
 
-`/release-project-forge` owns the Platform package transport workflow. Canonical private component sources own reusable behavior; public package metadata exposes logical component IDs plus exact opaque revisions, not private repository topology.
+`/release-project-forge` owns the Platform package transport workflow. Canonical component sources own reusable behavior; the public package exposes logical component IDs plus exact opaque revisions without publishing private repository topology.
 
 Release preparation has two first-class execution modes:
 
-- **Cloud preparation** — a GitHub-connected cloud agent resolves authoritative component `main` revisions and CI, then uses `.github/workflows/prepare-package-release.yml` to materialize exact private sources and prepare a release branch without relying on the Developer's local working copies.
+- **Cloud preparation** — a GitHub-connected cloud agent resolves authoritative component `main` revisions and CI, then uses `.github/workflows/prepare-package-release.yml` to materialize exact protected sources and prepare a release branch without relying on the Developer's local working copies.
 - **Local preparation** — a Developer uses clean canonical local component checkouts and `scripts/prepare-package-update.mjs` directly.
 
 Both modes must produce equivalent package metadata/assets, use the same exact accepted component revisions, pass the same package tests and asset verification, and create a normal release PR. Prefer the mode that is available and least disruptive; local checkout dirtiness must not block cloud preparation.
@@ -20,85 +20,55 @@ Both modes must produce equivalent package metadata/assets, use the same exact a
 
 Project Forge supports two release-authorization modes.
 
-**End-to-end release authorization** is preferred when the Developer explicitly asks to release/publish the full kit end-to-end, authorizes the whole release, or gives equivalent unambiguous permission. That single bounded approval authorizes routine mechanics for the same release scope through:
+**End-to-end release authorization** is the normal mode when the Developer authorizes the full release lifecycle, including when a normal Project Forge bug/enhancement/change request is already covered by the public default full-lifecycle contract. That single bounded approval authorizes routine mechanics for the same reviewed release scope through preparation, exact PR merge after green CI, publication, verification, receipt/stable alignment, exact alignment merge after green CI, and final verification.
 
-1. release preparation and release-PR creation;
-2. merge of the exact reviewed release-PR head after required CI is green;
-3. exact npm publication after post-merge `main` CI is green;
-4. registry, neutral-`npx`, and signed-provenance verification;
-5. durable receipt plus stable-pointer alignment;
-6. merge of the exact reviewed stable-alignment PR head after required CI is green; and
-7. final post-merge CI/public-contract verification.
+Do not ask for repeated ceremonial confirmations inside an active end-to-end authorization. The authorization remains valid only while the reviewed scope and evidence remain materially unchanged. Stop for renewed review when the release class/version, component revision, package diff, source relationship, publication identity, trust root, or expected alignment scope changes unexpectedly.
 
-Do not ask for repeated ceremonial confirmations inside an active end-to-end authorization. The authorization remains valid only while the release stays within the reviewed scope and evidence does not materially change. Stop for renewed review if the release class/version, component revision, package diff, source commit relationship, publication identity, or expected alignment scope changes unexpectedly, or if any required verification fails.
+**Granular authorization** remains available when the Developer explicitly narrows the request to preparation, merge, publication, or another bounded stage. Do not infer broader permission in that case.
 
-**Granular authorization** remains available when the Developer authorizes only preparation, merge, or publication. In that mode, use the individual gates below and do not infer broader permission.
-
-A bare `/release-project-forge` invocation authorizes safe release-preparation mechanics but not npm publication unless the surrounding user instruction explicitly supplies end-to-end or publication authorization.
+A bare `/release-project-forge` invocation authorizes safe release-preparation mechanics but not npm publication unless the surrounding user instruction or the normal Project Forge full-lifecycle default already supplies publication authorization.
 
 ## 1. Resume from observed state
 
-Inspect current Platform Git/GitHub state, package metadata, component revisions, open release PRs, CI, registry state, live `chatgpt/current.json`, durable release receipts, and available release-preparation mode. Use repository facts rather than memory.
+Inspect current Platform Git/GitHub state, package metadata, component revisions, open release PRs, CI, registry state, live `chatgpt/current.json`, durable receipts, and any in-flight or failed publication run. Repository facts outrank memory.
 
-Before declaring that no package release is needed, resolve the exact published Platform source for the current npm version:
+Before declaring that no release is needed, resolve the exact published Platform source for npm latest:
 
-1. read the current published version with `npm view @mriekki/project-forge version`;
-2. look for the privacy-safe durable receipt at `release/receipts/<version>.json` and validate it with `node scripts/release-receipt.mjs --version <version> --json`;
-3. when that receipt is valid, use its exact `platformSource` as the published Platform source and treat its component/CI/publication facts as durable historical release evidence;
-4. only for a legacy package version with no durable receipt, inspect successful `npm-publish.yml` runs on `main`, newest first, inspect `package.json` at each run's exact `head_sha`, and use the first run whose package version equals npm latest;
-5. require the resulting exact 40-character source SHA and run `node scripts/check-package-release-drift.mjs --baseline <published-source-sha> --json` from clean Platform `main` when a local shell is available, or reproduce the same repository comparison from GitHub facts in cloud mode.
+1. read `npm view @mriekki/project-forge version`;
+2. validate `release/receipts/<version>.json` with `node scripts/release-receipt.mjs --version <version> --json` when present;
+3. prefer a valid durable receipt's exact `platformSource` over historical Actions retention;
+4. only for a legacy version without a receipt, resolve the exact successful historical publication source from workflow evidence;
+5. run `node scripts/check-package-release-drift.mjs --baseline <published-source-sha> --json`, or reproduce the same exact comparison through GitHub facts.
 
-Historical Actions runs are supporting evidence, not the durable release ledger. A valid checked-in receipt remains authoritative historical publication evidence after its referenced workflow runs expire under Actions retention. If a receipt exists but is invalid or conflicts with the registry/package source, fail closed; do not silently fall back to Actions and ignore the conflict.
+Historical Actions runs are supporting evidence, not the durable release ledger. If a receipt exists but conflicts with registry/package evidence, fail closed rather than silently ignoring it.
 
-The drift check compares the current npm payload owned by the Platform (`package.json`, npm-always-included metadata such as README/LICENSE, and every current `package.json#files` entry) against the exact source that was actually published. If the exact published source cannot be resolved or the drift check cannot prove its baseline, fail closed and do not claim that no release is warranted.
+Routine releases do not require a local npm login. GitHub Actions uses OIDC. Inspect npm trusted-publisher settings only for initial setup/migration, workflow/repository identity changes, or an OIDC trust failure. Do not query `npm trust list` on every routine release.
 
-If an open/prepared release already advances source package metadata beyond npm latest, resume that release state instead of treating the prepared branch as an unpublished-drift baseline.
-
-Routine releases do not require a local npm login. GitHub Actions uses OIDC. Inspect npm trusted-publisher settings only for initial setup/migration, workflow or repository identity changes, or an OIDC trust failure; a successful exact workflow publish plus its validated durable receipt is sufficient evidence for later routine releases. Do not query `npm trust list` on every routine release.
-
-Private source locations belong only in local checkout configuration and protected source-repository mappings. Never add them to public package metadata, durable release receipts, public baselines, release prose, cloud request bodies, or workflow literals.
+Private source locations belong only in protected source-repository mappings and local checkout configuration. Never put private repository names, credentials, or other secrets into public package metadata, receipts, issue request bodies, or release prose.
 
 ## 2. Resolve accepted component revisions
 
 For each logical component in `assets/components.json`, resolve the accepted revision from the canonical source repository's authoritative default branch.
 
-A **changed** component revision must have live green post-merge CI for that exact current `main` revision before release preparation. An **unchanged** component revision that exactly matches the current published package's validated durable receipt may reuse that receipt as historical acceptance evidence when its old Actions run has expired, provided the canonical repository's current `main` still equals that exact revision and the receipt records successful component-main CI plus successful package publication verification. Never use a receipt to bless a different or newer component revision.
+A changed component revision must have live green post-merge CI for that exact current `main` revision before release preparation. An unchanged component revision that exactly matches the current published package may use its validated durable receipt as historical acceptance evidence when the old Actions run has expired, provided canonical current `main` still equals that exact revision.
 
-In cloud mode, use GitHub repository state directly:
+In cloud mode, the cloud agent's GitHub connection is the live CI-evidence authority for changed private components. `PROJECT_FORGE_SOURCE_TOKEN` is only a least-privilege private-source checkout credential and does not need private Actions API access.
 
-- resolve canonical `main` HEAD;
-- require the selected revision to equal that exact `main` HEAD;
-- for a changed revision, require configured post-merge CI for that exact revision to have completed successfully before creating the cloud preparation request;
-- for an unchanged revision whose historical Actions run has expired, allow the validated current-published release receipt to satisfy the historical CI evidence requirement;
-- read canonical version metadata when the component defines one.
+In local mode, require clean canonical component checkouts at exact accepted `origin/main` revisions. Dirty or stale local component checkouts block only local preparation; they must not block cloud preparation when authoritative GitHub sources are accessible.
 
-The cloud agent's GitHub connection is the live CI-evidence authority for changed private components. The durable receipt is the historical release-evidence authority only for an unchanged revision already proven in the current published package. The cloud executor re-verifies exact source revisions against canonical `origin/main`, but its least-privilege source checkout credential does not need private Actions API access.
+A dirty or non-`origin/main` local component checkout may block deterministic release preparation, but it must not erase or downgrade evidence that a release is needed. Report `PACKAGE RELEASE PREPARATION BLOCKED` when preparation cannot safely continue.
 
-In local mode:
+Never pin an unmerged branch, dirty checkout, guessed revision, or changed component revision with failing/pending default-branch CI.
 
-- require the corresponding canonical source checkout;
-- fetch its default branch and require a clean tracked working tree at exact `origin/main` before release preparation;
-- require local HEAD to equal the accepted authoritative revision;
-- for a changed revision, verify configured post-merge CI for that exact revision succeeded;
-- for an unchanged revision whose old Actions run has expired, allow the validated current-published durable receipt to satisfy historical CI evidence;
-- read canonical version metadata when the component defines one.
-
-Do not pin an unmerged branch, dirty checkout, guessed revision, or changed revision with failing/pending default-branch CI. A component unchanged since the installed package stays on its existing exact revision.
-
-Treat local checkout validity and release-need detection as separate facts. A dirty or non-`origin/main` local component checkout may block deterministic release preparation in local mode, but it must not erase or downgrade evidence that a release is needed and must not block **cloud** preparation when authoritative GitHub sources are accessible.
-
-## 3. Determine release need and select the package version automatically
+## 3. Determine release need and version
 
 Default invocation is `/release-project-forge` with no version argument.
 
-A release is needed when **either** of these is true:
+A release is needed when either an accepted component revision/version differs from the current published package or `scripts/check-package-release-drift.mjs` reports shipped Platform payload drift from the exact published Platform source.
 
-- an accepted component revision/version differs from the current published package; or
-- `scripts/check-package-release-drift.mjs` (or an equivalent exact GitHub comparison in cloud mode) reports shipped Platform payload drift from the exact published Platform source.
+Never conclude that no release is warranted solely because Core and Deployment revisions are unchanged. Platform-owned shipped payload can require a release independently.
 
-Never conclude that no release is warranted solely because Core and Deployment revisions are unchanged. Platform-owned CLI, updater, packaged assets, package metadata, or shipped README changes can independently require a package release.
-
-Inspect the complete consumer-visible change set from both sources. Choose the next package version automatically. Do not require the user to choose `patch`, `minor`, or `major` when the classification is clear.
+Choose the next package version automatically. Do not require the user to choose `patch`, `minor`, or `major` when the classification is clear. Explicit bump or exact-version arguments are optional overrides and must not understate the change. Never reuse an npm version.
 
 For 1.0.0 and later:
 
@@ -106,62 +76,25 @@ For 1.0.0 and later:
 - `minor` — backward-compatible features;
 - `major` — incompatible consumer contract changes.
 
-Use the highest applicable class across component changes and Platform-owned package changes. Explicit bump or exact-version arguments are optional overrides and must not understate the change. Never reuse an npm version.
+Use the highest applicable class across component and Platform-owned changes. Only report `NO PACKAGE RELEASE NEEDED` when exact published-source comparison and component revisions all agree.
 
-A provenance-schema migration that keeps legacy baselines readable while writing privacy-safe v2 baselines is a backward-compatible feature and therefore a minor release.
+## 4. Prepare the release PR
 
-Only report no release when all evidence agrees:
-
-```text
-NO PACKAGE RELEASE NEEDED
-
-npm latest: <version>
-Published Platform source: <exact sha>
-Platform payload drift: NONE
-Core: unchanged
-Deployment: unchanged
-```
-
-## 4. Prepare the release PR automatically
-
-Use the active authorization mode from the beginning of this skill. Preparation itself never publishes npm.
+Use the active authorization mode. Preparation never publishes npm.
 
 ### Cloud preparation
 
-Use cloud preparation when the runtime has GitHub access to the Platform and canonical component repositories. Do not require or mutate the Developer's local component checkouts.
+Use `.github/workflows/prepare-package-release.yml` when GitHub/cloud access is available. Before starting it, require exact current Platform `main`, exact accepted Core/Deployment revisions, and their acceptance evidence. Changed component revisions require live green CI; unchanged revisions may use the validated current-published durable receipt only under Section 2.
 
-Before starting the cloud executor, require:
+The workflow independently verifies the exact tuple, resolves private repositories only from protected mappings, materializes exact sources, runs `scripts/prepare-package-update.mjs`, asset assembly/verification, package tests, `git diff --check`, release-diff scope checks, and pushes `release/project-forge-<version>`. It does not publish npm or create the PR.
 
-- exact current Platform `main` SHA;
-- exact accepted Core `main` revision and green acceptance evidence under Section 2;
-- exact accepted Deployment `main` revision and green acceptance evidence under Section 2;
-- exact next package version selected under Section 3.
-
-Do not create or dispatch a cloud preparation request until those checks are complete. Changed component revisions require live green CI; unchanged revisions may use the validated current-published durable receipt only as defined in Section 2. This preflight is performed through the cloud agent's GitHub connection plus repository-owned durable receipt evidence, not through `PROJECT_FORGE_SOURCE_TOKEN`.
-
-The cloud executor is `.github/workflows/prepare-package-release.yml`. It accepts only the exact version/source/revision tuple and independently:
-
-1. requires the Platform checkout to equal current `origin/main` and the authorized source SHA;
-2. refuses an already-published version;
-3. resolves private source repositories only from protected mappings;
-4. checks out canonical Core and Deployment `main` with the protected read-only source credential;
-5. requires each checkout to equal both the authorized exact revision and current canonical `origin/main`, with a clean tracked tree;
-6. creates a new `release/project-forge-<version>` branch from the exact Platform source;
-7. runs `scripts/prepare-package-update.mjs`, exact asset assembly/verification, `npm test`, `git diff --check`, and release-diff scope validation;
-8. commits and pushes the prepared release branch;
-9. never publishes npm and never changes stable contract pointers.
-
-`PROJECT_FORGE_SOURCE_TOKEN` is a least-privilege private-source checkout credential. Do not require or broaden it merely to read private Actions/CI APIs; live changed-component CI evidence is resolved before request creation by the cloud agent, and durable unchanged-component evidence is repository-owned.
-
-A cloud runtime that can dispatch workflows may invoke `prepare-package-release.yml` directly with `version`, `source_commit`, `core_revision`, and `deployment_revision`.
-
-A cloud runtime that cannot dispatch workflows but can create GitHub issues may open one owner-authored command issue with title:
+When direct workflow dispatch is unavailable, the cloud agent may create the owner-authored issue:
 
 ```text
 [project-forge-release] <version>
 ```
 
-and body containing **only** this public-safe JSON shape:
+with only:
 
 ```json
 {
@@ -172,63 +105,30 @@ and body containing **only** this public-safe JSON shape:
 }
 ```
 
-The workflow must ignore issue-triggered requests not authored by the repository owner. The request must never contain private repository names, credentials, or other secrets. The cloud agent may create this issue only after the exact private component `main` revisions and their acceptance evidence have been verified under Section 2.
-
-After the cloud workflow pushes the release branch, the cloud agent must create the normal pull request to `main` using its GitHub identity and observe PR CI. The workflow intentionally does not create the PR with `GITHUB_TOKEN`, so the ordinary `pull_request` CI trigger remains authoritative.
+After the cloud workflow pushes the branch, create the normal PR and observe ordinary PR CI.
 
 ### Local preparation
 
 When local preparation is selected:
 
-1. require Platform tracked state clean and refresh `main` fast-forward-only;
-2. require clean canonical component checkouts at the exact accepted `origin/main` revisions with acceptance evidence under Section 2;
-3. create/switch to `release/project-forge-<version>` unless it already exists safely;
-4. run `scripts/prepare-package-update.mjs` with `--version`, `--core-root`, and `--deployment-root` pointing to those canonical source checkouts;
-5. run package tests, exact asset assembly/verification, `git diff --check`, and meaningful diff review;
-6. commit/push the branch, create the normal release PR, and observe PR CI.
+1. require clean Platform and component tracked state at exact accepted revisions;
+2. create/switch to `release/project-forge-<version>`;
+3. run `scripts/prepare-package-update.mjs --version <version> --core-root <core> --deployment-root <deployment>`;
+4. run package tests, asset verification, `git diff --check`, and meaningful diff review;
+5. commit/push, create the normal release PR, and observe PR CI.
 
-The deterministic preparation script updates only package version metadata, exact component revisions/versions, and packaged descriptors copied from exact accepted source revisions. Component revisions may legitimately remain unchanged for a Platform-only package release.
-
-If local preparation is blocked by dirty/stale component checkouts but cloud preparation is available, switch to cloud preparation rather than asking the Developer to clean unrelated local work. If neither mode can prove exact accepted sources, report:
-
-```text
-PACKAGE RELEASE PREPARATION BLOCKED
-
-Proposed version: <version>
-Release reason: <Platform payload drift | component revision change | both>
-Published Platform source: <exact sha>
-Platform payload changes: <files or NONE>
-Cloud blocker: <exact blocker or NONE>
-Local blocker: <exact blocker or NONE>
-```
-
-After successful verification, routine branch/stage/commit/push/PR creation and PR-CI observation are authorized. Do not publish npm from a release branch or PR.
+If local preparation is blocked by unrelated dirtiness but cloud preparation is available, use cloud preparation rather than asking the Developer to disturb unrelated work.
 
 ## 5. Package PR merge
 
-When PR CI is green and the diff matches the verified release preparation:
+When PR CI is green and the diff matches verified preparation:
 
-- with active **end-to-end release authorization**, re-read the PR head and mergeability, require the head to remain the exact reviewed SHA, merge normally, then verify exact Platform `main` and post-merge CI without another prompt;
-- with **granular authorization**, stop once at:
+- with active end-to-end authorization, re-read the PR head/mergeability, require the exact reviewed head, merge normally, and verify exact post-merge Platform `main` CI without another prompt;
+- with granular authorization, stop at the explicit package-release PR merge gate.
 
-```text
-PACKAGE RELEASE PR READY
+Merge authorization alone does not imply npm publication in granular mode.
 
-Version: <version>
-Core: <exact revision/version>
-Deployment: <exact revision>
-Preparation: CLOUD | LOCAL
-PR CI: GREEN
-Diff: expected release-preparation files only
-
-1. Merge and finalize package release PR [GITHUB WRITE]
-2. Review PR diff [READ ONLY]
-3. Leave open [NO ACTION]
-```
-
-In granular mode, merge authorization does not authorize npm publication. In end-to-end mode, the original bounded release authorization continues only if the reviewed scope and evidence remain unchanged.
-
-## 6. Protected source mappings and trusted publishing
+## 6. Protected sources and trusted publishing
 
 Cloud preparation and publication resolve private source repositories only from protected Actions secrets:
 
@@ -237,75 +137,40 @@ CORE_SOURCE_REPOSITORY
 DEPLOYMENT_SOURCE_REPOSITORY
 ```
 
-These protected source-repository mappings must contain exact `owner/repository` values. Workflows validate and mask them. They use `PROJECT_FORGE_SOURCE_TOKEN` only for read access to exact private sources. Cloud-preparation live CI evidence is read by the cloud agent through its GitHub connection before the preparation request; source-token Actions API access is not required.
+Normal publication uses `mriekki/project-forge-platform/.github/workflows/npm-publish.yml` with npm Trusted Publishing (OIDC) and direct `npm publish`; no long-lived npm publish token or duplicate GitHub Environment reviewer is required.
 
-Normal publication uses `.github/workflows/npm-publish.yml` with npm Trusted Publishing (OIDC) and direct `npm publish`. No long-lived npm publish token is used and no second GitHub Environment reviewer is required after the Developer has already authorized the bounded release.
-
-If npm trust setup/migration must be inspected, use npmjs.com or locally:
+For trust inspection/setup only:
 
 ```powershell
 npm login --auth-type=web --registry=https://registry.npmjs.org/
 npm trust list @mriekki/project-forge --json
 ```
 
-If the CLI returns `EOTP`, complete npm's browser authorization locally. Never request, paste, or store the one-time URL or OTP.
+If npm returns `EOTP`, complete browser authorization locally. Never request or store the one-time URL/OTP.
 
-The required relationship is:
-
-```text
-provider: GitHub Actions
-repository: mriekki/project-forge-platform
-workflow file: npm-publish.yml
-allowed action: npm publish
-```
-
-If a trust relationship must be created/replaced, require:
+Changing the trusted publisher is a separate trust-root action and requires:
 
 ```text
 [NPM TRUST WRITE]
 Replace/configure the @mriekki/project-forge trusted publisher for direct publish from mriekki/project-forge-platform/.github/workflows/npm-publish.yml?
 ```
 
-Only after approval may trust configuration be changed. End-to-end package release authorization does not silently authorize changing the npm trust root itself.
+End-to-end release authorization does not silently authorize changing this trust root.
 
-## 7. Exact npm publication authorization and trigger
+## 7. Exact npm publication trigger
 
-Once all are true:
+Once the release PR is merged, exact `main` and post-merge CI are green, metadata/component pins are internally consistent, the target version is unused, protected mappings exist, and the trusted publisher is valid:
 
-- release PR merged;
-- exact Platform `main` is verified;
-- post-merge CI is green;
-- package version and component revisions are internally consistent;
-- target npm version is unused;
-- required protected source mappings are configured;
-- trusted publisher permits direct publish from `npm-publish.yml`;
+- under active end-to-end authorization, create the owner-authored publication request and monitor it automatically;
+- under granular authorization, present `NPM PUBLISH READY` with the exact version/source/component tuple and require `[NPM PUBLISH]` authorization.
 
-then:
-
-- with active **end-to-end release authorization**, create the owner-authored publication request immediately and monitor it without another permission prompt;
-- with **granular authorization**, present exactly:
-
-```text
-NPM PUBLISH READY
-
-Package: @mriekki/project-forge@<version>
-Project Forge Platform source: <exact main SHA>
-Core: <exact revision/version>
-Deployment: <exact revision>
-Post-merge CI: GREEN
-Publisher: GitHub OIDC / npm-publish.yml
-
-1. Publish this exact package [NPM PUBLISH]
-2. Stop [NO ACTION]
-```
-
-The preferred cloud trigger is one owner-authored issue titled exactly:
+Preferred cloud trigger:
 
 ```text
 [project-forge-publish] <version>
 ```
 
-with body containing **only**:
+with only:
 
 ```json
 {
@@ -314,9 +179,7 @@ with body containing **only**:
 }
 ```
 
-The workflow independently verifies that this source is still current `main` and that exact post-merge Platform CI is green before publishing. The cloud agent must monitor the exact issue-triggered run through registry/provenance verification.
-
-`workflow_dispatch` remains an administrative/manual fallback:
+`workflow_dispatch` remains an administrative fallback:
 
 ```powershell
 gh workflow run npm-publish.yml --ref main `
@@ -324,40 +187,66 @@ gh workflow run npm-publish.yml --ref main `
   -f source_commit=<exact-main-sha>
 ```
 
-If evidence materially changes before publication, stop for renewed review even under end-to-end authorization.
+The workflow independently verifies the exact source and exact post-merge CI before publishing.
 
-## 8. Publication workflow contract
+## 8. Publication and verification contract
 
-`npm-publish.yml` must fail closed before publish unless:
+For normal publish mode, `npm-publish.yml` fails closed unless the request is exact and owner-authorized (or exact `workflow_dispatch`), source equals current `main`, exact source CI is green, package/component metadata is valid, protected sources resolve, exact component revisions materialize, reproducible preparation passes, and the npm version is unused.
 
-- the publication request is either exact `workflow_dispatch` input or an owner-authored `[project-forge-publish] <version>` issue with exactly the allowed JSON keys;
-- checked-out Platform commit equals authorized `source_commit` and still equals current `origin/main`;
-- exact post-merge Platform `main` CI for that source completed successfully;
-- `package.json` equals authorized version;
-- `assets/components.json` is privacy-safe schema v2 with exact revisions;
-- protected source mappings are present and valid;
-- exact component revisions can be checked out;
-- `scripts/prepare-release.mjs` passes reproducibility, assembly, tests, and clean-install checks;
-- target npm version is not already published.
+The workflow publishes the exact tarball with OIDC, verifies registry version/integrity/shasum, verifies signed npm provenance, and runs a neutral-directory `npx` smoke. Registry propagation and the neutral npm install are separate propagation surfaces: the neutral smoke must retry with bounded backoff and a fresh npm cache until the exact version becomes installable or the verification timeout expires.
 
-The workflow publishes the exact tarball with OIDC, verifies registry version/integrity/shasum, runs a neutral-directory `npx` smoke check, verifies signed npm provenance, and records machine-readable publication evidence. For issue-triggered publication it persists that evidence as a comment on the request and closes the request only after successful verification. Do not use `npm stage publish`, `npm stage approve`, a long-lived npm publish token, or a duplicate GitHub Environment approval.
+For issue-triggered success, persist machine-readable publication evidence as an issue comment and close the issue only after all verification succeeds.
 
-After successful publication verification, capture the exact durable receipt facts needed by Section 9: exact Platform source, logical component revisions/versions, release-candidate SHA-256, registry shasum, signed-provenance transparency-log reference, publication verification, and the component/Platform CI acceptance facts used by the release gate.
+### Post-publication verification recovery
+
+A failed verification after `npm publish` has succeeded is not permission to publish again. **Never republish the same npm version.** First prove whether npm accepted the version and whether registry identity matches the rebuilt exact release candidate.
+
+When the version already exists and publication failed only after publish (for example, neutral-install propagation lag), recover through the owner-authored request:
+
+```text
+[project-forge-publish-verify] <version>
+```
+
+with exactly:
+
+```json
+{
+  "version": "<version>",
+  "sourceCommit": "<original-published-platform-source-sha>",
+  "publicationRunId": <original-publish-workflow-run-id>,
+  "provenanceUrl": "https://search.sigstore.dev/?logIndex=<original-log-index>"
+}
+```
+
+Recovery must fail closed unless:
+
+- the exact version is already published;
+- the original source commit is still an ancestor of current Platform `main`;
+- `scripts/check-package-release-drift.mjs --baseline <sourceCommit> --json` proves **no shipped package payload drift** since that source;
+- the original exact source has successful post-merge Platform CI;
+- current package/component metadata still describes that same version and component tuple;
+- a reproducibly rebuilt candidate has registry integrity/shasum identical to the already-published package;
+- the supplied provenance URL is the exact signed-provenance URL observed from the original successful publish step; and
+- the neutral `npx` verification succeeds through the same bounded retry policy.
+
+Recovery skips `npm publish` entirely and records publication evidence using the **original** publication workflow run ID/source/provenance, not the recovery run as if it had published the package. If shipped payload drift exists after the original source, stop and resolve the release state explicitly rather than verifying from a changed candidate.
+
+Do not use `npm stage publish`, `npm stage approve`, or a long-lived npm publish token.
 
 ## 9. Public ChatGPT contract alignment and durable receipt
 
 After successful publication, inspect live `chatgpt/current.json` and compare `generation.package` / `generation.packageVersion` plus the accepted Bootstrap revision/compatibility. Never point stable at an unpublished package.
 
-For every newly published package, require `release/receipts/<version>.json`. Validate it with `node scripts/release-receipt.mjs --version <version> --json`. The receipt is privacy-safe historical evidence, not a mutable current-state pointer. It must contain no private source-repository names or credentials. Workflow/run IDs are historical references only and the receipt must remain useful after those Actions records expire.
+For every newly published package, require `release/receipts/<version>.json` and validate it with `node scripts/release-receipt.mjs --version <version> --json`. The receipt is privacy-safe historical evidence and must contain no private repository identities or credentials.
 
-If the receipt does not yet exist, create it in the same smallest follow-up PR that aligns the public stable package pointer. If a valid receipt already exists, do not rewrite it. If a receipt exists but conflicts with verified publication facts, stop and resolve the conflict explicitly rather than silently replacing it.
+If the receipt is missing, create it in the smallest alignment PR that advances the stable package/revision pointers. If a receipt exists but conflicts with verified publication facts, stop and resolve the conflict explicitly.
 
-If only mutable package/revision pointers are stale and the immutable operating contract remains valid, prepare the smallest follow-up PR containing the pointer changes, matching contract assertions, and any missing receipt for that newly published version. If the operating contract changed materially, create a new immutable snapshot. Never edit a published immutable snapshot in place.
+If only mutable package/revision pointers are stale and the immutable operating contract remains valid, update the pointers/assertions and missing receipt only. If operating behavior changed materially, create a new immutable contract snapshot. Never edit a published immutable snapshot in place.
 
-The stable alignment guard requires a valid durable receipt for the package version selected by `chatgpt/current.json`.
+The stable alignment guard requires a valid receipt for the package selected by `chatgpt/current.json`.
 
-- with active **end-to-end release authorization**, create the smallest alignment PR, verify its exact diff and required CI, then merge the unchanged reviewed head automatically and verify post-merge CI plus `Public ChatGPT Contract Alignment`;
-- with **granular authorization**, the follow-up PR has its normal human merge/finalize gate and npm publication alone does not authorize merging it.
+- with active end-to-end authorization, create the smallest alignment PR, verify its exact diff/required CI, then merge the unchanged reviewed head automatically and verify post-merge CI plus `Public ChatGPT Contract Alignment`;
+- with granular authorization, the follow-up PR has its normal human merge/finalize gate and publication alone does not authorize merging it.
 
 ## 10. Completion
 

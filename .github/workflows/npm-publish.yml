@@ -30,7 +30,8 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issues' &&
        github.event.issue.user.login == github.repository_owner &&
-       startsWith(github.event.issue.title, '[project-forge-publish]'))
+       (startsWith(github.event.issue.title, '[project-forge-publish]') ||
+        startsWith(github.event.issue.title, '[project-forge-publish-verify]')))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Project Forge Platform main
@@ -54,12 +55,17 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           DISPATCH_VERSION: ${{ inputs.version }}
           DISPATCH_SOURCE_COMMIT: ${{ inputs.source_commit }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs = require('node:fs');
           const eventName = process.env.EVENT_NAME;
           let request;
+          let mode = 'publish';
+          let publicationRunId = Number(process.env.CURRENT_RUN_ID);
+          let provenanceUrl = '';
+
           if (eventName === 'workflow_dispatch') {
             request = {
               version: process.env.DISPATCH_VERSION,
@@ -75,12 +81,30 @@ jobs:
             if (!request || typeof request !== 'object' || Array.isArray(request)) {
               throw new Error('Publication request must be a JSON object');
             }
-            const keys = Object.keys(request).sort();
-            if (JSON.stringify(keys) !== JSON.stringify(['sourceCommit', 'version'])) {
-              throw new Error(`Publication request keys must be exactly version and sourceCommit; found ${keys.join(', ')}`);
-            }
-            if (event.issue?.title !== `[project-forge-publish] ${request.version}`) {
-              throw new Error('Publication issue title must exactly match [project-forge-publish] <version>');
+
+            const title = event.issue?.title ?? '';
+            if (title === `[project-forge-publish] ${request.version}`) {
+              const keys = Object.keys(request).sort();
+              if (JSON.stringify(keys) !== JSON.stringify(['sourceCommit', 'version'])) {
+                throw new Error(`Publication request keys must be exactly version and sourceCommit; found ${keys.join(', ')}`);
+              }
+            } else if (title === `[project-forge-publish-verify] ${request.version}`) {
+              mode = 'verify';
+              const keys = Object.keys(request).sort();
+              const expected = ['provenanceUrl', 'publicationRunId', 'sourceCommit', 'version'];
+              if (JSON.stringify(keys) !== JSON.stringify(expected)) {
+                throw new Error(`Publication verification request keys must be exactly version, sourceCommit, publicationRunId, and provenanceUrl; found ${keys.join(', ')}`);
+              }
+              if (!Number.isSafeInteger(request.publicationRunId) || request.publicationRunId <= 0) {
+                throw new Error(`Invalid original publication workflow run id: ${request.publicationRunId ?? '<missing>'}`);
+              }
+              if (typeof request.provenanceUrl !== 'string' || !/^https:\/\/search\.sigstore\.dev\/\?logIndex=\d+$/.test(request.provenanceUrl)) {
+                throw new Error(`Invalid signed-provenance transparency-log URL: ${request.provenanceUrl ?? '<missing>'}`);
+              }
+              publicationRunId = request.publicationRunId;
+              provenanceUrl = request.provenanceUrl;
+            } else {
+              throw new Error('Publication issue title must exactly match [project-forge-publish] <version> or [project-forge-publish-verify] <version>');
             }
           } else {
             throw new Error(`Unsupported event: ${eventName}`);
@@ -92,12 +116,18 @@ jobs:
           if (typeof request.sourceCommit !== 'string' || !/^[0-9a-f]{40}$/.test(request.sourceCommit)) {
             throw new Error(`Invalid exact source commit: ${request.sourceCommit ?? '<missing>'}`);
           }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${request.version}\nsource_commit=${request.sourceCommit}\n`);
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `mode=${mode}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${request.version}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `source_commit=${request.sourceCommit}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `publication_run_id=${publicationRunId}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `requested_provenance_url=${provenanceUrl}\n`);
           NODE
 
       - name: Verify authorized Project Forge Platform source
         shell: bash
         env:
+          MODE: ${{ steps.request.outputs.mode }}
           EXPECTED_VERSION: ${{ steps.request.outputs.version }}
           EXPECTED_COMMIT: ${{ steps.request.outputs.source_commit }}
         run: |
@@ -105,15 +135,33 @@ jobs:
           git fetch --quiet origin main
           ACTUAL_COMMIT="$(git rev-parse HEAD)"
           ACTUAL_MAIN="$(git rev-parse origin/main)"
-          if [ "$ACTUAL_COMMIT" != "$EXPECTED_COMMIT" ]; then
-            echo "Authorized source mismatch: expected $EXPECTED_COMMIT, got checkout $ACTUAL_COMMIT" >&2
-            exit 1
-          fi
-          if [ "$ACTUAL_MAIN" != "$EXPECTED_COMMIT" ]; then
-            echo "Authorized source is no longer current main: expected $EXPECTED_COMMIT, got origin/main $ACTUAL_MAIN" >&2
-            exit 1
-          fi
           ACTUAL_VERSION="$(node -p "require('./package.json').version")"
+
+          if [ "$MODE" = "publish" ]; then
+            if [ "$ACTUAL_COMMIT" != "$EXPECTED_COMMIT" ]; then
+              echo "Authorized source mismatch: expected $EXPECTED_COMMIT, got checkout $ACTUAL_COMMIT" >&2
+              exit 1
+            fi
+            if [ "$ACTUAL_MAIN" != "$EXPECTED_COMMIT" ]; then
+              echo "Authorized source is no longer current main: expected $EXPECTED_COMMIT, got origin/main $ACTUAL_MAIN" >&2
+              exit 1
+            fi
+          else
+            git rev-parse --verify "${EXPECTED_COMMIT}^{commit}" >/dev/null
+            if ! git merge-base --is-ancestor "$EXPECTED_COMMIT" "$ACTUAL_MAIN"; then
+              echo "Published source $EXPECTED_COMMIT is not an ancestor of current main $ACTUAL_MAIN" >&2
+              exit 1
+            fi
+            node scripts/check-package-release-drift.mjs --baseline "$EXPECTED_COMMIT" --json > "${RUNNER_TEMP}/verification-drift.json"
+            node <<'NODE'
+            const fs = require('node:fs');
+            const drift = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/verification-drift.json`, 'utf8'));
+            if (drift.releaseNeeded || (drift.payloadChanges ?? []).length > 0) {
+              throw new Error(`Cannot recover publication verification after shipped payload drift: ${(drift.payloadChanges ?? []).join(', ')}`);
+            }
+            NODE
+          fi
+
           if [ "$ACTUAL_VERSION" != "$EXPECTED_VERSION" ]; then
             echo "Authorized version mismatch: expected $EXPECTED_VERSION, got $ACTUAL_VERSION" >&2
             exit 1
@@ -152,15 +200,24 @@ jobs:
       - name: Install package dependencies
         run: npm ci
 
-      - name: Refuse an already-published version
+      - name: Validate publication state
         shell: bash
         env:
+          MODE: ${{ steps.request.outputs.mode }}
           VERSION: ${{ steps.request.outputs.version }}
         run: |
           set -euo pipefail
-          if npm view "@mriekki/project-forge@${VERSION}" version >/dev/null 2>&1; then
-            echo "@mriekki/project-forge@${VERSION} is already published" >&2
-            exit 1
+          if ACTUAL="$(npm view "@mriekki/project-forge@${VERSION}" version 2>/dev/null)"; then
+            if [ "$MODE" = "publish" ]; then
+              echo "@mriekki/project-forge@${VERSION} is already published" >&2
+              exit 1
+            fi
+            test "$ACTUAL" = "$VERSION"
+          else
+            if [ "$MODE" = "verify" ]; then
+              echo "Cannot recover verification because @mriekki/project-forge@${VERSION} is not published" >&2
+              exit 1
+            fi
           fi
 
       - name: Resolve exact component pins
@@ -233,21 +290,30 @@ jobs:
       - name: Verify release manifest matches authorization
         shell: bash
         env:
+          MODE: ${{ steps.request.outputs.mode }}
           EXPECTED_VERSION: ${{ steps.request.outputs.version }}
           EXPECTED_COMMIT: ${{ steps.request.outputs.source_commit }}
         run: |
           node <<'NODE'
           const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
           const manifest = JSON.parse(fs.readFileSync('dist/release/RELEASE_MANIFEST.json', 'utf8'));
           if (manifest.version !== process.env.EXPECTED_VERSION) {
             throw new Error(`manifest version mismatch: ${manifest.version}`);
           }
-          if (manifest.sourceCommit !== process.env.EXPECTED_COMMIT) {
+          if (process.env.MODE === 'publish' && manifest.sourceCommit !== process.env.EXPECTED_COMMIT) {
             throw new Error(`manifest source mismatch: ${manifest.sourceCommit}`);
+          }
+          if (process.env.MODE === 'verify') {
+            const current = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+            if (manifest.sourceCommit !== current) {
+              throw new Error(`verification candidate source mismatch: expected current main ${current}, got ${manifest.sourceCommit}`);
+            }
           }
           NODE
 
       - name: Publish exact package with npm Trusted Publishing
+        if: steps.request.outputs.mode == 'publish'
         id: npm_publish
         shell: bash
         run: |
@@ -261,6 +327,26 @@ jobs:
             exit 1
           fi
           echo "provenance_url=$PROVENANCE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve signed provenance evidence
+        id: provenance
+        shell: bash
+        env:
+          MODE: ${{ steps.request.outputs.mode }}
+          PUBLISHED_URL: ${{ steps.npm_publish.outputs.provenance_url }}
+          RECOVERY_URL: ${{ steps.request.outputs.requested_provenance_url }}
+        run: |
+          set -euo pipefail
+          if [ "$MODE" = "publish" ]; then
+            URL="$PUBLISHED_URL"
+          else
+            URL="$RECOVERY_URL"
+          fi
+          if [[ ! "$URL" =~ ^https://search\.sigstore\.dev/\?logIndex=[0-9]+$ ]]; then
+            echo "Missing or invalid signed-provenance transparency-log URL" >&2
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Verify published registry identity
         id: registry
@@ -327,8 +413,48 @@ jobs:
           SMOKE_ROOT="$(mktemp -d)"
           trap 'rm -rf "$SMOKE_ROOT"' EXIT
           cd "$SMOKE_ROOT"
-          ACTUAL="$(npx --yes "@mriekki/project-forge@${VERSION}" version)"
-          test "$ACTUAL" = "@mriekki/project-forge ${VERSION}"
+          FOUND=""
+          DEADLINE=$((SECONDS + 600))
+          DELAY=5
+          ATTEMPT=0
+          LAST_ERROR="${RUNNER_TEMP}/npm-neutral-smoke-error.log"
+          while (( SECONDS < DEADLINE )); do
+            ATTEMPT=$((ATTEMPT + 1))
+            CACHE_DIR="$SMOKE_ROOT/cache-$ATTEMPT"
+            if ACTUAL="$(npm_config_cache="$CACHE_DIR" npx --yes "@mriekki/project-forge@${VERSION}" version 2>"$LAST_ERROR")"; then
+              if [ "$ACTUAL" = "@mriekki/project-forge ${VERSION}" ]; then
+                FOUND=1
+                break
+              fi
+            fi
+            if (( ATTEMPT == 1 || ATTEMPT % 4 == 0 )); then
+              ELAPSED=$((600 - (DEADLINE - SECONDS)))
+              echo "Waiting for neutral npm install visibility: attempt ${ATTEMPT}, ${ELAPSED}s elapsed"
+            fi
+            REMAINING=$((DEADLINE - SECONDS))
+            if (( REMAINING <= 0 )); then
+              break
+            fi
+            SLEEP_FOR="$DELAY"
+            if (( SLEEP_FOR > REMAINING )); then
+              SLEEP_FOR="$REMAINING"
+            fi
+            sleep "$SLEEP_FOR"
+            if (( DELAY < 30 )); then
+              DELAY=$((DELAY * 2))
+              if (( DELAY > 30 )); then
+                DELAY=30
+              fi
+            fi
+          done
+          if [ -z "$FOUND" ]; then
+            echo "Published version did not pass a neutral npm install after 10 minutes" >&2
+            if [ -s "$LAST_ERROR" ]; then
+              echo "Last neutral npm install error:" >&2
+              cat "$LAST_ERROR" >&2
+            fi
+            exit 1
+          fi
 
       - name: Record machine-readable publication evidence
         id: evidence
@@ -338,8 +464,8 @@ jobs:
           SOURCE_COMMIT: ${{ steps.request.outputs.source_commit }}
           PLATFORM_CI_RUN_ID: ${{ steps.platform_ci.outputs.run_id }}
           REGISTRY_SHASUM: ${{ steps.registry.outputs.registry_shasum }}
-          PROVENANCE_URL: ${{ steps.npm_publish.outputs.provenance_url }}
-          PUBLICATION_RUN_ID: ${{ github.run_id }}
+          PROVENANCE_URL: ${{ steps.provenance.outputs.url }}
+          PUBLICATION_RUN_ID: ${{ steps.request.outputs.publication_run_id }}
         run: |
           set -euo pipefail
           npm view "@mriekki/project-forge" time --json > "${RUNNER_TEMP}/npm-time.json"
@@ -393,17 +519,23 @@ jobs:
           console.log('PROJECT_FORGE_PUBLICATION_EVIDENCE_END');
           NODE
 
-      - name: Record successful issue-triggered publication
+      - name: Record successful issue-triggered publication verification
         if: github.event_name == 'issues'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
+          MODE: ${{ steps.request.outputs.mode }}
         run: |
           set -euo pipefail
+          if [ "$MODE" = "verify" ]; then
+            SUMMARY='Project Forge package publication recovery verification completed successfully.'
+          else
+            SUMMARY='Project Forge package publication completed successfully.'
+          fi
           {
-            echo 'Project Forge package publication completed successfully.'
+            echo "$SUMMARY"
             echo
             echo '```json'
             cat "${RUNNER_TEMP}/publication-evidence.json"
