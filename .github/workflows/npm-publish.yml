@@ -153,13 +153,7 @@ jobs:
               exit 1
             fi
             node scripts/check-package-release-drift.mjs --baseline "$EXPECTED_COMMIT" --json > "${RUNNER_TEMP}/verification-drift.json"
-            node <<'NODE'
-            const fs = require('node:fs');
-            const drift = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/verification-drift.json`, 'utf8'));
-            if (drift.releaseNeeded || (drift.payloadChanges ?? []).length > 0) {
-              throw new Error(`Cannot recover publication verification after shipped payload drift: ${(drift.payloadChanges ?? []).join(', ')}`);
-            }
-            NODE
+            node -e 'const fs=require("node:fs"); const drift=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); if (drift.releaseNeeded || (drift.payloadChanges ?? []).length > 0) { throw new Error(`Cannot recover publication verification after shipped payload drift: ${(drift.payloadChanges ?? []).join(", ")}`); }' "${RUNNER_TEMP}/verification-drift.json"
           fi
 
           if [ "$ACTUAL_VERSION" != "$EXPECTED_VERSION" ]; then
