@@ -1,36 +1,36 @@
 {
   "schemaVersion": 1,
   "channel": "stable",
-  "contractVersion": 17,
-  "snapshotPath": "chatgpt/contracts/v17",
+  "contractVersion": 18,
+  "snapshotPath": "chatgpt/contracts/v18",
   "documents": [
     {
-      "path": "chatgpt/contracts/v17/ADMIN.md",
+      "path": "chatgpt/contracts/v18/ADMIN.md",
       "sha256": "199f92e2b001911d605f72d06ef921d2bf6c445854b25602d75e2a819a8e8e14"
     },
     {
-      "path": "chatgpt/contracts/v17/EXISTING_PROJECT.md",
+      "path": "chatgpt/contracts/v18/EXISTING_PROJECT.md",
       "sha256": "b67c95fb46ce600f3e44898184f67b44697a23f13037bc748aaaf877dab20a12"
     },
     {
-      "path": "chatgpt/contracts/v17/NEW_PROJECT.md",
+      "path": "chatgpt/contracts/v18/NEW_PROJECT.md",
       "sha256": "2a161c669eca8e815b2fa69126bbccb89b9f3bdf376ef8957d924efdb323ba4e"
     },
     {
-      "path": "chatgpt/contracts/v17/ONBOARDING.md",
+      "path": "chatgpt/contracts/v18/ONBOARDING.md",
       "sha256": "647a1abd74722b5a884261b38de96991fe4c4989aaabec497d6853879622cb00"
     },
     {
-      "path": "chatgpt/contracts/v17/PROJECT_INSTRUCTIONS.md",
-      "sha256": "5f3472b8236413d28420ce8f7c07751a4a4b7b0fc31fcb3ea10a7dd65334bcaf"
+      "path": "chatgpt/contracts/v18/PROJECT_INSTRUCTIONS.md",
+      "sha256": "325249ccba9d874c42b434530f13eed5001e11b7b5791d2eb94d5075363dcd47"
     },
     {
-      "path": "chatgpt/contracts/v17/PROJECT_RULES.md",
+      "path": "chatgpt/contracts/v18/PROJECT_RULES.md",
       "sha256": "15a1b60a2686625756f17faa73f58fccb0d436a18a3d6fcd7bddda4595188ad1"
     },
     {
-      "path": "chatgpt/contracts/v17/USER_PROFILE.schema.json",
-      "sha256": "371b8409e474b8e65343271bbbb50aa14724ee0a483013f18ea2fe5ad015f4b0"
+      "path": "chatgpt/contracts/v18/USER_PROFILE.schema.json",
+      "sha256": "4f41645c7bd135868661edd01b4957db91178d90bf0220f5d5f12d6efd0e408c"
     }
   ],
   "controlPlane": {
@@ -48,11 +48,11 @@
   "generation": {
     "manifestFilename": "PROJECT_BOOTSTRAP.json",
     "bootstrap": {
-      "revision": "f392fd96d63f20e1c7a40118d202faad6c75d4f6",
+      "revision": "ada0d23e5d793ab1cca28b015acc18dd429c8cdb",
       "protocolVersion": 12,
       "catalogVersion": 13,
       "portableRequirements": {
-        "bootstrapRevision": "f392fd96d63f20e1c7a40118d202faad6c75d4f6",
+        "bootstrapRevision": "ada0d23e5d793ab1cca28b015acc18dd429c8cdb",
         "schema": {
           "path": "schemas/project-requirements.schema.json",
           "url": "https://raw.githubusercontent.com/mriekki/project-forge-platform/e76b6bd488448a76ae5f4cd5195d11e75fdb45b8/chatgpt/bootstrap-contracts/project-requirements.schema.json",
@@ -73,7 +73,7 @@
   "adoption": {
     "manifestFilename": "PROJECT_ADOPTION.json",
     "kit": {
-      "revision": "5b537e0096725a8a58076a2afd87a61d02e0d0ee",
+      "revision": "219fc6d5922a45e0f5441af0964349ad6de9467f",
       "protocolVersion": 1
     },
     "contract": {
