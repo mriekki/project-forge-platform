@@ -14,8 +14,9 @@ const TARGET_BLOB = '26496854ed5d6ad47c7b6136078b2114473ac773';
 const WSL_PREDECESSOR_BOOTSTRAP = '0c45eb332a815ad79ea061443f337500b9dc5712';
 const WSL_PREVIOUS_LAUNCHER_BOOTSTRAP = '173203baaf36935d04eb81c89f1d016131a40442';
 const WSL_PREVIOUS_RUNTIME_BOOTSTRAP = '9f0f7fd4e0e2220250f6fd5b035706a7d15834af';
-const WSL_RUNTIME_BOOTSTRAP = '043b3b2a0e3ba03b8d18666bb3fef59c588bfa16';
+const WSL_PRIOR_RUNTIME_BOOTSTRAP = '043b3b2a0e3ba03b8d18666bb3fef59c588bfa16';
 const WSL_LAUNCHER_BOOTSTRAP = '1e656d533a259428bbfb21aada548429462ba190';
+const WSL_RUNTIME_BOOTSTRAP = '6b6a2252434d310b21150fcbb5ce7270919ad9d0';
 const WSL_LAUNCHER = 'scripts/setup.sh';
 const WSL_RUNTIME = 'tools/dev-environment/setup-wsl.py';
 const WSL_OLDER_LAUNCHER_BLOB = 'ec941c079da066785ac628d6bbb7dd6b668494f2';
@@ -23,7 +24,8 @@ const WSL_PREVIOUS_LAUNCHER_BLOB = '4e8c48a3d33c6a8ae4534ec860c2ee0205e417aa';
 const WSL_LAUNCHER_BLOB = 'f2555c464709492941007b838b9cc86051a61277';
 const WSL_OLDER_RUNTIME_BLOB = '6731910246fb99887c58b9f3a8a14fec1bf02c01';
 const WSL_PREVIOUS_RUNTIME_BLOB = '883f7bbadd2de4bc0dcb601ee2285f88a0085b52';
-const WSL_RUNTIME_BLOB = '0b959b4e85508016f6e8c12d403a94b2eed46c1f';
+const WSL_PRIOR_RUNTIME_BLOB = '0b959b4e85508016f6e8c12d403a94b2eed46c1f';
+const WSL_RUNTIME_BLOB = 'a557150b7333f83cfd342b4983037f5ddf8c6748';
 
 function generatedConsumer() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'project-forge-bootstrap-migration-'));
@@ -115,6 +117,12 @@ test('recognized generated Project can add the WSL setup runtime without changin
   assert.deepEqual(planBootstrapMigrations(packageData, root), { rows: [], unsafe: [] });
 });
 
+test('4.15.0 WSL runtime identity remains an explicitly supported safe predecessor', () => {
+  const runtimeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-wsl.manifest.json'), 'utf8'));
+  assert(runtimeManifest.supportedPredecessorGitBlobs.includes(WSL_PRIOR_RUNTIME_BLOB));
+  assert(runtimeManifest.supportedBootstrapRevisions.includes(WSL_LAUNCHER_BOOTSTRAP));
+});
+
 test('WSL Bootstrap migration assets are exact and recognize supported prior setup runtimes', () => {
   const launcherManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-launcher.manifest.json'), 'utf8'));
   const runtimeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-wsl.manifest.json'), 'utf8'));
@@ -127,17 +135,20 @@ test('WSL Bootstrap migration assets are exact and recognize supported prior set
     WSL_PREDECESSOR_BOOTSTRAP,
     WSL_PREVIOUS_LAUNCHER_BOOTSTRAP,
     WSL_PREVIOUS_RUNTIME_BOOTSTRAP,
-    WSL_RUNTIME_BOOTSTRAP
+    WSL_PRIOR_RUNTIME_BOOTSTRAP
   ]);
   assert.deepEqual(runtimeManifest.supportedBootstrapRevisions, [
     WSL_PREDECESSOR_BOOTSTRAP,
     WSL_PREVIOUS_LAUNCHER_BOOTSTRAP,
-    WSL_PREVIOUS_RUNTIME_BOOTSTRAP
+    WSL_PREVIOUS_RUNTIME_BOOTSTRAP,
+    WSL_PRIOR_RUNTIME_BOOTSTRAP,
+    WSL_LAUNCHER_BOOTSTRAP
   ]);
   assert(launcherManifest.supportedPredecessorGitBlobs.includes(WSL_OLDER_LAUNCHER_BLOB));
   assert(launcherManifest.supportedPredecessorGitBlobs.includes(WSL_PREVIOUS_LAUNCHER_BLOB));
   assert(runtimeManifest.supportedPredecessorGitBlobs.includes(WSL_OLDER_RUNTIME_BLOB));
   assert(runtimeManifest.supportedPredecessorGitBlobs.includes(WSL_PREVIOUS_RUNTIME_BLOB));
+  assert(runtimeManifest.supportedPredecessorGitBlobs.includes(WSL_PRIOR_RUNTIME_BLOB));
   assert.equal(runtimeManifest.allowMissing, true);
   assert.equal(gitBlobSha(launcher), WSL_LAUNCHER_BLOB);
   assert.equal(gitBlobSha(runtime), WSL_RUNTIME_BLOB);

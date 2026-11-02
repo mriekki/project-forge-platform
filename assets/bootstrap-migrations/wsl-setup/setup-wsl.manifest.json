@@ -6,18 +6,21 @@
   "asset": "assets/bootstrap-migrations/wsl-setup/setup-wsl.py",
   "source": {
     "component": "bootstrap",
-    "revision": "043b3b2a0e3ba03b8d18666bb3fef59c588bfa16",
+    "revision": "6b6a2252434d310b21150fcbb5ce7270919ad9d0",
     "artifact": "runtime/dev_environment_wsl.py"
   },
-  "targetGitBlob": "0b959b4e85508016f6e8c12d403a94b2eed46c1f",
+  "targetGitBlob": "a557150b7333f83cfd342b4983037f5ddf8c6748",
   "supportedPredecessorGitBlobs": [
     "6731910246fb99887c58b9f3a8a14fec1bf02c01",
-    "883f7bbadd2de4bc0dcb601ee2285f88a0085b52"
+    "883f7bbadd2de4bc0dcb601ee2285f88a0085b52",
+    "0b959b4e85508016f6e8c12d403a94b2eed46c1f"
   ],
   "supportedBootstrapRevisions": [
     "0c45eb332a815ad79ea061443f337500b9dc5712",
     "173203baaf36935d04eb81c89f1d016131a40442",
-    "9f0f7fd4e0e2220250f6fd5b035706a7d15834af"
+    "9f0f7fd4e0e2220250f6fd5b035706a7d15834af",
+    "043b3b2a0e3ba03b8d18666bb3fef59c588bfa16",
+    "1e656d533a259428bbfb21aada548429462ba190"
   ],
   "allowMissing": true
 }

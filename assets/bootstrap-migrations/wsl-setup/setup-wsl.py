@@ -311,19 +311,48 @@ def ensure_tool(entry: dict[str, Any], check_only: bool) -> tuple[bool, str, str
     return False, detail or f"No WSL installer is defined for {tool_id}", "MISSING"
 
 
-def ensure_extensions(extensions: list[str], check_only: bool) -> list[str]:
-    if not extensions or not command_path("code"):
-        return extensions if not command_path("code") else []
+def ensure_extensions(extensions: list[str], check_only: bool) -> tuple[list[str], bool, str]:
+    if not extensions:
+        return [], True, "not applicable"
+    if not command_path("code"):
+        return extensions, False, "VS Code's WSL command bridge is unavailable"
+
+    ipc_hook = os.environ.get("VSCODE_IPC_HOOK_CLI")
+    if not ipc_hook:
+        return [], False, (
+            "this shell is not bound to an active Remote - WSL VS Code host. Open the repository in "
+            "VS Code Remote - WSL and rerun setup from that window's integrated terminal; a bare `code` "
+            "command from an external WSL shell can target the Windows-local extension set instead"
+        )
+
     result = run(["code", "--list-extensions"])
+    if result.returncode != 0:
+        detail = "\n".join(filter(None, [(result.stdout or "").strip(), (result.stderr or "").strip()]))
+        return [], False, detail or "the active Remote - WSL host did not list extensions successfully"
+
     installed = {line.strip().lower() for line in (result.stdout or "").splitlines() if line.strip()}
     missing = [value for value in extensions if value.lower() not in installed]
     if not check_only:
+        install_failures: list[str] = []
         for extension in missing:
-            run(["code", "--install-extension", extension, "--force"], capture=False)
+            install_result = run(["code", "--install-extension", extension, "--force"], capture=False)
+            if install_result.returncode != 0:
+                install_failures.append(extension)
         result = run(["code", "--list-extensions"])
+        if result.returncode != 0:
+            detail = "\n".join(filter(None, [(result.stdout or "").strip(), (result.stderr or "").strip()]))
+            return install_failures, False, detail or "the active Remote - WSL host could not verify extensions"
         installed = {line.strip().lower() for line in (result.stdout or "").splitlines() if line.strip()}
         missing = [value for value in extensions if value.lower() not in installed]
-    return missing
+        for extension in install_failures:
+            if extension not in missing:
+                missing.append(extension)
+
+    agent_folder = os.environ.get("VSCODE_AGENT_FOLDER")
+    detail = "active Remote - WSL extension host"
+    if agent_folder:
+        detail += f" ({agent_folder})"
+    return missing, True, detail
 
 
 def restore_project(commands: list[list[str]], check_only: bool) -> list[str]:
@@ -377,9 +406,17 @@ def main() -> int:
         if not ok:
             (failed_required if required else failed_optional).append(entry["id"])
 
-    missing_extensions = ensure_extensions(config.get("vscodeExtensions", []), args.check)
+    declared_extensions = config.get("vscodeExtensions", [])
+    missing_extensions, extension_host_verified, extension_host_detail = ensure_extensions(
+        declared_extensions, args.check
+    )
+    if declared_extensions:
+        host_state = "PASS" if extension_host_verified else "UNVERIFIED"
+        print(f"{host_state} VS Code WSL extension host — {extension_host_detail}")
     for extension in missing_extensions:
         print(f"MISSING extension {extension}")
+    if declared_extensions and not extension_host_verified:
+        failed_required.append("VS Code extension host")
     if missing_extensions:
         failed_required.append("VS Code extensions")
 
