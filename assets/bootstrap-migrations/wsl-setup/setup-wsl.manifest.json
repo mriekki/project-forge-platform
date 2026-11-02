@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "bootstrap-wsl2-setup-runtime",
+  "owner": "bootstrap",
+  "destination": "tools/dev-environment/setup-wsl.py",
+  "asset": "assets/bootstrap-migrations/wsl-setup/setup-wsl.py",
+  "source": {
+    "component": "bootstrap",
+    "revision": "173203baaf36935d04eb81c89f1d016131a40442",
+    "artifact": "runtime/dev_environment_wsl.py"
+  },
+  "targetGitBlob": "6731910246fb99887c58b9f3a8a14fec1bf02c01",
+  "supportedPredecessorGitBlobs": [],
+  "supportedBootstrapRevisions": [
+    "0c45eb332a815ad79ea061443f337500b9dc5712"
+  ],
+  "allowMissing": true
+}
