@@ -1,36 +1,36 @@
 {
   "schemaVersion": 1,
   "channel": "stable",
-  "contractVersion": 18,
-  "snapshotPath": "chatgpt/contracts/v18",
+  "contractVersion": 19,
+  "snapshotPath": "chatgpt/contracts/v19",
   "documents": [
     {
-      "path": "chatgpt/contracts/v18/ADMIN.md",
+      "path": "chatgpt/contracts/v19/ADMIN.md",
       "sha256": "199f92e2b001911d605f72d06ef921d2bf6c445854b25602d75e2a819a8e8e14"
     },
     {
-      "path": "chatgpt/contracts/v18/EXISTING_PROJECT.md",
+      "path": "chatgpt/contracts/v19/EXISTING_PROJECT.md",
       "sha256": "b67c95fb46ce600f3e44898184f67b44697a23f13037bc748aaaf877dab20a12"
     },
     {
-      "path": "chatgpt/contracts/v18/NEW_PROJECT.md",
+      "path": "chatgpt/contracts/v19/NEW_PROJECT.md",
       "sha256": "2a161c669eca8e815b2fa69126bbccb89b9f3bdf376ef8957d924efdb323ba4e"
     },
     {
-      "path": "chatgpt/contracts/v18/ONBOARDING.md",
+      "path": "chatgpt/contracts/v19/ONBOARDING.md",
       "sha256": "647a1abd74722b5a884261b38de96991fe4c4989aaabec497d6853879622cb00"
     },
     {
-      "path": "chatgpt/contracts/v18/PROJECT_INSTRUCTIONS.md",
+      "path": "chatgpt/contracts/v19/PROJECT_INSTRUCTIONS.md",
       "sha256": "325249ccba9d874c42b434530f13eed5001e11b7b5791d2eb94d5075363dcd47"
     },
     {
-      "path": "chatgpt/contracts/v18/PROJECT_RULES.md",
-      "sha256": "15a1b60a2686625756f17faa73f58fccb0d436a18a3d6fcd7bddda4595188ad1"
+      "path": "chatgpt/contracts/v19/PROJECT_RULES.md",
+      "sha256": "47956f493b29338fb80717b2a12f18e4a65e8f52cfe2f409cf6962c42c259fec"
     },
     {
-      "path": "chatgpt/contracts/v18/USER_PROFILE.schema.json",
-      "sha256": "4f41645c7bd135868661edd01b4957db91178d90bf0220f5d5f12d6efd0e408c"
+      "path": "chatgpt/contracts/v19/USER_PROFILE.schema.json",
+      "sha256": "6a0115ea82b3d66e9a8bb40b8e20a4d2d8626c8a92ae63402104e7e4575b99c2"
     }
   ],
   "controlPlane": {
