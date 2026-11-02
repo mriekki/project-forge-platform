@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -160,6 +161,90 @@ def ensure_fnm_node(version: str | None, check_only: bool) -> tuple[bool, str, s
     return ok, text or f"Node {version} verification failed", "PASS" if ok else "FAILED"
 
 
+def global_dotnet_sdk_version() -> str | None:
+    global_json = ROOT / "global.json"
+    if not global_json.exists():
+        return None
+    sdk = read_json(global_json).get("sdk")
+    if not isinstance(sdk, dict):
+        return None
+    version = sdk.get("version")
+    return version if isinstance(version, str) else None
+
+
+def ensure_dotnet_sdk(
+    spec: dict[str, Any],
+    version: str | None,
+    check_only: bool,
+) -> tuple[bool, str, str]:
+    ok, detail = version_ok(spec, version)
+    if ok:
+        return True, detail, "PASS"
+    if check_only:
+        return False, detail, "MISSING" if detail == "missing" else "VERSION_MISMATCH"
+
+    if not version:
+        return False, ".NET SDK version is required for automatic WSL installation", "FAILED"
+    major = version.split(".", 1)[0]
+    if not re.fullmatch(r"\d+", major):
+        return False, f"Unsupported .NET SDK version: {version}", "FAILED"
+
+    ensure_apt_package(f"dotnet-sdk-{major}.0")
+    ok, detail = version_ok(spec, version)
+    if ok:
+        return True, detail, "PASS"
+
+    sdk_version = global_dotnet_sdk_version()
+    if not sdk_version:
+        return False, (
+            detail
+            or f".NET SDK {version} is installed, but the repository resolver still cannot select a compatible SDK"
+        ), "FAILED"
+    if not re.fullmatch(r"\d+\.\d+\.\d+", sdk_version):
+        return False, f"Unsupported global.json .NET SDK version: {sdk_version}", "FAILED"
+
+    declared_parts = version.split(".")
+    sdk_parts = sdk_version.split(".")
+    if sdk_parts[: len(declared_parts)] != declared_parts:
+        return False, (
+            f"global.json requires .NET SDK {sdk_version}, outside the declared setup family {version}"
+        ), "FAILED"
+
+    dotnet = command_path("dotnet")
+    if not dotnet:
+        return False, "dotnet remained unavailable after Ubuntu SDK installation", "FAILED"
+    install_root = Path(dotnet).resolve().parent
+
+    ensure_apt_package("curl")
+    with tempfile.TemporaryDirectory(prefix="project-forge-dotnet-") as temp_dir:
+        installer = Path(temp_dir) / "dotnet-install.sh"
+        download = run(
+            ["curl", "-fsSL", "https://dot.net/v1/dotnet-install.sh", "-o", str(installer)],
+            capture=False,
+        )
+        if download.returncode != 0:
+            return False, "Unable to download the official .NET install script", "FAILED"
+
+        install = run(
+            [
+                "sudo",
+                "bash",
+                str(installer),
+                "--version",
+                sdk_version,
+                "--install-dir",
+                str(install_root),
+                "--skip-non-versioned-files",
+            ],
+            capture=False,
+        )
+        if install.returncode != 0:
+            return False, f"Unable to install .NET SDK {sdk_version}", "FAILED"
+
+    ok, detail = version_ok(spec, version)
+    return ok, detail, "PASS" if ok else "FAILED"
+
+
 def ensure_tool(entry: dict[str, Any], check_only: bool) -> tuple[bool, str, str]:
     tool_id = entry["id"]
     spec = read_json(CATALOG / f"{tool_id}.json")
@@ -169,6 +254,8 @@ def ensure_tool(entry: dict[str, Any], check_only: bool) -> tuple[bool, str, str
         return ensure_fnm_available(check_only)
     if tool_id == "node":
         return ensure_fnm_node(version, check_only)
+    if tool_id == "dotnet":
+        return ensure_dotnet_sdk(spec, version, check_only)
 
     ok, detail = version_ok(spec, version)
     if ok:
@@ -202,16 +289,6 @@ def ensure_tool(entry: dict[str, Any], check_only: bool) -> tuple[bool, str, str
     }
     if tool_id in apt_packages:
         ensure_apt_package(apt_packages[tool_id])
-        ok, detail = version_ok(spec, version)
-        return ok, detail, "PASS" if ok else "FAILED"
-
-    if tool_id == "dotnet":
-        if not version:
-            return False, ".NET SDK version is required for automatic WSL installation", "FAILED"
-        major = version.split(".", 1)[0]
-        if not re.fullmatch(r"\d+", major):
-            return False, f"Unsupported .NET SDK version: {version}", "FAILED"
-        ensure_apt_package(f"dotnet-sdk-{major}.0")
         ok, detail = version_ok(spec, version)
         return ok, detail, "PASS" if ok else "FAILED"
 
