@@ -11,9 +11,17 @@ if [[ "$(/usr/bin/uname -s)" == "Linux" ]]; then
     exit 2
   fi
 
+  CHECK_ONLY=0
+  for argument in "$@"; do
+    if [[ "$argument" == "--check" ]]; then
+      CHECK_ONLY=1
+      break
+    fi
+  done
+
   PYTHON_BIN="$(command -v python3 || true)"
   if [[ -z "$PYTHON_BIN" ]]; then
-    if [[ " ${*:-} " == *" --check "* ]]; then
+    if [[ "$CHECK_ONLY" -eq 1 ]]; then
       echo "ERROR: python3 is required to run the read-only Project Forge WSL2 setup check." >&2
       exit 2
     fi
@@ -24,6 +32,101 @@ if [[ "$(/usr/bin/uname -s)" == "Linux" ]]; then
     if [[ -z "$PYTHON_BIN" ]]; then
       echo "ERROR: python3 installation completed but python3 is still unavailable." >&2
       exit 2
+    fi
+  fi
+
+  RTK_DECLARED="$($PYTHON_BIN - "$ROOT/DEV_ENVIRONMENT.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+config = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+print("yes" if any(entry.get("id") == "rtk" for entry in config.get("tools", [])) else "no")
+PY
+)"
+
+  if [[ "$RTK_DECLARED" == "yes" ]]; then
+    RTK_VERSION="1.1.0"
+    RTK_INSTALL_DIR="$HOME/.local/bin"
+    export PATH="$RTK_INSTALL_DIR:$PATH"
+
+    rtk_is_token_killer() {
+      command -v rtk >/dev/null 2>&1 && rtk --version >/dev/null 2>&1 && rtk gain >/dev/null 2>&1
+    }
+
+    install_rtk_wsl() {
+      local arch asset expected archive actual extracted temp_dir
+      arch="$(/usr/bin/uname -m)"
+      case "$arch" in
+        x86_64|amd64)
+          asset="rtk-x86_64-unknown-linux-musl.tar.gz"
+          expected="9454ad1b9489daa57ab0a9f4ebe2faaf4dc82b8a0f26c9e5135151abd7c9378d"
+          ;;
+        aarch64|arm64)
+          asset="rtk-aarch64-unknown-linux-gnu.tar.gz"
+          expected="a5c00c3ab0129884bcb757d348afc1a650efa0f4f0769da97c341f28f89719ed"
+          ;;
+        *)
+          echo "ERROR: RTK ${RTK_VERSION} has no Project Forge-pinned WSL asset for architecture: $arch" >&2
+          return 2
+          ;;
+      esac
+
+      if ! command -v curl >/dev/null 2>&1; then
+        sudo apt-get update
+        sudo apt-get install -y curl
+      fi
+      if ! command -v tar >/dev/null 2>&1; then
+        sudo apt-get update
+        sudo apt-get install -y tar
+      fi
+
+      temp_dir="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/project-forge-rtk.XXXXXX")"
+      archive="$temp_dir/$asset"
+      if ! curl -fsSL "https://github.com/rtk-ai/rtk/releases/download/v${RTK_VERSION}/${asset}" -o "$archive"; then
+        /bin/rm -rf "$temp_dir"
+        echo "ERROR: unable to download pinned RTK ${RTK_VERSION} release asset." >&2
+        return 2
+      fi
+
+      actual="$(/usr/bin/sha256sum "$archive" | /usr/bin/awk '{print $1}')"
+      if [[ "$actual" != "$expected" ]]; then
+        /bin/rm -rf "$temp_dir"
+        echo "ERROR: RTK ${RTK_VERSION} release checksum mismatch." >&2
+        echo "Expected $expected but got $actual." >&2
+        return 2
+      fi
+
+      if ! /bin/tar -xzf "$archive" -C "$temp_dir"; then
+        /bin/rm -rf "$temp_dir"
+        echo "ERROR: unable to extract pinned RTK ${RTK_VERSION} release asset." >&2
+        return 2
+      fi
+      extracted="$(/usr/bin/find "$temp_dir" -type f -name rtk -print -quit)"
+      if [[ -z "$extracted" ]]; then
+        /bin/rm -rf "$temp_dir"
+        echo "ERROR: pinned RTK ${RTK_VERSION} release asset did not contain the rtk binary." >&2
+        return 2
+      fi
+
+      /bin/mkdir -p "$RTK_INSTALL_DIR"
+      /usr/bin/install -m 0755 "$extracted" "$RTK_INSTALL_DIR/rtk"
+      /bin/rm -rf "$temp_dir"
+    }
+
+    if ! rtk_is_token_killer; then
+      if [[ "$CHECK_ONLY" -eq 0 ]]; then
+        echo "Project Forge: installing pinned RTK ${RTK_VERSION} for token-efficient AI shell output."
+        install_rtk_wsl
+      fi
+    fi
+
+    if rtk_is_token_killer && [[ "$CHECK_ONLY" -eq 0 ]]; then
+      echo "Project Forge: configuring RTK global GitHub Copilot command rewriting."
+      if ! RTK_TELEMETRY_DISABLED=1 rtk init -g --copilot --auto-patch --no-trust-filters; then
+        echo "ERROR: RTK is installed but GitHub Copilot integration could not be configured." >&2
+        exit 2
+      fi
     fi
   fi
 
