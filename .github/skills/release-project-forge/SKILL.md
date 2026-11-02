@@ -56,6 +56,8 @@ In cloud mode, the cloud agent's GitHub connection is the live CI-evidence autho
 
 In local mode, require clean canonical component checkouts at exact accepted `origin/main` revisions. Dirty or stale local component checkouts block only local preparation; they must not block cloud preparation when authoritative GitHub sources are accessible.
 
+A dirty or non-`origin/main` local component checkout may block deterministic release preparation, but it must not erase or downgrade evidence that a release is needed. Report `PACKAGE RELEASE PREPARATION BLOCKED` when preparation cannot safely continue.
+
 Never pin an unmerged branch, dirty checkout, guessed revision, or changed component revision with failing/pending default-branch CI.
 
 ## 3. Determine release need and version
@@ -63,6 +65,8 @@ Never pin an unmerged branch, dirty checkout, guessed revision, or changed compo
 Default invocation is `/release-project-forge` with no version argument.
 
 A release is needed when either an accepted component revision/version differs from the current published package or `scripts/check-package-release-drift.mjs` reports shipped Platform payload drift from the exact published Platform source.
+
+Never conclude that no release is warranted solely because Core and Deployment revisions are unchanged. Platform-owned shipped payload can require a release independently.
 
 Choose the next package version automatically. Do not require the user to choose `patch`, `minor`, or `major` when the classification is clear. Explicit bump or exact-version arguments are optional overrides and must not understate the change. Never reuse an npm version.
 
