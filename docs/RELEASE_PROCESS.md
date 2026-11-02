@@ -206,7 +206,7 @@ Normal releases use npm Trusted Publishing (OIDC) from:
 
 ```text
 GitHub owner: mriekki
-Repository: project-fororge-platform
+Repository: project-forge-platform
 Workflow: npm-publish.yml
 Allowed action: npm publish
 ```
