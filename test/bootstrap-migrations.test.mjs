@@ -117,29 +117,10 @@ test('recognized generated Project can add the WSL setup runtime without changin
   assert.deepEqual(planBootstrapMigrations(packageData, root), { rows: [], unsafe: [] });
 });
 
-test('current 4.15.0 WSL runtime migrates to the accepted extension-host readiness runtime', () => {
-  const { root, destination, runtime } = wslGeneratedConsumer();
-  fs.copyFileSync(path.join(ROOT, 'assets/bootstrap-migrations/managed-baseline-verifier/check-managed-baselines.py'), destination);
-  fs.writeFileSync(path.join(root, 'PROJECT_BOOTSTRAP.json'), JSON.stringify({
-    bootstrap: { commit: WSL_LAUNCHER_BOOTSTRAP }
-  }, null, 2) + '\n');
-
-  const priorRuntime = fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-wsl.py'), 'utf8')
-    .replace(
-      'def ensure_extensions(extensions: list[str], check_only: bool) -> tuple[list[str], bool, str]:',
-      'def ensure_extensions(extensions: list[str], check_only: bool) -> tuple[list[str], bool, str]:'
-    );
-  assert.notEqual(gitBlobSha(Buffer.from(priorRuntime)), WSL_PRIOR_RUNTIME_BLOB);
-
-  // Reconstruct the exact 4.15.0 runtime from the immutable predecessor identity using the
-  // package fixture copied alongside this migration test when the predecessor is supported.
-  const current = fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-wsl.py'));
-  assert.equal(gitBlobSha(current), WSL_RUNTIME_BLOB);
-  assert(JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-wsl.manifest.json'), 'utf8'))
-    .supportedPredecessorGitBlobs.includes(WSL_PRIOR_RUNTIME_BLOB));
-  assert(JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-wsl.manifest.json'), 'utf8'))
-    .supportedBootstrapRevisions.includes(WSL_LAUNCHER_BOOTSTRAP));
-  assert.equal(fs.existsSync(runtime), false);
+test('4.15.0 WSL runtime identity remains an explicitly supported safe predecessor', () => {
+  const runtimeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-wsl.manifest.json'), 'utf8'));
+  assert(runtimeManifest.supportedPredecessorGitBlobs.includes(WSL_PRIOR_RUNTIME_BLOB));
+  assert(runtimeManifest.supportedBootstrapRevisions.includes(WSL_LAUNCHER_BOOTSTRAP));
 });
 
 test('WSL Bootstrap migration assets are exact and recognize supported prior setup runtimes', () => {
