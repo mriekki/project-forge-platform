@@ -6,14 +6,18 @@
   "asset": "assets/bootstrap-migrations/wsl-setup/setup.sh",
   "source": {
     "component": "bootstrap",
-    "revision": "173203baaf36935d04eb81c89f1d016131a40442",
+    "revision": "1e656d533a259428bbfb21aada548429462ba190",
     "artifact": "templates/scripts/setup.sh.tpl"
   },
-  "targetGitBlob": "4e8c48a3d33c6a8ae4534ec860c2ee0205e417aa",
+  "targetGitBlob": "f2555c464709492941007b838b9cc86051a61277",
   "supportedPredecessorGitBlobs": [
-    "ec941c079da066785ac628d6bbb7dd6b668494f2"
+    "ec941c079da066785ac628d6bbb7dd6b668494f2",
+    "4e8c48a3d33c6a8ae4534ec860c2ee0205e417aa"
   ],
   "supportedBootstrapRevisions": [
-    "0c45eb332a815ad79ea061443f337500b9dc5712"
+    "0c45eb332a815ad79ea061443f337500b9dc5712",
+    "173203baaf36935d04eb81c89f1d016131a40442",
+    "9f0f7fd4e0e2220250f6fd5b035706a7d15834af",
+    "043b3b2a0e3ba03b8d18666bb3fef59c588bfa16"
   ]
 }
