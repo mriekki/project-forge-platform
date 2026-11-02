@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const WORKFLOW = path.join(ROOT, '.github', 'workflows', 'npm-publish.yml');
 
-function extractRunBlock(workflow, stepName) {
+function extractRunBlock(rawWorkflow, stepName) {
+  const workflow = rawWorkflow.replace(/\r\n/g, '\n');
   const stepMarker = `      - name: ${stepName}\n`;
   const stepStart = workflow.indexOf(stepMarker);
   assert.notEqual(stepStart, -1, `missing workflow step: ${stepName}`);
