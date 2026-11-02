@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "bootstrap-wsl2-setup-launcher",
+  "owner": "bootstrap",
+  "destination": "scripts/setup.sh",
+  "asset": "assets/bootstrap-migrations/wsl-setup/setup.sh",
+  "source": {
+    "component": "bootstrap",
+    "revision": "173203baaf36935d04eb81c89f1d016131a40442",
+    "artifact": "templates/scripts/setup.sh.tpl"
+  },
+  "targetGitBlob": "4e8c48a3d33c6a8ae4534ec860c2ee0205e417aa",
+  "supportedPredecessorGitBlobs": [
+    "ec941c079da066785ac628d6bbb7dd6b668494f2"
+  ],
+  "supportedBootstrapRevisions": [
+    "0c45eb332a815ad79ea061443f337500b9dc5712"
+  ]
+}

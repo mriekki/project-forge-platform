@@ -16,7 +16,7 @@ function Write-Step([string]$Message) {
 }
 
 function Invoke-Wsl {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
+    param([Parameter(Mandatory = $true)][string[]]$Arguments)
     $output = & wsl.exe -d $Distro -- @Arguments 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "WSL command failed ($LASTEXITCODE): $($Arguments -join ' ')`n$output"
@@ -35,16 +35,28 @@ function Get-GitValue([string]$Repository, [string[]]$Arguments) {
 }
 
 function Convert-ToWslPath([string]$WindowsPath) {
-    return ((Invoke-Wsl wslpath -a $WindowsPath) -join "`n").Trim()
+    $resolved = (Resolve-Path $WindowsPath).Path
+    if ($resolved -match '^([A-Za-z]):\\(.*)$') {
+        $drive = $Matches[1].ToLowerInvariant()
+        $rest = $Matches[2] -replace '\\', '/'
+        return "/mnt/$drive/$rest"
+    }
+
+    throw "Unsupported Windows path for WSL conversion: '$resolved'. Expected a local drive-letter path such as C:\\Projects\\repo."
 }
 
 function Resolve-WslDestinationRoot {
-    $home = ((Invoke-Wsl sh -lc 'printf %s "$HOME"') -join "`n").Trim()
-    if ($DestinationRoot -eq "~") { return $home }
-    if ($DestinationRoot.StartsWith("~/")) {
-        return "$home/$($DestinationRoot.Substring(2))"
-    }
     if ($DestinationRoot.StartsWith("/")) { return $DestinationRoot }
+
+    $wslHome = ((Invoke-Wsl -Arguments @("sh", "-lc", 'printf %s "$HOME"')) -join "`n").Trim()
+    if (-not $wslHome) {
+        throw "Could not resolve the WSL home directory for '$Distro'. Supply -DestinationRoot with an absolute Linux path such as /home/<user>/projects."
+    }
+
+    if ($DestinationRoot -eq "~") { return $wslHome }
+    if ($DestinationRoot.StartsWith("~/")) {
+        return "$wslHome/$($DestinationRoot.Substring(2))"
+    }
     throw "DestinationRoot must be an absolute Linux path or start with ~/ (received '$DestinationRoot')."
 }
 
@@ -115,14 +127,14 @@ if ($missingLinuxTools.Count -gt 0) {
     if (-not $InstallMissing) {
         throw "Missing WSL tools: $($missingLinuxTools -join ', '). Re-run with -InstallMissing."
     }
-    Invoke-Wsl sudo apt-get update | Out-Null
-    Invoke-Wsl sudo apt-get install -y git curl ca-certificates tar build-essential | Out-Null
+    Invoke-Wsl -Arguments @("sudo", "apt-get", "update") | Out-Null
+    Invoke-Wsl -Arguments @("sudo", "apt-get", "install", "-y", "git", "curl", "ca-certificates", "tar", "build-essential") | Out-Null
 }
 
 # Use Linux line endings for new checkouts unless the Builder already chose another global policy.
 $wslAutocrlf = (& wsl.exe -d $Distro -- git config --global --get core.autocrlf 2>$null | Out-String).Trim()
 if (-not $wslAutocrlf) {
-    Invoke-Wsl git config --global core.autocrlf input | Out-Null
+    Invoke-Wsl -Arguments @("git", "config", "--global", "core.autocrlf", "input") | Out-Null
 }
 
 # Carry Git identity into WSL only when WSL does not already have one.
@@ -131,7 +143,7 @@ if (Test-Command "git") {
         $existing = (& wsl.exe -d $Distro -- git config --global --get $key 2>$null | Out-String).Trim()
         if (-not $existing) {
             $hostValue = (& git config --global --get $key 2>$null | Out-String).Trim()
-            if ($hostValue) { Invoke-Wsl git config --global $key $hostValue | Out-Null }
+            if ($hostValue) { Invoke-Wsl -Arguments @("git", "config", "--global", $key, $hostValue) | Out-Null }
         }
     }
 }
@@ -171,13 +183,13 @@ if (-not (Test-Command "git")) {
 }
 
 $destinationRootLinux = Resolve-WslDestinationRoot
-Invoke-Wsl mkdir -p $destinationRootLinux | Out-Null
+Invoke-Wsl -Arguments @("mkdir", "-p", $destinationRootLinux) | Out-Null
 $repositories = @(Get-RepositoryCandidates $SourceRoot)
 if ($repositories.Count -eq 0) {
     throw "No Git repositories found at '$SourceRoot'."
 }
 
-Write-Step "Migrating $($repositories.Count) repository/repositories to $Distro:$destinationRootLinux"
+Write-Step "Migrating $($repositories.Count) repository/repositories to ${Distro}:$destinationRootLinux"
 $migrated = New-Object System.Collections.Generic.List[string]
 $skipped = New-Object System.Collections.Generic.List[string]
 
@@ -213,13 +225,13 @@ foreach ($repo in $repositories) {
     }
 
     # Clone from the local clean repository so committed local-only refs remain available during migration.
-    Invoke-Wsl git clone --no-hardlinks $sourceLinux $destinationLinux | Out-Null
+    Invoke-Wsl -Arguments @("git", "clone", "--no-hardlinks", $sourceLinux, $destinationLinux) | Out-Null
     if ($origin) {
-        Invoke-Wsl git -C $destinationLinux remote set-url origin $origin | Out-Null
+        Invoke-Wsl -Arguments @("git", "-C", $destinationLinux, "remote", "set-url", "origin", $origin) | Out-Null
     }
 
-    $destHead = ((Invoke-Wsl git -C $destinationLinux rev-parse HEAD) -join "`n").Trim()
-    $destDirty = ((Invoke-Wsl git -C $destinationLinux status --porcelain=v1) -join "`n").Trim()
+    $destHead = ((Invoke-Wsl -Arguments @("git", "-C", $destinationLinux, "rev-parse", "HEAD")) -join "`n").Trim()
+    $destDirty = ((Invoke-Wsl -Arguments @("git", "-C", $destinationLinux, "status", "--porcelain=v1")) -join "`n").Trim()
     if ($destHead -ne $head) {
         throw "Migration verification failed for '$name': source HEAD $head != destination HEAD $destHead. Windows source was left untouched."
     }
@@ -228,13 +240,13 @@ foreach ($repo in $repositories) {
     }
 
     if ($branch) {
-        $destBranch = ((Invoke-Wsl git -C $destinationLinux branch --show-current) -join "`n").Trim()
+        $destBranch = ((Invoke-Wsl -Arguments @("git", "-C", $destinationLinux, "branch", "--show-current")) -join "`n").Trim()
         if ($destBranch -ne $branch) {
             Write-Warning "'$name' migrated at the correct HEAD, but checked-out branch differs (source '$branch', destination '$destBranch')."
         }
     }
 
-    Write-Host "Migrated: $repo -> $Distro:$destinationLinux"
+    Write-Host "Migrated: $repo -> ${Distro}:$destinationLinux"
     $migrated.Add($destinationLinux)
 }
 
