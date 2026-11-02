@@ -85,24 +85,79 @@ def ensure_apt_package(package: str) -> None:
         raise SetupError(f"Unable to install required Ubuntu package: {package}")
 
 
+def fnm_install_dir() -> Path:
+    xdg_data_home = os.environ.get("XDG_DATA_HOME")
+    base = Path(xdg_data_home).expanduser() if xdg_data_home else Path.home() / ".local" / "share"
+    return base / "fnm"
+
+
+def refresh_fnm_path() -> None:
+    install_dir = fnm_install_dir()
+    fnm_binary = install_dir / "fnm"
+    if not fnm_binary.is_file():
+        return
+    current = os.environ.get("PATH", "")
+    prefix = str(install_dir)
+    parts = current.split(os.pathsep) if current else []
+    if prefix not in parts:
+        os.environ["PATH"] = prefix + (os.pathsep + current if current else "")
+
+
+def ensure_fnm_available(check_only: bool) -> tuple[bool, str, str]:
+    refresh_fnm_path()
+    path = command_path("fnm")
+    if path:
+        result = run(["fnm", "--version"])
+        detail = "\n".join(filter(None, [(result.stdout or "").strip(), (result.stderr or "").strip()]))
+        return result.returncode == 0, detail or path, "PASS" if result.returncode == 0 else "FAILED"
+
+    if check_only:
+        return False, "fnm is missing in WSL", "MISSING"
+
+    ensure_apt_package("curl")
+    ensure_apt_package("unzip")
+    install = run(
+        ["bash", "-lc", "curl -fsSL https://fnm.vercel.app/install | bash"],
+        capture=False,
+    )
+    if install.returncode != 0:
+        return False, "fnm installer failed", "FAILED"
+
+    refresh_fnm_path()
+    path = command_path("fnm")
+    if not path:
+        return False, f"fnm installer completed but {fnm_install_dir() / 'fnm'} is unavailable", "FAILED"
+
+    verify = run(["fnm", "--version"])
+    detail = "\n".join(filter(None, [(verify.stdout or "").strip(), (verify.stderr or "").strip()]))
+    return verify.returncode == 0, detail or path, "PASS" if verify.returncode == 0 else "FAILED"
+
+
 def ensure_fnm_node(version: str | None, check_only: bool) -> tuple[bool, str, str]:
-    if not command_path("fnm"):
-        return False, "fnm is missing in WSL; install fnm inside the distro before rerunning /setup", "MISSING"
+    fnm_ok, fnm_detail, fnm_state = ensure_fnm_available(check_only)
+    if not fnm_ok:
+        return False, fnm_detail, fnm_state
     if not version:
-        return True, "fnm available", "PASS"
+        return True, fnm_detail or "fnm available", "PASS"
+
     result = run(["fnm", "exec", f"--using={version}", "--", "node", "--version"])
     detail = "\n".join(filter(None, [(result.stdout or "").strip(), (result.stderr or "").strip()]))
     if result.returncode == 0 and version in detail.lstrip("v"):
         return True, detail, "PASS"
     if check_only:
         return False, detail or f"Node {version} is not installed through fnm", "VERSION_MISMATCH"
+
     install = run(["fnm", "install", version], capture=False)
     if install.returncode != 0:
         return False, f"fnm failed to install Node {version}", "FAILED"
-    run(["fnm", "default", version], capture=False)
+    default = run(["fnm", "default", version], capture=False)
+    if default.returncode != 0:
+        return False, f"fnm installed Node {version} but failed to make it the default", "FAILED"
+
     verify = run(["fnm", "exec", f"--using={version}", "--", "node", "--version"])
     text = (verify.stdout or verify.stderr or "").strip()
-    return verify.returncode == 0 and version in text.lstrip("v"), text, "PASS" if verify.returncode == 0 else "FAILED"
+    ok = verify.returncode == 0 and version in text.lstrip("v")
+    return ok, text or f"Node {version} verification failed", "PASS" if ok else "FAILED"
 
 
 def ensure_tool(entry: dict[str, Any], check_only: bool) -> tuple[bool, str, str]:
@@ -110,6 +165,8 @@ def ensure_tool(entry: dict[str, Any], check_only: bool) -> tuple[bool, str, str
     spec = read_json(CATALOG / f"{tool_id}.json")
     version = entry.get("version")
 
+    if tool_id == "fnm":
+        return ensure_fnm_available(check_only)
     if tool_id == "node":
         return ensure_fnm_node(version, check_only)
 
@@ -130,16 +187,31 @@ def ensure_tool(entry: dict[str, Any], check_only: bool) -> tuple[bool, str, str
     if check_only:
         return False, detail, "MISSING" if detail == "missing" else "VERSION_MISMATCH"
 
+    if tool_id == "python":
+        ensure_apt_package("python3")
+        ensure_apt_package("python-is-python3")
+        ok, detail = version_ok(spec, version)
+        return ok, detail, "PASS" if ok else "FAILED"
+
     apt_packages = {
         "git": "git",
         "github-cli": "gh",
-        "python": "python3",
         "sqlite": "sqlite3",
         "ssh": "openssh-client",
         "go": "golang-go",
     }
     if tool_id in apt_packages:
         ensure_apt_package(apt_packages[tool_id])
+        ok, detail = version_ok(spec, version)
+        return ok, detail, "PASS" if ok else "FAILED"
+
+    if tool_id == "dotnet":
+        if not version:
+            return False, ".NET SDK version is required for automatic WSL installation", "FAILED"
+        major = version.split(".", 1)[0]
+        if not re.fullmatch(r"\d+", major):
+            return False, f"Unsupported .NET SDK version: {version}", "FAILED"
+        ensure_apt_package(f"dotnet-sdk-{major}.0")
         ok, detail = version_ok(spec, version)
         return ok, detail, "PASS" if ok else "FAILED"
 
@@ -153,16 +225,6 @@ def ensure_tool(entry: dict[str, Any], check_only: bool) -> tuple[bool, str, str
             "Docker is unavailable inside WSL. Install/start Docker Desktop on Windows and enable "
             "WSL integration for this distro; do not install Docker Engine inside WSL."
         ), "MISSING"
-    if tool_id == "fnm":
-        return False, (
-            "fnm is required inside WSL for Project-declared Node versions. Install fnm in this "
-            "distro, then rerun /setup."
-        ), "MISSING"
-    if tool_id == "dotnet":
-        return False, (
-            f".NET SDK {version or ''} is required inside WSL. Install the matching Microsoft .NET SDK "
-            "for Ubuntu in this distro, then rerun /setup."
-        ).strip(), "MISSING" if detail == "missing" else "VERSION_MISMATCH"
     if tool_id == "java":
         return False, (
             f"Java {version or ''} is required inside WSL. Install the matching JDK in this distro, "
