@@ -11,36 +11,34 @@ on:
         description: Exact Project Forge Platform main commit authorized for publication
         required: true
         type: string
+  issues:
+    types: [opened]
+
+concurrency:
+  group: project-forge-npm-publish
+  cancel-in-progress: false
 
 permissions:
+  actions: read
   contents: read
   id-token: write
+  issues: write
 
 jobs:
   publish:
-    environment: npm-production
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       github.event.issue.user.login == github.repository_owner &&
+       startsWith(github.event.issue.title, '[project-forge-publish]'))
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Project Forge Platform
+      - name: Checkout Project Forge Platform main
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          ref: main
           fetch-depth: 0
           persist-credentials: false
-
-      - name: Verify authorized Project Forge Platform source
-        shell: bash
-        run: |
-          set -euo pipefail
-          ACTUAL_COMMIT="$(git rev-parse HEAD)"
-          if [ "$ACTUAL_COMMIT" != "${{ inputs.source_commit }}" ]; then
-            echo "Authorized source mismatch: expected ${{ inputs.source_commit }}, got $ACTUAL_COMMIT" >&2
-            exit 1
-          fi
-          ACTUAL_VERSION="$(node -p "require('./package.json').version")"
-          if [ "$ACTUAL_VERSION" != "${{ inputs.version }}" ]; then
-            echo "Authorized version mismatch: expected ${{ inputs.version }}, got $ACTUAL_VERSION" >&2
-            exit 1
-          fi
 
       - name: Setup Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -48,6 +46,105 @@ jobs:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
+
+      - name: Resolve exact publication request
+        id: request
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_VERSION: ${{ inputs.version }}
+          DISPATCH_SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const eventName = process.env.EVENT_NAME;
+          let request;
+          if (eventName === 'workflow_dispatch') {
+            request = {
+              version: process.env.DISPATCH_VERSION,
+              sourceCommit: process.env.DISPATCH_SOURCE_COMMIT,
+            };
+          } else if (eventName === 'issues') {
+            const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+            try {
+              request = JSON.parse(event.issue?.body ?? '');
+            } catch {
+              throw new Error('Publication issue body must be exact JSON');
+            }
+            if (!request || typeof request !== 'object' || Array.isArray(request)) {
+              throw new Error('Publication request must be a JSON object');
+            }
+            const keys = Object.keys(request).sort();
+            if (JSON.stringify(keys) !== JSON.stringify(['sourceCommit', 'version'])) {
+              throw new Error(`Publication request keys must be exactly version and sourceCommit; found ${keys.join(', ')}`);
+            }
+            if (event.issue?.title !== `[project-forge-publish] ${request.version}`) {
+              throw new Error('Publication issue title must exactly match [project-forge-publish] <version>');
+            }
+          } else {
+            throw new Error(`Unsupported event: ${eventName}`);
+          }
+
+          if (typeof request.version !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(request.version)) {
+            throw new Error(`Invalid exact semantic version: ${request.version ?? '<missing>'}`);
+          }
+          if (typeof request.sourceCommit !== 'string' || !/^[0-9a-f]{40}$/.test(request.sourceCommit)) {
+            throw new Error(`Invalid exact source commit: ${request.sourceCommit ?? '<missing>'}`);
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${request.version}\nsource_commit=${request.sourceCommit}\n`);
+          NODE
+
+      - name: Verify authorized Project Forge Platform source
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ steps.request.outputs.version }}
+          EXPECTED_COMMIT: ${{ steps.request.outputs.source_commit }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin main
+          ACTUAL_COMMIT="$(git rev-parse HEAD)"
+          ACTUAL_MAIN="$(git rev-parse origin/main)"
+          if [ "$ACTUAL_COMMIT" != "$EXPECTED_COMMIT" ]; then
+            echo "Authorized source mismatch: expected $EXPECTED_COMMIT, got checkout $ACTUAL_COMMIT" >&2
+            exit 1
+          fi
+          if [ "$ACTUAL_MAIN" != "$EXPECTED_COMMIT" ]; then
+            echo "Authorized source is no longer current main: expected $EXPECTED_COMMIT, got origin/main $ACTUAL_MAIN" >&2
+            exit 1
+          fi
+          ACTUAL_VERSION="$(node -p "require('./package.json').version")"
+          if [ "$ACTUAL_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "Authorized version mismatch: expected $EXPECTED_VERSION, got $ACTUAL_VERSION" >&2
+            exit 1
+          fi
+
+      - name: Verify exact post-merge Platform CI
+        id: platform_ci
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ steps.request.outputs.source_commit }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/${REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=${EXPECTED_COMMIT}&per_page=20" > "${RUNNER_TEMP}/platform-ci.json"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const data = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/platform-ci.json`, 'utf8'));
+          const expected = process.env.EXPECTED_COMMIT;
+          const run = (data.workflow_runs ?? []).find((candidate) =>
+            candidate.head_sha === expected &&
+            candidate.head_branch === 'main' &&
+            candidate.event === 'push' &&
+            candidate.status === 'completed' &&
+            candidate.conclusion === 'success'
+          );
+          if (!run) {
+            throw new Error(`No successful completed main CI run found for exact source ${expected}`);
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `run_id=${run.id}\n`);
+          NODE
 
       - name: Use pinned npm with trusted publishing support
         run: npm install --global npm@11.21.0
@@ -57,16 +154,20 @@ jobs:
 
       - name: Refuse an already-published version
         shell: bash
+        env:
+          VERSION: ${{ steps.request.outputs.version }}
         run: |
           set -euo pipefail
-          if npm view "@mriekki/project-forge@${{ inputs.version }}" version >/dev/null 2>&1; then
-            echo "@mriekki/project-forge@${{ inputs.version }} is already published" >&2
+          if npm view "@mriekki/project-forge@${VERSION}" version >/dev/null 2>&1; then
+            echo "@mriekki/project-forge@${VERSION} is already published" >&2
             exit 1
           fi
 
       - name: Resolve exact component pins
         id: pins
         shell: bash
+        env:
+          EXPECTED_VERSION: ${{ steps.request.outputs.version }}
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -85,8 +186,6 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `${id}=${revision}\n`);
           }
           NODE
-        env:
-          EXPECTED_VERSION: ${{ inputs.version }}
 
       - name: Resolve protected source repositories
         id: sources
@@ -133,6 +232,9 @@ jobs:
 
       - name: Verify release manifest matches authorization
         shell: bash
+        env:
+          EXPECTED_VERSION: ${{ steps.request.outputs.version }}
+          EXPECTED_COMMIT: ${{ steps.request.outputs.source_commit }}
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -144,22 +246,29 @@ jobs:
             throw new Error(`manifest source mismatch: ${manifest.sourceCommit}`);
           }
           NODE
-        env:
-          EXPECTED_VERSION: ${{ inputs.version }}
-          EXPECTED_COMMIT: ${{ inputs.source_commit }}
 
       - name: Publish exact package with npm Trusted Publishing
+        id: npm_publish
         shell: bash
         run: |
           set -euo pipefail
           TARBALL="$(node -e "const m=require('./dist/release/RELEASE_MANIFEST.json'); process.stdout.write(m.tarball.filename)")"
-          npm publish "dist/release/${TARBALL}" --access public
+          PUBLISH_LOG="${RUNNER_TEMP}/npm-publish.log"
+          npm publish "dist/release/${TARBALL}" --access public 2>&1 | tee "$PUBLISH_LOG"
+          PROVENANCE_URL="$(grep -Eo 'https://search\.sigstore\.dev/\?logIndex=[0-9]+' "$PUBLISH_LOG" | tail -n 1 || true)"
+          if [ -z "$PROVENANCE_URL" ]; then
+            echo "npm publish succeeded without an observable signed-provenance transparency-log URL" >&2
+            exit 1
+          fi
+          echo "provenance_url=$PROVENANCE_URL" >> "$GITHUB_OUTPUT"
 
       - name: Verify published registry identity
+        id: registry
         shell: bash
+        env:
+          VERSION: ${{ steps.request.outputs.version }}
         run: |
           set -euo pipefail
-          VERSION="${{ inputs.version }}"
           EXPECTED_INTEGRITY="$(node -e "const m=require('./dist/release/RELEASE_MANIFEST.json'); process.stdout.write(m.tarball.integrity)")"
           EXPECTED_SHASUM="$(node -e "const m=require('./dist/release/RELEASE_MANIFEST.json'); process.stdout.write(m.tarball.shasum)")"
           FOUND=""
@@ -207,13 +316,98 @@ jobs:
           ACTUAL_SHASUM="$(npm view "@mriekki/project-forge@${VERSION}" dist.shasum)"
           test "$ACTUAL_INTEGRITY" = "$EXPECTED_INTEGRITY"
           test "$ACTUAL_SHASUM" = "$EXPECTED_SHASUM"
+          echo "registry_shasum=$ACTUAL_SHASUM" >> "$GITHUB_OUTPUT"
 
       - name: Verify public package from neutral directory
         shell: bash
+        env:
+          VERSION: ${{ steps.request.outputs.version }}
         run: |
           set -euo pipefail
           SMOKE_ROOT="$(mktemp -d)"
           trap 'rm -rf "$SMOKE_ROOT"' EXIT
           cd "$SMOKE_ROOT"
-          ACTUAL="$(npx --yes "@mriekki/project-forge@${{ inputs.version }}" version)"
-          test "$ACTUAL" = "@mriekki/project-forge ${{ inputs.version }}"
+          ACTUAL="$(npx --yes "@mriekki/project-forge@${VERSION}" version)"
+          test "$ACTUAL" = "@mriekki/project-forge ${VERSION}"
+
+      - name: Record machine-readable publication evidence
+        id: evidence
+        shell: bash
+        env:
+          VERSION: ${{ steps.request.outputs.version }}
+          SOURCE_COMMIT: ${{ steps.request.outputs.source_commit }}
+          PLATFORM_CI_RUN_ID: ${{ steps.platform_ci.outputs.run_id }}
+          REGISTRY_SHASUM: ${{ steps.registry.outputs.registry_shasum }}
+          PROVENANCE_URL: ${{ steps.npm_publish.outputs.provenance_url }}
+          PUBLICATION_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          npm view "@mriekki/project-forge" time --json > "${RUNNER_TEMP}/npm-time.json"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync('dist/release/RELEASE_MANIFEST.json', 'utf8'));
+          const components = JSON.parse(fs.readFileSync('assets/components.json', 'utf8'));
+          const times = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/npm-time.json`, 'utf8'));
+          const publishedAt = times[process.env.VERSION];
+          if (typeof publishedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(publishedAt)) {
+            throw new Error(`Unable to resolve exact npm publication time for ${process.env.VERSION}`);
+          }
+          const normalizedPublishedAt = publishedAt.replace(/\.\d{3}Z$/, 'Z');
+          const evidence = {
+            schemaVersion: 1,
+            package: { name: '@mriekki/project-forge', version: process.env.VERSION },
+            platformSource: process.env.SOURCE_COMMIT,
+            components: {
+              core: {
+                revision: components.components.core.revision,
+                version: components.components.core.version,
+              },
+              deployment: {
+                revision: components.components.deployment.revision,
+              },
+            },
+            artifact: {
+              releaseCandidateSha256: manifest.tarball.sha256,
+              registryShasum: process.env.REGISTRY_SHASUM,
+            },
+            publication: {
+              publishedAt: normalizedPublishedAt,
+              workflowRunId: Number(process.env.PUBLICATION_RUN_ID),
+              publisher: 'github-oidc',
+              registryIdentity: 'verified',
+              neutralNpxSmoke: 'verified',
+              provenance: {
+                signed: true,
+                transparencyLogUrl: process.env.PROVENANCE_URL,
+              },
+            },
+            platformCi: {
+              result: 'success',
+              workflowRunId: Number(process.env.PLATFORM_CI_RUN_ID),
+            },
+          };
+          const target = `${process.env.RUNNER_TEMP}/publication-evidence.json`;
+          fs.writeFileSync(target, `${JSON.stringify(evidence, null, 2)}\n`);
+          console.log('PROJECT_FORGE_PUBLICATION_EVIDENCE_BEGIN');
+          console.log(JSON.stringify(evidence));
+          console.log('PROJECT_FORGE_PUBLICATION_EVIDENCE_END');
+          NODE
+
+      - name: Record successful issue-triggered publication
+        if: github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'Project Forge package publication completed successfully.'
+            echo
+            echo '```json'
+            cat "${RUNNER_TEMP}/publication-evidence.json"
+            echo '```'
+          } > "${RUNNER_TEMP}/publication-comment.md"
+          gh api --method POST "/repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" -F body=@"${RUNNER_TEMP}/publication-comment.md" >/dev/null
+          gh api --method PATCH "/repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" -f state=closed -f state_reason=completed >/dev/null
