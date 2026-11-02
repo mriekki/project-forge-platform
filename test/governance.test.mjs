@@ -83,7 +83,7 @@ test('Platform governance documentation keeps admin controls narrow without dupl
   assert.match(doc, /single explicit end-to-end release authorization/i);
   assert.match(doc, /independently verifies current `main` plus post-merge CI/i);
   assert.match(doc, /use no bypass actor by default/i);
-  assert.match(doc, /does not authorize unrelated merges, Project generation, consumer updates/i);
+  assert.match(doc, /Neither trigger authorizes unrelated merges, Project generation, consumer updates/i);
   assert.match(doc, /Stable Platform Health/);
   assert.doesNotMatch(doc, /required human reviewer/i);
 });
