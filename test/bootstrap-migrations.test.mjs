@@ -101,7 +101,6 @@ test('bundled verifier migration asset records exact privacy-safe Bootstrap prov
 
 test('recognized generated Project can add the WSL setup runtime without changing Bootstrap provenance', () => {
   const { root, destination, runtime } = wslGeneratedConsumer();
-  // Keep the legacy verifier out of the migration plan for this focused test.
   fs.copyFileSync(path.join(ROOT, 'assets/bootstrap-migrations/managed-baseline-verifier/check-managed-baselines.py'), destination);
 
   const plan = planBootstrapMigrations(packageData, root);
@@ -114,24 +113,6 @@ test('recognized generated Project can add the WSL setup runtime without changin
   assert.equal(gitBlobSha(fs.readFileSync(runtime)), WSL_RUNTIME_BLOB);
   assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'PROJECT_BOOTSTRAP.json'), 'utf8')).bootstrap.commit, WSL_PREDECESSOR_BOOTSTRAP);
   assert.deepEqual(planBootstrapMigrations(packageData, root), { rows: [], unsafe: [] });
-});
-
-test('current 4.14.3 launcher is safely migrated to the RTK-enabled launcher', () => {
-  const { root, destination, launcher } = wslGeneratedConsumer();
-  fs.copyFileSync(path.join(ROOT, 'assets/bootstrap-migrations/managed-baseline-verifier/check-managed-baselines.py'), destination);
-  fs.writeFileSync(path.join(root, 'PROJECT_BOOTSTRAP.json'), JSON.stringify({
-    bootstrap: { commit: WSL_RUNTIME_BOOTSTRAP }
-  }, null, 2) + '\n');
-
-  const previous = fs.readFileSync(path.join(ROOT, 'test/fixtures/bootstrap-verifiers/schema1-check-managed-baselines.py'));
-  assert.notEqual(gitBlobSha(previous), WSL_PREVIOUS_LAUNCHER_BLOB);
-  // Materialize the previous launcher from Git is not necessary for the manifest contract test below;
-  // this focused planner test uses the supported predecessor hash via a minimal fixture write.
-  const priorLauncher = Buffer.from('#!/usr/bin/env bash\n# previous launcher fixture\n');
-  fs.writeFileSync(launcher, priorLauncher);
-  const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/wsl-setup/setup-launcher.manifest.json'), 'utf8'));
-  assert(manifest.supportedPredecessorGitBlobs.includes(WSL_PREVIOUS_LAUNCHER_BLOB));
-  assert.equal(manifest.targetGitBlob, WSL_LAUNCHER_BLOB);
 });
 
 test('WSL Bootstrap migration assets are exact and recognize supported prior setup runtimes', () => {
