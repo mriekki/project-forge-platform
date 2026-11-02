@@ -2,7 +2,7 @@
 
 `@mriekki/project-forge` is the public npm distribution assembled from exact accepted revisions of private canonical Project Forge component sources.
 
-Release preparation and npm publication are automated, but publication remains an explicit decision for one exact package/version/source tuple. Public package metadata records logical component IDs and opaque exact revisions; private source repository locations remain protected configuration.
+Release preparation and npm publication are automated. A Developer may authorize the release either granularly or with one explicit bounded end-to-end release authorization. Public package metadata records logical component IDs and opaque exact revisions; private source repository locations remain protected configuration.
 
 ## Normal operator workflow
 
@@ -12,22 +12,29 @@ Use the repository-local skill:
 /release-project-forge
 ```
 
-The normal flow is:
+When the Developer explicitly authorizes the full release end-to-end, the preferred cloud flow is:
 
 ```text
 accepted component revisions + Platform package drift
-→ choose package version
-→ CLOUD or LOCAL deterministic preparation
+→ choose package version automatically
+→ CLOUD deterministic preparation
 → release branch
 → release PR + PR CI
-→ ONE PACKAGE PR MERGE GATE
+→ merge exact reviewed release PR head
 → post-merge main CI
-→ ONE EXACT NPM PUBLISH GATE
+→ owner-authored exact publication request
 → GitHub OIDC direct publish
 → registry + neutral npx + provenance verification
 → durable release receipt
-→ public ChatGPT contract alignment
+→ stable public ChatGPT alignment PR + CI
+→ merge exact reviewed alignment head
+→ post-merge CI + Public ChatGPT Contract Alignment
+→ COMPLETE
 ```
+
+That one authorization covers the bounded release mechanics only while the reviewed scope and evidence remain unchanged. A material change in release class/version, component revision, package diff, source relationship, or expected alignment scope stops the automation for renewed review.
+
+Granular authorization remains available. A bare `/release-project-forge` invocation authorizes preparation, but publication requires either explicit publication approval or an explicit end-to-end release authorization.
 
 Publishing the package does not update consumers. Existing package-managed Projects adopt it separately through `/project-forge-update`.
 
@@ -51,7 +58,7 @@ If a receipt exists but is invalid or conflicts with registry/source facts, fail
 
 ## Two first-class preparation modes
 
-Release preparation supports both cloud and local execution. They are alternative ways to supply the same deterministic scripts with exact accepted component sources; neither changes release semantics or publication authorization.
+Release preparation supports both cloud and local execution. They are alternative ways to supply the same deterministic scripts with exact accepted component sources; neither weakens source or publication verification.
 
 ### Cloud preparation
 
@@ -113,7 +120,8 @@ Dirty or stale local component checkouts block only local preparation. If author
 
 Before npm publication:
 
-- Project Forge Platform publication source is an exact clean `main` commit;
+- Project Forge Platform publication source is an exact clean current `main` commit;
+- exact post-merge Platform `main` CI for that source is successful;
 - `assets/components.json` uses schema v2 and pins exact opaque component revisions;
 - accepted component revisions equal authoritative canonical `main`;
 - changed component revisions have live green post-merge CI;
@@ -198,7 +206,7 @@ Normal releases use npm Trusted Publishing (OIDC) from:
 
 ```text
 GitHub owner: mriekki
-Repository: project-forge-platform
+Repository: project-fororge-platform
 Workflow: npm-publish.yml
 Allowed action: npm publish
 ```
@@ -214,19 +222,40 @@ npm trust list @mriekki/project-forge --json
 
 If npm returns `EOTP`, complete the browser authorization locally. Never paste or store its one-time URL or OTP in chat, repository files, or CI.
 
-## Exact release gates
+## Exact release authorization
 
-A green release PR stops at one package merge gate. Merging does not authorize publication.
+Project Forge has two operator modes.
 
-After the merged exact Platform `main` commit passes post-merge CI and the target npm version is confirmed unused, stop at one exact npm publication gate naming:
+### End-to-end release authorization
 
-- package/version;
-- Platform main SHA;
-- exact logical component revisions (and Core version where applicable);
-- green post-merge CI;
-- GitHub OIDC / `npm-publish.yml` publisher.
+One explicit Developer approval to release/publish the full kit end-to-end authorizes the cloud agent to continue through the release-PR merge, exact npm publication, durable receipt, stable-alignment PR, and alignment merge without repeated permission prompts, provided every step remains inside the same reviewed release scope and all required checks are green.
 
-If approved, trigger:
+This is an authorization shortcut, not a verification shortcut. Before each consequential transition the cloud agent still re-reads the exact PR head/source state and fails closed on changed evidence.
+
+### Granular authorization
+
+If the Developer authorizes only preparation or one particular action, retain separate merge/publication/alignment gates. Do not broaden a narrow instruction into end-to-end authorization.
+
+## Publication request
+
+After the merged exact Platform `main` commit passes post-merge CI and the target npm version is confirmed unused, the preferred cloud trigger is an owner-authored issue titled exactly:
+
+```text
+[project-forge-publish] <version>
+```
+
+with body:
+
+```json
+{
+  "version": "<version>",
+  "sourceCommit": "<exact-current-platform-main-sha>"
+}
+```
+
+The publication workflow ignores issue-triggered requests not authored by the repository owner and independently verifies the exact request schema/title, current `main`, package version, and successful post-merge CI before publish.
+
+For administrative/manual fallback, the equivalent dispatch is:
 
 ```powershell
 gh workflow run npm-publish.yml --ref main `
@@ -234,26 +263,30 @@ gh workflow run npm-publish.yml --ref main `
   -f source_commit=<exact-main-sha>
 ```
 
-The workflow refuses stale or changed evidence.
+No second `npm-production` Environment reviewer is required after the Developer has already supplied the bounded publication or end-to-end release authorization.
 
 ## Publication workflow behavior
 
 `.github/workflows/npm-publish.yml`:
 
-1. checks out exact Project Forge Platform source;
-2. verifies the authorized Platform SHA and package version;
-3. refuses an already-published version;
-4. resolves exact component revisions from schema-v2 `assets/components.json`;
-5. resolves private component source locations from protected source-repository mappings and masks them;
-6. checks out each exact component revision with read-only source credentials;
-7. runs `scripts/prepare-release.mjs` and verifies the release manifest;
-8. publishes the exact tarball with OIDC and signed provenance;
-9. verifies registry version/integrity/shasum with bounded retry;
-10. runs a neutral-directory `npx` smoke check.
+1. accepts either exact `workflow_dispatch` inputs or an owner-authored `[project-forge-publish] <version>` issue;
+2. validates the request shape and exact semantic version/source SHA;
+3. checks out `main`, verifies the authorized SHA is still current `origin/main`, and verifies package version;
+4. verifies successful exact post-merge Platform CI for that source;
+5. refuses an already-published version;
+6. resolves exact component revisions from schema-v2 `assets/components.json`;
+7. resolves private component source locations from protected source-repository mappings and masks them;
+8. checks out each exact component revision with read-only source credentials;
+9. runs `scripts/prepare-release.mjs` and verifies the release manifest;
+10. publishes the exact tarball with OIDC and signed provenance;
+11. verifies registry version/integrity/shasum with bounded retry;
+12. runs a neutral-directory `npx` smoke check;
+13. records machine-readable publication evidence; and
+14. for issue-triggered publication, persists that evidence on the request and closes it only after successful verification.
 
 If a pre-publication step fails, npm is not published. If publication succeeds but post-publish verification fails, report the published state accurately and never republish the same version.
 
-After successful verification, capture the receipt facts before aligning the stable public package pointer. The receipt is the durable repository-owned evidence; the workflow run remains useful operational detail while retained, but future release decisions must not depend on its indefinite availability.
+After successful verification, capture the receipt facts before aligning the stable public package pointer. The receipt is the durable repository-owned evidence; the workflow run/request evidence remains useful operational detail while retained, but future release decisions must not depend on Actions retention.
 
 ## Public ChatGPT contract alignment
 
@@ -262,6 +295,8 @@ After registry verification, compare live `chatgpt/current.json` with the exact 
 For every newly published package, require and validate `release/receipts/<version>.json`. If the receipt is missing, add it in the same smallest follow-up PR that advances the stable package pointer. If only the mutable package/revision pointer is stale and the immutable operating contract is unchanged, that PR contains the pointer change, its matching assertion, and any missing receipt; otherwise create a new immutable snapshot as required by the live contract rules.
 
 The stable alignment guard requires a valid receipt for the package version selected by `chatgpt/current.json`. A receipt that already exists and validates is not rewritten merely because historical Actions records later expire.
+
+Under end-to-end release authorization, once the alignment PR's exact diff is reviewed and required CI is green, merge its unchanged reviewed head and verify both post-merge CI and `Public ChatGPT Contract Alignment` without another prompt. Under granular authorization, retain the normal alignment merge/finalize gate.
 
 ## Actions retention boundary
 
