@@ -94,6 +94,8 @@ clone repository
 
 Project Forge supports independent workspace instances on multiple developer computers. Git/GitHub is the shared source boundary; local databases, credentials, SSH keys/trust, Docker state, and readiness stay workstation-local.
 
+On Windows, Project Forge defaults compatible development to **WSL2 with Ubuntu**: keep repositories in the WSL Linux filesystem (normally `~/projects`), run shells/toolchains from WSL, keep desktop UI applications on Windows, and use Docker Desktop with its WSL2 backend/integration rather than installing a second Docker Engine inside the distro. Native Windows remains valid for Projects with a real Windows-specific requirement. Existing Windows checkouts can be migrated non-destructively with [`tools/windows/project-forge-wsl2.ps1`](tools/windows/project-forge-wsl2.ps1); see [`docs/WINDOWS_WSL2.md`](docs/WINDOWS_WSL2.md).
+
 ## Public ChatGPT contract
 
 Project Forge's public ChatGPT bootstrap entrypoint is [`chatgpt/START_HERE.md`](chatgpt/START_HERE.md).
