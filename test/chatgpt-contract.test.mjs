@@ -45,12 +45,12 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-test('public ChatGPT descriptor resolves immutable Project Forge contract v18', async () => {
+test('public ChatGPT descriptor resolves immutable Project Forge contract v19', async () => {
   const value = await descriptor();
   assert.equal(value.schemaVersion, 1);
   assert.equal(value.channel, 'stable');
-  assert.equal(value.contractVersion, 18);
-  assert.equal(value.snapshotPath, 'chatgpt/contracts/v18');
+  assert.equal(value.contractVersion, 19);
+  assert.equal(value.snapshotPath, 'chatgpt/contracts/v19');
   assert.deepEqual(value.documents.map((item) => path.basename(item.path)), requiredDocuments);
 
   const actual = {};
@@ -64,7 +64,7 @@ test('public ChatGPT descriptor resolves immutable Project Forge contract v18', 
     actual[document.path] = createHash('sha256').update(canonicalGitBlob(document.path)).digest('hex');
     declared[document.path] = document.sha256;
   }
-  assert.deepEqual(declared, actual, 'descriptor hashes must match immutable v18 document bytes');
+  assert.deepEqual(declared, actual, 'descriptor hashes must match immutable v19 document bytes');
 });
 
 test('descriptor keeps private foundational source topology out of the active public contract', async () => {
@@ -263,7 +263,7 @@ test('public contract makes one canonical instruction plus one personal profile 
   assert.equal(schema.title, 'Project Forge Developer Profile');
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.required, ['schemaVersion', 'githubOwner']);
-  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v18/);
+  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v19/);
 
   for (const forbidden of ['password', 'token', 'secret', `${predecessorLower}State`, 'projectState', 'workItem', 'commitSha']) {
     assert.equal(Object.hasOwn(schema.properties, forbidden), false);
@@ -294,6 +294,24 @@ test('public contract carries acknowledged Project Forge drift continuation safe
   assert.match(joined, /unexplained managed drift/i);
   assert.match(joined, /Keep the workaround and handoff unstaged/i);
   assert.match(joined, /does not authorize committing shared-managed paths/i);
+});
+
+test('public contract defaults Project Forge changes to full lifecycle with visible state changes', async () => {
+  const value = await descriptor();
+  const rules = await text(contractPath(value, 'PROJECT_RULES.md'));
+
+  assert.match(rules, /Default Project Forge lifecycle/);
+  assert.match(rules, /Do not require magic wording such as `end-to-end`/);
+  assert.match(rules, /determining whether the public `@mriekki\/project-forge` package actually needs a release/);
+  assert.match(rules, /Progress visibility/);
+  assert.match(rules, /\*\*Working:\*\*/);
+  assert.match(rules, /\*\*GitHub running:\*\*/);
+  assert.match(rules, /\*\*Passed → continuing:\*\*/);
+  assert.match(rules, /\*\*Blocked:\*\*/);
+  assert.match(rules, /\*\*Complete:\*\*/);
+  assert.match(rules, /current stage, who or what is doing the work, and what happens automatically next/);
+  assert.match(rules, /Project Forge release: Bootstrap ✅ → Platform ✅ → Release prep 🔄 → npm ⏳ → Alignment ⏳/);
+  assert.match(rules, /only finalizing cleanup or an aggregate job/);
 });
 
 test('control-plane command descriptor matches the current public contract', async () => {
