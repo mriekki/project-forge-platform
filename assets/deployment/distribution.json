@@ -33,6 +33,7 @@
     {"source": "src/project_forge_deployment/ingress_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/ingress_cli.py"},
     {"source": "src/project_forge_deployment/keys.py", "destination": "tools/project-forge-deployment/project_forge_deployment/keys.py"},
     {"source": "src/project_forge_deployment/local_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/local_cli.py"},
+    {"source": "src/project_forge_deployment/local_extensions.py", "destination": "tools/project-forge-deployment/project_forge_deployment/local_extensions.py"},
     {"source": "src/project_forge_deployment/local_runtime.py", "destination": "tools/project-forge-deployment/project_forge_deployment/local_runtime.py"},
     {"source": "src/project_forge_deployment/local_spec.py", "destination": "tools/project-forge-deployment/project_forge_deployment/local_spec.py"},
     {"source": "src/project_forge_deployment/local_sqlite.py", "destination": "tools/project-forge-deployment/project_forge_deployment/local_sqlite.py"},
