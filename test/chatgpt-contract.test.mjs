@@ -73,7 +73,7 @@ test('descriptor keeps private foundational source topology out of the active pu
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'repository'), false);
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'commit'), false);
   assert.match(value.generation.bootstrap.revision, /^[0-9a-f]{40}$/);
-  assert.equal(value.generation.bootstrap.revision, '5aeb5c227a2cf1eb02300665775a088ceefc77cb');
+  assert.equal(value.generation.bootstrap.revision, '2f664a52961454f5856e00a8bb1c2ec0d96a714f');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(Object.hasOwn(value.adoption.kit, 'repository'), false);
@@ -86,7 +86,7 @@ test('descriptor keeps private foundational source topology out of the active pu
 test('generation aligns the published package with the accepted Bootstrap revision', async () => {
   const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
-  assert.equal(value.generation.bootstrap.revision, '5aeb5c227a2cf1eb02300665775a088ceefc77cb');
+  assert.equal(value.generation.bootstrap.revision, '2f664a52961454f5856e00a8bb1c2ec0d96a714f');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(value.generation.bootstrap.portableRequirements.bootstrapRevision, value.generation.bootstrap.revision);
