@@ -66,7 +66,7 @@
       }
     },
     "package": "@mriekki/project-forge",
-    "packageVersion": "4.16.1",
+    "packageVersion": "4.17.0",
     "profile": "greenfield-project",
     "bootstrapProtocolVersion": 12
   },
