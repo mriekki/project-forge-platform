@@ -91,7 +91,7 @@ test('generation aligns the published package with the accepted Bootstrap revisi
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(value.generation.bootstrap.portableRequirements.bootstrapRevision, value.generation.bootstrap.revision);
   assert.equal(value.generation.package, '@mriekki/project-forge');
-  assert.equal(value.generation.packageVersion, '4.22.2');
+  assert.equal(value.generation.packageVersion, '4.22.3');
   assert.equal(value.generation.profile, 'greenfield-project');
   assert.equal(value.generation.bootstrapProtocolVersion, 12);
   assert.equal(value.bootstrapUrl, 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json');
