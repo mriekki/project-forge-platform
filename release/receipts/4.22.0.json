@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "package": {
+    "name": "@mriekki/project-forge",
+    "version": "4.22.0"
+  },
+  "platformSource": "83ba96e689c0bc0a57a7ba4b5bf7b9e1a3baf464",
+  "components": {
+    "core": {
+      "revision": "4c74c1801b82d3aa438447d392024d32ca5697b0",
+      "version": "4.0.0"
+    },
+    "deployment": {
+      "revision": "2258794181483747ed11a2c3c3226d6e66e1b9bb"
+    }
+  },
+  "artifact": {
+    "releaseCandidateSha256": "1c58ea44481bbbacff8bc3e06791fea14f01829dc5057b25cdf777dbbade980f",
+    "registryShasum": "6ec39e8b3c800f59f03565dbc2d5d04bcf71dab3"
+  },
+  "publication": {
+    "publishedAt": "2026-11-09T00:52:23Z",
+    "workflowRunId": 42542370045,
+    "publisher": "github-oidc",
+    "registryIdentity": "verified",
+    "neutralNpxSmoke": "verified",
+    "provenance": {
+      "signed": true,
+      "transparencyLogUrl": "https://search.sigstore.dev/?logIndex=3760015531"
+    }
+  },
+  "ci": {
+    "coreMain": {
+      "result": "success",
+      "workflowRunId": 41556747713
+    },
+    "deploymentMain": {
+      "result": "success",
+      "workflowRunId": 42540913827
+    },
+    "platformMain": {
+      "result": "success",
+      "workflowRunId": 42542266486
+    }
+  }
+}
