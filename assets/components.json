@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.24.0",
+  "version": "4.24.1",
   "defaultProfile": "greenfield-project",
   "profiles": {
     "greenfield-project": {
@@ -13,8 +13,8 @@
   },
   "components": {
     "core": {
-      "revision": "1e5d8488b00b1a6e7cb0aa131757aaf859849d43",
-      "version": "4.2.0",
+      "revision": "59f5657bbb6f1edc45d1e8619ab1d0875b7907e0",
+      "version": "4.2.1",
       "distribution": "greenfield-workspace",
       "descriptor": "assets/core/distribution.json",
       "sourceRoot": "assets/generated/core",
