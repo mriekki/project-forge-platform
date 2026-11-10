@@ -290,6 +290,14 @@
     {
       "source": "core/instructions/project-forge-web-guidance.instructions.md",
       "destination": ".github/instructions/project-forge-web-guidance.instructions.md"
+    },
+    {
+      "source": "tools/setup_maintenance/maintenance.py",
+      "destination": "tools/project-forge-setup/maintenance.py"
+    },
+    {
+      "source": "core/process/WORKSTATION_MAINTENANCE.md",
+      "destination": "docs/process/WORKSTATION_MAINTENANCE.md"
     }
   ]
 }
