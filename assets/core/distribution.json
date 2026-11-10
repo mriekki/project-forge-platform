@@ -3,74 +3,293 @@
   "profileSource": "profiles/greenfield/project-forge-workspace.json",
   "profileDestination": ".github/project-forge-workspace.json",
   "mappings": [
-    {"source":"core/agents/reviewer.agent.md","destination":".github/agents/reviewer.agent.md"},
-    {"source":"core/instructions/project-forge-workflow.instructions.md","destination":".github/instructions/project-forge-workflow.instructions.md"},
-    {"source":"core/instructions/project-forge-local-development.instructions.md","destination":".github/instructions/project-forge-local-development.instructions.md"},
-    {"source":"core/instructions/project-forge-docs.instructions.md","destination":".github/instructions/project-forge-docs.instructions.md"},
-    {"source":"core/skills/define-feature/SKILL.md","destination":".github/skills/define-feature/SKILL.md"},
-    {"source":"core/skills/grill-me/SKILL.md","destination":".github/skills/grill-me/SKILL.md"},
-    {"source":"core/skills/refine-requirements/SKILL.md","destination":".github/skills/refine-requirements/SKILL.md"},
-    {"source":"core/skills/start-work/SKILL.md","destination":".github/skills/start-work/SKILL.md"},
-    {"source":"core/skills/setup/SKILL.md","destination":".github/skills/setup/SKILL.md"},
-    {"source":"core/skills/build/SKILL.md","destination":".github/skills/build/SKILL.md"},
-    {"source":"core/skills/run/SKILL.md","destination":".github/skills/run/SKILL.md"},
-    {"source":"core/skills/export-requirements/SKILL.md","destination":".github/skills/export-requirements/SKILL.md"},
-    {"source":"core/skills/replatform/SKILL.md","destination":".github/skills/replatform/SKILL.md"},
-    {"source":"core/skills/progress/SKILL.md","destination":".github/skills/progress/SKILL.md"},
-    {"source":"core/skills/next-step/SKILL.md","destination":".github/skills/next-step/SKILL.md"},
-    {"source":"core/skills/deliver/SKILL.md","destination":".github/skills/deliver/SKILL.md"},
-    {"source":"core/skills/work-item-status/SKILL.md","destination":".github/skills/work-item-status/SKILL.md"},
-    {"source":"core/skills/cleanup-branches/SKILL.md","destination":".github/skills/cleanup-branches/SKILL.md"},
-    {"source":"core/skills/pull-latest/SKILL.md","destination":".github/skills/pull-latest/SKILL.md"},
-    {"source":"core/skills/project-forge-update/SKILL.md","destination":".github/skills/project-forge-update/SKILL.md"},
-    {"source":"core/skills/upstream-fix/SKILL.md","destination":".github/skills/upstream-fix/SKILL.md"},
-    {"source":"core/skills/wait-what/SKILL.md","destination":".github/skills/wait-what/SKILL.md"},
-    {"source":"core/skills/deployment-readiness/SKILL.md","destination":".github/skills/deployment-readiness/SKILL.md"},
-    {"source":"core/skills/deploy/SKILL.md","destination":".github/skills/deploy/SKILL.md"},
-    {"source":"core/skills/tear-down/SKILL.md","destination":".github/skills/tear-down/SKILL.md"},
-    {"source":"core/skills/coach/SKILL.md","destination":".github/skills/coach/SKILL.md"},
-    {"source":"core/skills/db-lab/SKILL.md","destination":".github/skills/db-lab/SKILL.md"},
-    {"source":"core/skills/system-lab/SKILL.md","destination":".github/skills/system-lab/SKILL.md"},
-    {"source":"core/skills/docs/SKILL.md","destination":".github/skills/docs/SKILL.md"},
-    {"source":"core/skills/code-walkthrough/SKILL.md","destination":".github/skills/code-walkthrough/SKILL.md"},
-    {"source":"core/skills/learning-review/SKILL.md","destination":".github/skills/learning-review/SKILL.md"},
-    {"source":"core/process/WORK_ITEM_MODEL.md","destination":"docs/process/WORK_ITEM_MODEL.md"},
-    {"source":"core/process/PR_WORKFLOW.md","destination":"docs/process/PR_WORKFLOW.md"},
-    {"source":"core/process/DEPLOYMENT_ENABLEMENT.md","destination":"docs/process/DEPLOYMENT_ENABLEMENT.md"},
-    {"source":"core/process/HUMAN_GATES.md","destination":"docs/process/HUMAN_IN_LOOP_GATES.md"},
-    {"source":"core/process/GUIDED_NEXT_STEPS.md","destination":"docs/process/GUIDED_NEXT_STEPS.md"},
-    {"source":"core/process/INTERACTIVE_SESSION_GUIDE.md","destination":"docs/process/INTERACTIVE_SESSION_GUIDE.md"},
-    {"source":"core/process/COACHING_GUIDE.md","destination":"docs/process/COACHING_GUIDE.md"},
-    {"source":"core/process/DATABASE_LEARNING_WORKBENCH.md","destination":"docs/process/DATABASE_LEARNING_WORKBENCH.md"},
-    {"source":"core/process/SYSTEM_DESIGN_LEARNING_WORKBENCH.md","destination":"docs/process/SYSTEM_DESIGN_LEARNING_WORKBENCH.md"},
-    {"source":"core/process/PROJECT_DOCUMENTATION_FRAMEWORK.md","destination":"docs/process/PROJECT_DOCUMENTATION_FRAMEWORK.md"},
-    {"source":"core/process/PROJECT_FORGE_ENGINEERING_GUIDE.md","destination":"docs/project-forge/PROJECT_FORGE_ENGINEERING_GUIDE.md"},
-    {"source":"core/process/SETUP_ACCEPTANCE_CHECKLIST.md","destination":"docs/process/SETUP_ACCEPTANCE_CHECKLIST.md"},
-    {"source":"core/process/OPERATION_JOURNAL.md","destination":"docs/process/OPERATION_JOURNAL.md"},
-    {"source":"core/process/PROJECT_REQUIREMENTS_EXPORT.md","destination":"docs/process/PROJECT_REQUIREMENTS_EXPORT.md"},
-    {"source":"core/process/APPLICATION_VERSIONING.md","destination":"docs/process/APPLICATION_VERSIONING.md"},
-    {"source":"core/process/LOCAL_DEVELOPMENT_COMMANDS.md","destination":"docs/process/LOCAL_DEVELOPMENT_COMMANDS.md"},
-    {"source":"core/templates/PULL_REQUEST_TEMPLATE.md","destination":".github/PULL_REQUEST_TEMPLATE.md"},
-    {"source":"core/templates/PRODUCT_BRIEF_TEMPLATE.md","destination":"docs/templates/PRODUCT_BRIEF_TEMPLATE.md"},
-    {"source":"core/templates/FEATURE_BRIEF_TEMPLATE.md","destination":"docs/templates/FEATURE_BRIEF_TEMPLATE.md"},
-    {"source":"core/templates/REQUIREMENTS_TEMPLATE.md","destination":"docs/templates/REQUIREMENTS_TEMPLATE.md"},
-    {"source":"core/templates/ADR_TEMPLATE.md","destination":"docs/templates/ADR_TEMPLATE.md"},
-    {"source":"core/learning/ENGINEERING_LEARNING_WORKBOOK.md","destination":"learning/ENGINEERING_LEARNING_WORKBOOK.md"},
-    {"source":"core/learning/LEARNING_MAP.md","destination":"learning/LEARNING_MAP.md"},
-    {"source":"core/learning/LEARNING_PROGRESS.md","destination":"learning/LEARNING_PROGRESS.md"},
-    {"source":"core/learning/CODING_DRILLS.md","destination":"learning/CODING_DRILLS.md"},
-    {"source":"core/learning/SQL_DRILLS.md","destination":"learning/SQL_DRILLS.md"},
-    {"source":"core/learning/SYSTEM_DESIGN_DRILLS.md","destination":"learning/SYSTEM_DESIGN_DRILLS.md"},
-    {"source":"core/learning/DIAGRAM_GUIDE.md","destination":"learning/DIAGRAM_GUIDE.md"},
-    {"source":"core/learning/RESOURCE_CATALOG.md","destination":"learning/RESOURCE_CATALOG.md"},
-    {"source":"tools/db_lab/sqlite_workbench.py","destination":"tools/project-forge-db-lab/sqlite-workbench.py"},
-    {"source":"tools/system_lab/system_workbench.py","destination":"tools/project-forge-system-lab/system-workbench.py"},
-    {"source":"tools/docs_site/docs_site.py","destination":"tools/project-forge-docs/docs-site.py"},
-    {"source":"tools/vscode_work_item_status/install.py","destination":"tools/project-forge-vscode/work-item-status/install.py"},
-    {"source":"tools/vscode_work_item_status/extension/package.json","destination":"tools/project-forge-vscode/work-item-status/extension/package.json"},
-    {"source":"tools/vscode_work_item_status/extension/extension.js","destination":"tools/project-forge-vscode/work-item-status/extension/extension.js"},
-    {"source":"tools/vscode_work_item_status/extension/README.md","destination":"tools/project-forge-vscode/work-item-status/extension/README.md"},
-    {"source":"tools/package/check_baseline.py","destination":"tools/project-forge-core/check-core-baseline.py"},
-    {"source":"tools/package/check_upstream.py","destination":"tools/project-forge-core/check-core-upstream.py"}
+    {
+      "source": "core/agents/reviewer.agent.md",
+      "destination": ".github/agents/reviewer.agent.md"
+    },
+    {
+      "source": "core/instructions/project-forge-workflow.instructions.md",
+      "destination": ".github/instructions/project-forge-workflow.instructions.md"
+    },
+    {
+      "source": "core/instructions/project-forge-local-development.instructions.md",
+      "destination": ".github/instructions/project-forge-local-development.instructions.md"
+    },
+    {
+      "source": "core/instructions/project-forge-docs.instructions.md",
+      "destination": ".github/instructions/project-forge-docs.instructions.md"
+    },
+    {
+      "source": "core/skills/define-feature/SKILL.md",
+      "destination": ".github/skills/define-feature/SKILL.md"
+    },
+    {
+      "source": "core/skills/grill-me/SKILL.md",
+      "destination": ".github/skills/grill-me/SKILL.md"
+    },
+    {
+      "source": "core/skills/refine-requirements/SKILL.md",
+      "destination": ".github/skills/refine-requirements/SKILL.md"
+    },
+    {
+      "source": "core/skills/start-work/SKILL.md",
+      "destination": ".github/skills/start-work/SKILL.md"
+    },
+    {
+      "source": "core/skills/setup/SKILL.md",
+      "destination": ".github/skills/setup/SKILL.md"
+    },
+    {
+      "source": "core/skills/build/SKILL.md",
+      "destination": ".github/skills/build/SKILL.md"
+    },
+    {
+      "source": "core/skills/run/SKILL.md",
+      "destination": ".github/skills/run/SKILL.md"
+    },
+    {
+      "source": "core/skills/export-requirements/SKILL.md",
+      "destination": ".github/skills/export-requirements/SKILL.md"
+    },
+    {
+      "source": "core/skills/replatform/SKILL.md",
+      "destination": ".github/skills/replatform/SKILL.md"
+    },
+    {
+      "source": "core/skills/progress/SKILL.md",
+      "destination": ".github/skills/progress/SKILL.md"
+    },
+    {
+      "source": "core/skills/next-step/SKILL.md",
+      "destination": ".github/skills/next-step/SKILL.md"
+    },
+    {
+      "source": "core/skills/deliver/SKILL.md",
+      "destination": ".github/skills/deliver/SKILL.md"
+    },
+    {
+      "source": "core/skills/work-item-status/SKILL.md",
+      "destination": ".github/skills/work-item-status/SKILL.md"
+    },
+    {
+      "source": "core/skills/cleanup-branches/SKILL.md",
+      "destination": ".github/skills/cleanup-branches/SKILL.md"
+    },
+    {
+      "source": "core/skills/pull-latest/SKILL.md",
+      "destination": ".github/skills/pull-latest/SKILL.md"
+    },
+    {
+      "source": "core/skills/project-forge-update/SKILL.md",
+      "destination": ".github/skills/project-forge-update/SKILL.md"
+    },
+    {
+      "source": "core/skills/upstream-fix/SKILL.md",
+      "destination": ".github/skills/upstream-fix/SKILL.md"
+    },
+    {
+      "source": "core/skills/wait-what/SKILL.md",
+      "destination": ".github/skills/wait-what/SKILL.md"
+    },
+    {
+      "source": "core/skills/deployment-readiness/SKILL.md",
+      "destination": ".github/skills/deployment-readiness/SKILL.md"
+    },
+    {
+      "source": "core/skills/deploy/SKILL.md",
+      "destination": ".github/skills/deploy/SKILL.md"
+    },
+    {
+      "source": "core/skills/tear-down/SKILL.md",
+      "destination": ".github/skills/tear-down/SKILL.md"
+    },
+    {
+      "source": "core/skills/coach/SKILL.md",
+      "destination": ".github/skills/coach/SKILL.md"
+    },
+    {
+      "source": "core/skills/db-lab/SKILL.md",
+      "destination": ".github/skills/db-lab/SKILL.md"
+    },
+    {
+      "source": "core/skills/system-lab/SKILL.md",
+      "destination": ".github/skills/system-lab/SKILL.md"
+    },
+    {
+      "source": "core/skills/docs/SKILL.md",
+      "destination": ".github/skills/docs/SKILL.md"
+    },
+    {
+      "source": "core/skills/code-walkthrough/SKILL.md",
+      "destination": ".github/skills/code-walkthrough/SKILL.md"
+    },
+    {
+      "source": "core/skills/learning-review/SKILL.md",
+      "destination": ".github/skills/learning-review/SKILL.md"
+    },
+    {
+      "source": "core/process/WORK_ITEM_MODEL.md",
+      "destination": "docs/process/WORK_ITEM_MODEL.md"
+    },
+    {
+      "source": "core/process/PR_WORKFLOW.md",
+      "destination": "docs/process/PR_WORKFLOW.md"
+    },
+    {
+      "source": "core/process/DEPLOYMENT_ENABLEMENT.md",
+      "destination": "docs/process/DEPLOYMENT_ENABLEMENT.md"
+    },
+    {
+      "source": "core/process/HUMAN_GATES.md",
+      "destination": "docs/process/HUMAN_IN_LOOP_GATES.md"
+    },
+    {
+      "source": "core/process/GUIDED_NEXT_STEPS.md",
+      "destination": "docs/process/GUIDED_NEXT_STEPS.md"
+    },
+    {
+      "source": "core/process/INTERACTIVE_SESSION_GUIDE.md",
+      "destination": "docs/process/INTERACTIVE_SESSION_GUIDE.md"
+    },
+    {
+      "source": "core/process/COACHING_GUIDE.md",
+      "destination": "docs/process/COACHING_GUIDE.md"
+    },
+    {
+      "source": "core/process/DATABASE_LEARNING_WORKBENCH.md",
+      "destination": "docs/process/DATABASE_LEARNING_WORKBENCH.md"
+    },
+    {
+      "source": "core/process/SYSTEM_DESIGN_LEARNING_WORKBENCH.md",
+      "destination": "docs/process/SYSTEM_DESIGN_LEARNING_WORKBENCH.md"
+    },
+    {
+      "source": "core/process/PROJECT_DOCUMENTATION_FRAMEWORK.md",
+      "destination": "docs/process/PROJECT_DOCUMENTATION_FRAMEWORK.md"
+    },
+    {
+      "source": "core/process/PROJECT_FORGE_ENGINEERING_GUIDE.md",
+      "destination": "docs/project-forge/PROJECT_FORGE_ENGINEERING_GUIDE.md"
+    },
+    {
+      "source": "core/process/SETUP_ACCEPTANCE_CHECKLIST.md",
+      "destination": "docs/process/SETUP_ACCEPTANCE_CHECKLIST.md"
+    },
+    {
+      "source": "core/process/OPERATION_JOURNAL.md",
+      "destination": "docs/process/OPERATION_JOURNAL.md"
+    },
+    {
+      "source": "core/process/PROJECT_REQUIREMENTS_EXPORT.md",
+      "destination": "docs/process/PROJECT_REQUIREMENTS_EXPORT.md"
+    },
+    {
+      "source": "core/process/APPLICATION_VERSIONING.md",
+      "destination": "docs/process/APPLICATION_VERSIONING.md"
+    },
+    {
+      "source": "core/process/LOCAL_DEVELOPMENT_COMMANDS.md",
+      "destination": "docs/process/LOCAL_DEVELOPMENT_COMMANDS.md"
+    },
+    {
+      "source": "core/templates/PULL_REQUEST_TEMPLATE.md",
+      "destination": ".github/PULL_REQUEST_TEMPLATE.md"
+    },
+    {
+      "source": "core/templates/PRODUCT_BRIEF_TEMPLATE.md",
+      "destination": "docs/templates/PRODUCT_BRIEF_TEMPLATE.md"
+    },
+    {
+      "source": "core/templates/FEATURE_BRIEF_TEMPLATE.md",
+      "destination": "docs/templates/FEATURE_BRIEF_TEMPLATE.md"
+    },
+    {
+      "source": "core/templates/REQUIREMENTS_TEMPLATE.md",
+      "destination": "docs/templates/REQUIREMENTS_TEMPLATE.md"
+    },
+    {
+      "source": "core/templates/ADR_TEMPLATE.md",
+      "destination": "docs/templates/ADR_TEMPLATE.md"
+    },
+    {
+      "source": "core/learning/ENGINEERING_LEARNING_WORKBOOK.md",
+      "destination": "learning/ENGINEERING_LEARNING_WORKBOOK.md"
+    },
+    {
+      "source": "core/learning/LEARNING_MAP.md",
+      "destination": "learning/LEARNING_MAP.md"
+    },
+    {
+      "source": "core/learning/LEARNING_PROGRESS.md",
+      "destination": "learning/LEARNING_PROGRESS.md"
+    },
+    {
+      "source": "core/learning/CODING_DRILLS.md",
+      "destination": "learning/CODING_DRILLS.md"
+    },
+    {
+      "source": "core/learning/SQL_DRILLS.md",
+      "destination": "learning/SQL_DRILLS.md"
+    },
+    {
+      "source": "core/learning/SYSTEM_DESIGN_DRILLS.md",
+      "destination": "learning/SYSTEM_DESIGN_DRILLS.md"
+    },
+    {
+      "source": "core/learning/DIAGRAM_GUIDE.md",
+      "destination": "learning/DIAGRAM_GUIDE.md"
+    },
+    {
+      "source": "core/learning/RESOURCE_CATALOG.md",
+      "destination": "learning/RESOURCE_CATALOG.md"
+    },
+    {
+      "source": "tools/db_lab/sqlite_workbench.py",
+      "destination": "tools/project-forge-db-lab/sqlite-workbench.py"
+    },
+    {
+      "source": "tools/system_lab/system_workbench.py",
+      "destination": "tools/project-forge-system-lab/system-workbench.py"
+    },
+    {
+      "source": "tools/docs_site/docs_site.py",
+      "destination": "tools/project-forge-docs/docs-site.py"
+    },
+    {
+      "source": "tools/vscode_work_item_status/install.py",
+      "destination": "tools/project-forge-vscode/work-item-status/install.py"
+    },
+    {
+      "source": "tools/vscode_work_item_status/extension/package.json",
+      "destination": "tools/project-forge-vscode/work-item-status/extension/package.json"
+    },
+    {
+      "source": "tools/vscode_work_item_status/extension/extension.js",
+      "destination": "tools/project-forge-vscode/work-item-status/extension/extension.js"
+    },
+    {
+      "source": "tools/vscode_work_item_status/extension/README.md",
+      "destination": "tools/project-forge-vscode/work-item-status/extension/README.md"
+    },
+    {
+      "source": "tools/package/check_baseline.py",
+      "destination": "tools/project-forge-core/check-core-baseline.py"
+    },
+    {
+      "source": "tools/package/check_upstream.py",
+      "destination": "tools/project-forge-core/check-core-upstream.py"
+    },
+    {
+      "source": "core/skills/web-guidance/SKILL.md",
+      "destination": ".github/skills/web-guidance/SKILL.md"
+    },
+    {
+      "source": "core/skills/ux-review/SKILL.md",
+      "destination": ".github/skills/ux-review/SKILL.md"
+    },
+    {
+      "source": "core/instructions/project-forge-web-guidance.instructions.md",
+      "destination": ".github/instructions/project-forge-web-guidance.instructions.md"
+    }
   ]
 }
