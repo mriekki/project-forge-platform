@@ -16,10 +16,25 @@ export function verifyAssets(packageData = loadPackageData()) {
     if (!recorded || recorded.revision !== component.revision || recorded.distribution !== component.distribution || (component.version && recorded.version !== component.version)) {
       throw new Error(`Generated ${componentId} provenance is stale`);
     }
-    const recordedFiles = new Map((recorded.files ?? []).map((item) => [item.source, item]));
-    for (const entry of componentEntries(packageData, componentId)) {
+    // Every selected packaged asset must correspond to exactly one recorded
+    // file from the accepted pinned component descriptor. A stale extra source
+    // in ASSEMBLY.json is not proof that the current consumer receives it.
+    const expectedEntries = [...componentEntries(packageData, componentId)];
+    const recordedList = Array.isArray(recorded.files) ? recorded.files : [];
+    const recordedFiles = new Map(recordedList.map((item) => [item.source, item]));
+    const destinations = new Set(recordedList.map((item) => item.destination));
+    if (
+      recordedList.length !== expectedEntries.length ||
+      recordedFiles.size !== recordedList.length ||
+      destinations.size !== recordedList.length
+    ) {
+      throw new Error(`Generated ${componentId} asset set mismatch: non-exact or duplicate mapping`);
+    }
+    for (const entry of expectedEntries) {
       const item = recordedFiles.get(entry.source);
-      if (!item || item.destination !== entry.path || item.sha256 !== sha256File(entry.bundlePath)) throw new Error(`Generated ${componentId} asset mismatch: ${entry.source}`);
+      if (!item || item.destination !== entry.path || item.sha256 !== sha256File(entry.bundlePath)) {
+        throw new Error(`Generated ${componentId} asset mismatch: ${entry.source}`);
+      }
       count += 1;
     }
   }
