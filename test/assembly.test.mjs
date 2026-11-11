@@ -95,3 +95,41 @@ test('assembly rejects tracked changes in an exact canonical checkout', () => {
   fs.writeFileSync(path.join(coreRoot, 'core/a.txt'), 'locally modified\n');
   assert.throws(() => assembleAssets(packageData, { core: coreRoot, deployment: deploymentRoot }), /tracked working-tree changes/);
 });
+
+
+test('package verification refuses extra, duplicate and retired recorded assets (PF-07)', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'project-forge-exact-assembly-'));
+  try {
+    const coreDescriptor = { name: 'greenfield-workspace', mappings: [{ source: 'core/a.txt', destination: '.github/a.txt' }] };
+    const deploymentDescriptor = { name: 'greenfield-project', schemaVersion: 1, mappings: [{ source: 'src/b.txt', destination: 'tools/b.txt' }] };
+    const { packageRoot, coreRoot, deploymentRoot, packageData } = fixturePackage(temp, coreDescriptor, deploymentDescriptor);
+    assembleAssets(packageData, { core: coreRoot, deployment: deploymentRoot });
+    const receiptPath = path.join(packageRoot, 'assets/generated/ASSEMBLY.json');
+    const original = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+    assert.equal(verifyAssets(packageData), 2);
+
+    const unknown = structuredClone(original);
+    unknown.components.deployment.files.push({
+      source: 'src/retired-auth-helper.py',
+      destination: 'tools/retired-auth-helper.py',
+      sha256: '0'.repeat(64)
+    });
+    fs.writeFileSync(receiptPath, JSON.stringify(unknown));
+    assert.throws(() => verifyAssets(packageData), /asset set mismatch/);
+
+    const duplicated = structuredClone(original);
+    duplicated.components.deployment.files.push(structuredClone(duplicated.components.deployment.files[0]));
+    fs.writeFileSync(receiptPath, JSON.stringify(duplicated));
+    assert.throws(() => verifyAssets(packageData), /asset set mismatch/);
+
+    const wrongDestination = structuredClone(original);
+    wrongDestination.components.deployment.files[0].destination = 'tools/wrong-asset.py';
+    fs.writeFileSync(receiptPath, JSON.stringify(wrongDestination));
+    assert.throws(() => verifyAssets(packageData), /asset mismatch/);
+
+    fs.writeFileSync(receiptPath, JSON.stringify(original));
+    assert.equal(verifyAssets(packageData), 2);
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
+});
