@@ -87,6 +87,9 @@ test('Cloud release plumbing is explicitly source-gated and does not publish or 
   assert.match(source, /assertExactAcceptedMain\(args\.authenticationRoot/);
   assert.match(source, /assertExpectedOrigin\(authentication.root/);
   assert.match(source, /'authentication'/);
+  assert.match(source, /greenfield-household-project/);
+  assert.match(source, /standard\.components\.includes\('authentication'\)/);
+  assert.doesNotMatch(source, /for \(const profile of Object\.values\(nextComponents\.profiles\)\)/);
   assert.match(assembler, /--authentication-root/);
   assert.doesNotMatch(workflow, /mriekki\/project-forge-auth-kit/);
   assert.doesNotMatch(workflow, /npm publish/);
