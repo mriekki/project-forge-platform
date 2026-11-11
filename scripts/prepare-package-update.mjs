@@ -96,6 +96,7 @@ export function parseArgs(argv) {
     if (arg === '--version') values.version = argv[++i];
     else if (arg === '--core-root') values.coreRoot = argv[++i];
     else if (arg === '--deployment-root') values.deploymentRoot = argv[++i];
+    else if (arg === '--authentication-root') values.authenticationRoot = argv[++i];
     else throw new Error(`Unknown argument: ${arg}`);
   }
   if (!values.version || !values.coreRoot || !values.deploymentRoot) {
@@ -130,6 +131,17 @@ export function preparePackageUpdate(args, root = ROOT) {
 
   const core = assertExactAcceptedMain(args.coreRoot, 'Project Forge Core source');
   const deployment = assertExactAcceptedMain(args.deploymentRoot, 'Project Forge Deployment source');
+  let authentication = null;
+  if (args.authenticationRoot) {
+    const approvedSource = process.env.PROJECT_FORGE_AUTH_SOURCE_REPOSITORY;
+    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(approvedSource ?? '')) {
+      throw new Error('Protected Authentication Kit source repository mapping is missing');
+    }
+    authentication = assertExactAcceptedMain(args.authenticationRoot, 'Project Forge Authentication source');
+    assertExpectedOrigin(authentication.root, [approvedSource], 'Project Forge Authentication source');
+  } else if (components.components.authentication) {
+    throw new Error('An existing Auth Kit component cannot be released without its exact accepted source');
+  }
 
   const coreCompatibility = readJson(path.join(core.root, 'COMPATIBILITY.json'));
   const coreVersion = coreCompatibility.projectForgeCoreVersion;
@@ -140,6 +152,18 @@ export function preparePackageUpdate(args, root = ROOT) {
   nextComponents.components.core.revision = core.revision;
   nextComponents.components.core.version = coreVersion;
   nextComponents.components.deployment.revision = deployment.revision;
+  if (authentication) {
+    nextComponents.components.authentication = {
+      revision: authentication.revision,
+      distribution: 'greenfield-project',
+      descriptor: 'assets/authentication/distribution.json',
+      sourceRoot: 'assets/generated/authentication',
+      canonicalDescriptor: 'distributions/greenfield-project.json'
+    };
+    for (const profile of Object.values(nextComponents.profiles)) {
+      if (!profile.components.includes('authentication')) profile.components.push('authentication');
+    }
+  }
   for (const component of Object.values(nextComponents.components)) {
     delete component.repository;
     delete component.commit;
@@ -155,7 +179,9 @@ export function preparePackageUpdate(args, root = ROOT) {
   // Complete every source-side validation/read before touching release metadata so
   // a missing descriptor cannot leave a partially prepared release branch.
   const descriptorUpdates = [];
-  for (const [componentId, checkout] of Object.entries({ core, deployment })) {
+  for (const [componentId, checkout] of Object.entries({
+    core, deployment, ...(authentication ? { authentication } : {})
+  })) {
     const component = nextComponents.components[componentId];
     const canonical = path.join(checkout.root, component.canonicalDescriptor);
     if (!fs.existsSync(canonical) || !fs.statSync(canonical).isFile()) {
@@ -170,14 +196,18 @@ export function preparePackageUpdate(args, root = ROOT) {
   writeJson(packageFile, nextPackage);
   writeJson(lockFile, nextLock);
   writeJson(componentsFile, nextComponents);
-  for (const update of descriptorUpdates) fs.writeFileSync(update.destination, update.content);
+  for (const update of descriptorUpdates) {
+    fs.mkdirSync(path.dirname(update.destination), { recursive: true });
+    fs.writeFileSync(update.destination, update.content);
+  }
 
   return {
     package: nextPackage.name,
     fromVersion: pkg.version,
     version: args.version,
     core: { revision: core.revision, version: coreVersion },
-    deployment: { revision: deployment.revision }
+    deployment: { revision: deployment.revision },
+    ...(authentication ? { authentication: { revision: authentication.revision } } : {})
   };
 }
 
@@ -187,6 +217,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.log(`Prepared ${result.package} ${result.fromVersion} -> ${result.version}`);
     console.log(`Core: ${result.core.version} ${result.core.revision}`);
     console.log(`Deployment: ${result.deployment.revision}`);
+    if (result.authentication) console.log(`Authentication: ${result.authentication.revision}`);
   } catch (error) {
     console.error(`Package update preparation failed: ${error.message}`);
     process.exitCode = 2;
