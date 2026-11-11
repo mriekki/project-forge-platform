@@ -73,25 +73,25 @@ test('descriptor keeps private foundational source topology out of the active pu
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'repository'), false);
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'commit'), false);
   assert.match(value.generation.bootstrap.revision, /^[0-9a-f]{40}$/);
-  assert.equal(value.generation.bootstrap.revision, 'd4df5f6444d5c617adf0b50cfa7464da192e388d');
+  assert.equal(value.generation.bootstrap.revision, '4b7acbef328cd809776e83673cd82b630b47f0b5');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(Object.hasOwn(value.adoption.kit, 'repository'), false);
   assert.equal(Object.hasOwn(value.adoption.kit, 'commit'), false);
   assert.match(value.adoption.kit.revision, /^[0-9a-f]{40}$/);
-  assert.equal(value.adoption.kit.revision, 'eba74cad227e6d87cd1838037c49f67fb5ae3ed2');
+  assert.equal(value.adoption.kit.revision, '451f19cd81908ae32c31e0de30517c25ee966484');
   assert.equal(value.adoption.kit.protocolVersion, 1);
 });
 
 test('generation aligns the published package with the accepted Bootstrap revision', async () => {
   const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
-  assert.equal(value.generation.bootstrap.revision, 'd4df5f6444d5c617adf0b50cfa7464da192e388d');
+  assert.equal(value.generation.bootstrap.revision, '4b7acbef328cd809776e83673cd82b630b47f0b5');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(value.generation.bootstrap.portableRequirements.bootstrapRevision, value.generation.bootstrap.revision);
   assert.equal(value.generation.package, '@mriekki/project-forge');
-  assert.equal(value.generation.packageVersion, '4.23.0');
+  assert.equal(value.generation.packageVersion, '4.24.1');
   assert.equal(value.generation.profile, 'greenfield-project');
   assert.equal(value.generation.bootstrapProtocolVersion, 12);
   assert.equal(value.bootstrapUrl, 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json');
@@ -100,7 +100,7 @@ test('generation aligns the published package with the accepted Bootstrap revisi
 test('adoption advertises exact manifest, kit and immutable public schema projections', async () => {
   const value = await descriptor();
   assert.equal(value.adoption.manifestFilename, 'PROJECT_ADOPTION.json');
-  assert.equal(value.adoption.kit.revision, 'eba74cad227e6d87cd1838037c49f67fb5ae3ed2');
+  assert.equal(value.adoption.kit.revision, '451f19cd81908ae32c31e0de30517c25ee966484');
   assert.equal(value.adoption.kit.protocolVersion, 1);
 
   for (const [name, relative] of [
