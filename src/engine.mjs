@@ -30,6 +30,7 @@ export function sha256File(file) {
 function baselineFile(componentId) {
   if (componentId === 'core') return 'CORE_BASELINE.json';
   if (componentId === 'deployment') return 'DEPLOYMENT_BASELINE.json';
+  if (componentId === 'authentication') return 'AUTHENTICATION_BASELINE.json';
   throw new Error(`Unsupported component: ${componentId}`);
 }
 
