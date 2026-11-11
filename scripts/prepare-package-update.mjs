@@ -160,9 +160,20 @@ export function preparePackageUpdate(args, root = ROOT) {
       sourceRoot: 'assets/generated/authentication',
       canonicalDescriptor: 'distributions/greenfield-project.json'
     };
-    for (const profile of Object.values(nextComponents.profiles)) {
-      if (!profile.components.includes('authentication')) profile.components.push('authentication');
+    // Auth Kit is an explicit opt-in: preserve the standard greenfield
+    // profile and create a distinct internal package profile for approved
+    // household-auth Projects. No separate user-facing creation mode.
+    const standard = nextComponents.profiles['greenfield-project'];
+    if (!standard || !Array.isArray(standard.components) ||
+        standard.components.includes('authentication')) {
+      throw new Error('Standard Project Forge profile must remain authentication-free');
     }
+    const optional = nextComponents.profiles['greenfield-household-project'];
+    if (optional) throw new Error('Household Auth profile already exists; release reconciliation required');
+    nextComponents.profiles['greenfield-household-project'] = {
+      ...structuredClone(standard),
+      components: [...standard.components, 'authentication']
+    };
   }
   for (const component of Object.values(nextComponents.components)) {
     delete component.repository;
