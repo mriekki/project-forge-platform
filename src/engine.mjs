@@ -269,6 +269,48 @@ export function checkProfile(packageData, profileName, targetRoot) {
   return { clean: projectForgeCurrent && componentClean, projectForgeCurrent, plan, projectForgeBaseline };
 }
 
+export function planRepair(packageData, profileName, targetRoot) {
+  const current = checkProfile(packageData, profileName, targetRoot);
+  const plan = current.plan;
+  const missing = [];
+  const blockers = [];
+  if (!current.projectForgeCurrent) blockers.push('Installed umbrella baseline is not this exact package/profile.');
+  for (const component of plan.plans) {
+    if (!component.metadataCurrent) blockers.push(`Stale or missing ${component.componentId} baseline.`);
+    if (component.retired.length) blockers.push(`Retired ${component.componentId} paths require update review.`);
+    for (const row of component.rows) {
+      if (row.state === 'LOCAL_MISSING') missing.push({ component: component.componentId, path: row.path });
+      else if (row.state !== 'SAME') blockers.push(`${component.componentId}: ${row.state}: ${row.path}`);
+    }
+  }
+  return { plan, missing, blockers, safe: blockers.length === 0 };
+}
+
+export function applyRepair(packageData, profileName, targetRoot) {
+  // Do not trust a previously displayed plan: re-evaluate every digest and
+  // symlink/baseline path immediately before any restoration.
+  const repair = planRepair(packageData, profileName, targetRoot);
+  if (!repair.safe) throw new Error('Refusing repair: installed baselines, package, or managed paths are stale/drifted.');
+  for (const component of repair.plan.plans) {
+    resolveUnder(targetRoot, component.filename, 'component baseline');
+    for (const row of component.rows) resolveUnder(targetRoot, row.path, 'consumer destination');
+  }
+  resolveUnder(targetRoot, 'PROJECT_FORGE_BASELINE.json', 'umbrella baseline');
+  for (const component of repair.plan.plans) {
+    for (const row of component.rows) {
+      if (row.state !== 'LOCAL_MISSING') continue;
+      const destination = resolveUnder(targetRoot, row.path, 'consumer destination');
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      // COPYFILE_EXCL refuses a file created after the preflight, rather than
+      // following a fresh destination link or overwriting an unreviewed edit.
+      fs.copyFileSync(row.bundlePath, destination, fs.constants.COPYFILE_EXCL);
+    }
+  }
+  // Exactly the installed package's accepted bytes are restored; all
+  // component/umbrella provenance and consumer-owned files remain unchanged.
+  return repair.missing;
+}
+
 export function loadProjectForgeBaseline(targetRoot) {
   return loadOptionalJson(resolveUnder(targetRoot, 'PROJECT_FORGE_BASELINE.json', 'umbrella baseline'));
 }
