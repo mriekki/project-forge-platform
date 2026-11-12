@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { applyProfile, checkProfile, planProfile, sha256File } from '../src/engine.mjs';
+import { applyProfile, applyRepair, checkProfile, planProfile, planRepair, sha256File } from '../src/engine.mjs';
 
 function fixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'project-forge-package-'));
@@ -215,6 +215,71 @@ test('late component baseline replacement refuses apply before managed writes', 
   assert.throws(() => applyProfile(packageData, plan, consumerRoot, 'demo', 'base'), /symlink/);
   assert.equal(fs.existsSync(victim), false);
   assert.equal(fs.existsSync(path.join(consumerRoot, '.github/a.txt')), false);
+});
+
+test('exact-version repair restores missing managed files without changing any baseline', () => {
+  const { consumerRoot, packageData } = fixture();
+  applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
+  const recorded = ['CORE_BASELINE.json', 'DEPLOYMENT_BASELINE.json', 'PROJECT_FORGE_BASELINE.json'];
+  const before = recorded.map((name) => fs.readFileSync(path.join(consumerRoot, name)));
+  const missing = path.join(consumerRoot, 'tools/b.txt');
+  fs.unlinkSync(missing);
+  const repair = planRepair(packageData, 'greenfield-project', consumerRoot);
+  assert.equal(repair.safe, true);
+  assert.deepEqual(repair.missing.map((item) => item.path), ['tools/b.txt']);
+  assert.deepEqual(applyRepair(packageData, 'greenfield-project', consumerRoot).map((item) => item.path), ['tools/b.txt']);
+  assert.equal(fs.readFileSync(missing, 'utf8'), 'kit-v1\n');
+  assert.equal(checkProfile(packageData, 'greenfield-project', consumerRoot).clean, true);
+  for (let index = 0; index < recorded.length; index += 1) {
+    assert.deepEqual(fs.readFileSync(path.join(consumerRoot, recorded[index])), before[index]);
+  }
+  assert.deepEqual(applyRepair(packageData, 'greenfield-project', consumerRoot), []);
+});
+
+test('repair fails closed on local drift without restoring other missing files', () => {
+  const { consumerRoot, packageData } = fixture();
+  applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
+  fs.unlinkSync(path.join(consumerRoot, 'tools/b.txt'));
+  fs.writeFileSync(path.join(consumerRoot, '.github/a.txt'), 'developer change\n');
+  const repair = planRepair(packageData, 'greenfield-project', consumerRoot);
+  assert.equal(repair.safe, false);
+  assert(repair.blockers.some((item) => item.includes('LOCAL_DRIFT')));
+  assert.throws(() => applyRepair(packageData, 'greenfield-project', consumerRoot), /Refusing repair/);
+  assert.equal(fs.existsSync(path.join(consumerRoot, 'tools/b.txt')), false);
+  assert.equal(fs.readFileSync(path.join(consumerRoot, '.github/a.txt'), 'utf8'), 'developer change\n');
+});
+
+test('repair rejects a stale package version and changed source bytes', () => {
+  const { consumerRoot, packageData } = fixture();
+  applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
+  const missing = path.join(consumerRoot, 'tools/b.txt');
+  fs.unlinkSync(missing);
+  packageData.pkg.version = '0.2.0';
+  assert.equal(planRepair(packageData, 'greenfield-project', consumerRoot).safe, false);
+  assert.throws(() => applyRepair(packageData, 'greenfield-project', consumerRoot), /Refusing repair/);
+  packageData.pkg.version = '0.1.0';
+  fs.writeFileSync(path.join(packageData.root, 'assets/deployment/source/src/b.txt'), 'tampered-source\n');
+  const repair = planRepair(packageData, 'greenfield-project', consumerRoot);
+  assert.equal(repair.safe, false);
+  assert(repair.blockers.some((item) => item.includes('package bytes differ')));
+  assert.throws(() => applyRepair(packageData, 'greenfield-project', consumerRoot), /Refusing repair/);
+  assert.equal(fs.existsSync(missing), false);
+});
+
+test('repair refuses a symlinked replacement for a previously missing file', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
+  const missing = path.join(consumerRoot, 'tools/b.txt');
+  fs.unlinkSync(missing);
+  const outside = path.join(root, 'external-missing-target');
+  try {
+    fs.symlinkSync(outside, missing, 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => applyRepair(packageData, 'greenfield-project', consumerRoot), /symlink/);
+  assert.equal(fs.existsSync(outside), false);
 });
 
 test('local drift blocks the whole apply', () => {
