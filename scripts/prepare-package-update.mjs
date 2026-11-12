@@ -89,6 +89,34 @@ function assertPlatformPreparationState(root) {
   }
 }
 
+// First Auth release creates the opt-in profile. Later package updates must
+// retain exactly the same isolated component selection and reject drift,
+// rather than treating an existing approved profile as an error.
+export function reconcileHouseholdAuthProfile(profiles) {
+  const standard = profiles['greenfield-project'];
+  if (!standard || !Array.isArray(standard.components) ||
+      standard.components.includes('authentication')) {
+    throw new Error('Standard Project Forge profile must remain authentication-free');
+  }
+  const expected = [...standard.components, 'authentication'];
+  const current = profiles['greenfield-household-project'];
+  if (current) {
+    if (!Array.isArray(current.components) ||
+        current.components.length !== expected.length ||
+        !current.components.every((component, index) => component === expected[index])) {
+      throw new Error('Existing household Auth profile has unexpected components; release reconciliation required');
+    }
+    const expectedProfile = { ...structuredClone(standard), components: expected };
+    if (JSON.stringify(current) !== JSON.stringify(expectedProfile)) {
+      throw new Error('Existing household Auth profile differs from standard profile settings; review required');
+    }
+  }
+  profiles['greenfield-household-project'] = {
+    ...structuredClone(standard),
+    components: expected
+  };
+}
+
 export function parseArgs(argv) {
   const values = {};
   for (let i = 0; i < argv.length; i += 1) {
@@ -163,17 +191,7 @@ export function preparePackageUpdate(args, root = ROOT) {
     // Auth Kit is an explicit opt-in: preserve the standard greenfield
     // profile and create a distinct internal package profile for approved
     // household-auth Projects. No separate user-facing creation mode.
-    const standard = nextComponents.profiles['greenfield-project'];
-    if (!standard || !Array.isArray(standard.components) ||
-        standard.components.includes('authentication')) {
-      throw new Error('Standard Project Forge profile must remain authentication-free');
-    }
-    const optional = nextComponents.profiles['greenfield-household-project'];
-    if (optional) throw new Error('Household Auth profile already exists; release reconciliation required');
-    nextComponents.profiles['greenfield-household-project'] = {
-      ...structuredClone(standard),
-      components: [...standard.components, 'authentication']
-    };
+    reconcileHouseholdAuthProfile(nextComponents.profiles);
   }
   for (const component of Object.values(nextComponents.components)) {
     delete component.repository;
