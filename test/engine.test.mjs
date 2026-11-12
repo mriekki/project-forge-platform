@@ -170,6 +170,53 @@ test('late symlink replacement blocks apply rather than copying outside root', (
   assert.equal(fs.existsSync(path.join(consumerRoot, 'PROJECT_FORGE_BASELINE.json')), false);
 });
 
+test('component baseline symlink cannot write through to an external file', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const outside = path.join(root, 'external-baseline.json');
+  fs.writeFileSync(outside, '{"owner":"outside"}\n');
+  try {
+    fs.symlinkSync(outside, path.join(consumerRoot, 'CORE_BASELINE.json'), 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => planProfile(packageData, 'greenfield-project', consumerRoot), /symlink/);
+  assert.equal(fs.readFileSync(outside, 'utf8'), '{"owner":"outside"}\n');
+  assert.equal(fs.existsSync(path.join(consumerRoot, 'tools/b.txt')), false);
+});
+
+test('umbrella baseline symlink refuses install before managed asset writes', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const outside = path.join(root, 'external-umbrella.json');
+  fs.writeFileSync(outside, '{"owner":"outside"}\n');
+  const plan = planProfile(packageData, 'greenfield-project', consumerRoot);
+  try {
+    fs.symlinkSync(outside, path.join(consumerRoot, 'PROJECT_FORGE_BASELINE.json'), 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => applyProfile(packageData, plan, consumerRoot, 'demo', 'base'), /symlink/);
+  assert.equal(fs.readFileSync(outside, 'utf8'), '{"owner":"outside"}\n');
+  assert.equal(fs.existsSync(path.join(consumerRoot, '.github/a.txt')), false);
+  assert.equal(fs.existsSync(path.join(consumerRoot, 'tools/b.txt')), false);
+});
+
+test('late component baseline replacement refuses apply before managed writes', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const plan = planProfile(packageData, 'greenfield-project', consumerRoot);
+  const victim = path.join(root, 'dangling-baseline-target');
+  try {
+    fs.symlinkSync(victim, path.join(consumerRoot, 'DEPLOYMENT_BASELINE.json'), 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => applyProfile(packageData, plan, consumerRoot, 'demo', 'base'), /symlink/);
+  assert.equal(fs.existsSync(victim), false);
+  assert.equal(fs.existsSync(path.join(consumerRoot, '.github/a.txt')), false);
+});
+
 test('local drift blocks the whole apply', () => {
   const { consumerRoot, packageData } = fixture();
   applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
