@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { applyProfile, checkProfile, planProfile } from '../src/engine.mjs';
+import { reconcileHouseholdAuthProfile } from '../scripts/prepare-package-update.mjs';
 
 function fixture() {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-auth-package-contract-'));
@@ -94,4 +95,45 @@ test('Cloud release plumbing is explicitly source-gated and does not publish or 
   assert.doesNotMatch(workflow, /mriekki\/project-forge-auth-kit/);
   assert.doesNotMatch(workflow, /npm publish/);
   assert.doesNotMatch(workflow, /force-push/);
+});
+
+test('First and subsequent Auth-enabled package releases preserve the separate household profile', () => {
+  const profiles = {
+    'greenfield-project': {
+      components: ['core', 'deployment'],
+      description: 'Regular Project without optional household authentication'
+    }
+  };
+  reconcileHouseholdAuthProfile(profiles);
+  assert.deepEqual(profiles['greenfield-project'].components, ['core', 'deployment']);
+  const first = structuredClone(profiles['greenfield-household-project']);
+  assert.deepEqual(first.components, ['core', 'deployment', 'authentication']);
+
+  // Re-running preparation for the next Kit version is valid, deterministic
+  // and does not accidentally enable Auth for existing standard consumers.
+  reconcileHouseholdAuthProfile(profiles);
+  assert.deepEqual(profiles['greenfield-household-project'], first);
+  assert.deepEqual(profiles['greenfield-project'].components, ['core', 'deployment']);
+
+  // A changed standard profile is reconciled only when the old optional
+  // profile still represents exactly the prior standard + Auth structure.
+  profiles['greenfield-household-project'].components.push('unreviewed');
+  assert.throws(() => reconcileHouseholdAuthProfile(profiles), /unexpected components/);
+  assert.deepEqual(profiles['greenfield-project'].components, ['core', 'deployment']);
+});
+
+test('Auth release preparation rejects unexpected profile settings and standard-profile contamination', () => {
+  const base = { 'greenfield-project': { components: ['core', 'deployment'], label: 'approved' } };
+  const unsafeStandard = structuredClone(base);
+  unsafeStandard['greenfield-project'].components.push('authentication');
+  assert.throws(() => reconcileHouseholdAuthProfile(unsafeStandard), /authentication-free/);
+
+  const changedOptional = structuredClone(base);
+  changedOptional['greenfield-household-project'] = {
+    components: ['core', 'deployment', 'authentication'], label: 'unreviewed'
+  };
+  assert.throws(() => reconcileHouseholdAuthProfile(changedOptional), /differs from standard/);
+
+  const missingStandard = {};
+  assert.throws(() => reconcileHouseholdAuthProfile(missingStandard), /authentication-free/);
 });
