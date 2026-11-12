@@ -143,7 +143,7 @@ export function planComponent(packageData, componentId, targetRoot, acceptedReti
   if (!component) throw new Error(`Package does not define component ${componentId}`);
   componentRevision(component);
   const filename = baselineFile(componentId);
-  const baseline = loadOptionalJson(path.join(targetRoot, filename));
+  const baseline = loadOptionalJson(resolveUnder(targetRoot, filename, 'component baseline'));
   validateBaselineIdentity(baseline, componentId, component, filename);
 
   const entries = componentEntries(packageData, componentId);
@@ -220,6 +220,15 @@ export function planProfile(packageData, profileName, targetRoot, acceptedRetire
 
 export function applyProfile(packageData, profilePlan, targetRoot, consumer, consumerBaseline) {
   if (profilePlan.unsafe.length) throw new Error('Refusing apply: plan contains unsafe drift/conflicts');
+  // Preflight the complete write set before changing any managed files.
+  // Baselines must not be allowed to follow a symlink outside the Project
+  // after an otherwise safe plan was produced.
+  for (const plan of profilePlan.plans) {
+    resolveUnder(targetRoot, plan.filename, 'component baseline');
+    for (const row of plan.rows) resolveUnder(targetRoot, row.path, 'consumer destination');
+    for (const retired of plan.retired) resolveUnder(targetRoot, retired.path, 'retired destination');
+  }
+  resolveUnder(targetRoot, 'PROJECT_FORGE_BASELINE.json', 'umbrella baseline');
   for (const plan of profilePlan.plans) {
     for (const row of plan.rows) {
       if (!['ADD', 'CORE_UPDATE', 'KIT_UPDATE'].includes(row.state)) continue;
@@ -233,7 +242,7 @@ export function applyProfile(packageData, profilePlan, targetRoot, consumer, con
   }
   for (const plan of profilePlan.plans) {
     const baseline = buildComponentBaseline(plan, consumer, consumerBaseline);
-    fs.writeFileSync(path.join(targetRoot, plan.filename), JSON.stringify(baseline, null, 2) + '\n');
+    fs.writeFileSync(resolveUnder(targetRoot, plan.filename, 'component baseline'), JSON.stringify(baseline, null, 2) + '\n');
   }
   const projectForgeBaseline = {
     schemaVersion: 2,
@@ -248,18 +257,18 @@ export function applyProfile(packageData, profilePlan, targetRoot, consumer, con
       distribution: plan.component.distribution
     }]))
   };
-  fs.writeFileSync(path.join(targetRoot, 'PROJECT_FORGE_BASELINE.json'), JSON.stringify(projectForgeBaseline, null, 2) + '\n');
+  fs.writeFileSync(resolveUnder(targetRoot, 'PROJECT_FORGE_BASELINE.json', 'umbrella baseline'), JSON.stringify(projectForgeBaseline, null, 2) + '\n');
   return projectForgeBaseline;
 }
 
 export function checkProfile(packageData, profileName, targetRoot) {
   const plan = planProfile(packageData, profileName, targetRoot);
-  const projectForgeBaseline = loadOptionalJson(path.join(targetRoot, 'PROJECT_FORGE_BASELINE.json'));
+  const projectForgeBaseline = loadProjectForgeBaseline(targetRoot);
   const projectForgeCurrent = projectForgeBaseline.schemaVersion === 2 && projectForgeBaseline.package === packageData.pkg.name && projectForgeBaseline.version === packageData.pkg.version && projectForgeBaseline.profile === profileName;
   const componentClean = plan.plans.every((component) => component.metadataCurrent && component.rows.every((row) => row.state === 'SAME') && component.retired.length === 0);
   return { clean: projectForgeCurrent && componentClean, projectForgeCurrent, plan, projectForgeBaseline };
 }
 
 export function loadProjectForgeBaseline(targetRoot) {
-  return loadOptionalJson(path.join(targetRoot, 'PROJECT_FORGE_BASELINE.json'));
+  return loadOptionalJson(resolveUnder(targetRoot, 'PROJECT_FORGE_BASELINE.json', 'umbrella baseline'));
 }
