@@ -278,9 +278,17 @@ export function planRepair(packageData, profileName, targetRoot) {
   for (const component of plan.plans) {
     if (!component.metadataCurrent) blockers.push(`Stale or missing ${component.componentId} baseline.`);
     if (component.retired.length) blockers.push(`Retired ${component.componentId} paths require update review.`);
+    const recorded = new Map((component.baseline.managedPaths ?? []).map((item) => [item.path, item.sha256]));
     for (const row of component.rows) {
-      if (row.state === 'LOCAL_MISSING') missing.push({ component: component.componentId, path: row.path });
-      else if (row.state !== 'SAME') blockers.push(`${component.componentId}: ${row.state}: ${row.path}`);
+      if (row.state === 'LOCAL_MISSING') {
+        if (recorded.get(row.path) !== row.desiredHash) {
+          blockers.push(`${component.componentId}: package bytes differ from installed baseline: ${row.path}`);
+        } else {
+          missing.push({ component: component.componentId, path: row.path });
+        }
+      } else if (row.state !== 'SAME') {
+        blockers.push(`${component.componentId}: ${row.state}: ${row.path}`);
+      }
     }
   }
   return { plan, missing, blockers, safe: blockers.length === 0 };
