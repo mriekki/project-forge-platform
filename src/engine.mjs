@@ -20,6 +20,28 @@ export function resolveUnder(root, relative, label = 'path') {
   const base = path.resolve(root);
   const candidate = path.resolve(base, ...rel.split('/'));
   if (candidate !== base && !candidate.startsWith(base + path.sep)) throw new Error(`${label} escapes root: ${relative}`);
+
+  // Lexical containment alone does not establish filesystem containment.
+  // A managed destination parent, package source parent, or even a dangling
+  // leaf symlink can redirect read/copy/delete operations outside the root.
+  // lstat (not exists/stat) also detects dangling links. Missing directories
+  // are allowed for first install, and are created only during apply.
+  let current = base;
+  const parts = [base, ...rel.split('/')];
+  for (const [index, part] of parts.entries()) {
+    if (index > 0) current = path.join(current, part);
+    let stat;
+    try {
+      stat = fs.lstatSync(current);
+    } catch (error) {
+      if (error.code === 'ENOENT') continue;
+      throw error;
+    }
+    if (stat.isSymbolicLink()) throw new Error(`Unsafe ${label}: symlink in managed path ${relative}`);
+    if (index < parts.length - 1 && !stat.isDirectory()) {
+      throw new Error(`Unsafe ${label}: non-directory ancestor in ${relative}`);
+    }
+  }
   return candidate;
 }
 
