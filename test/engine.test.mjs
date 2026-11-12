@@ -109,6 +109,67 @@ test('legacy schema v1 baselines upgrade in place without changing managed files
   assert.equal(checkProfile(packageData, 'greenfield-project', consumerRoot).clean, true);
 });
 
+test('managed destination symlinked parent cannot escape the Project root', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const outside = path.join(root, 'outside');
+  fs.mkdirSync(outside);
+  try {
+    fs.symlinkSync(outside, path.join(consumerRoot, '.github'), 'dir');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('Directory symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => planProfile(packageData, 'greenfield-project', consumerRoot), /symlink/);
+  assert.equal(fs.existsSync(path.join(outside, 'a.txt')), false);
+  assert.equal(fs.existsSync(path.join(consumerRoot, 'tools/b.txt')), false);
+});
+
+test('dangling symlink destination never becomes an implicit write target', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const outside = path.join(root, 'must-not-create');
+  fs.mkdirSync(path.join(consumerRoot, '.github'));
+  try {
+    fs.symlinkSync(outside, path.join(consumerRoot, '.github/a.txt'), 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => planProfile(packageData, 'greenfield-project', consumerRoot), /symlink/);
+  assert.equal(fs.existsSync(outside), false);
+});
+
+test('package assets cannot be read through a symlinked source', (t) => {
+  const { root, packageRoot, consumerRoot, packageData } = fixture();
+  const outside = path.join(root, 'outside-source.txt');
+  fs.writeFileSync(outside, 'unreviewed source');
+  const source = path.join(packageRoot, 'assets/core/source/core/a.txt');
+  fs.unlinkSync(source);
+  try {
+    fs.symlinkSync(outside, source, 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => planProfile(packageData, 'greenfield-project', consumerRoot), /symlink/);
+  assert.equal(fs.existsSync(path.join(consumerRoot, '.github/a.txt')), false);
+});
+
+test('late symlink replacement blocks apply rather than copying outside root', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const plan = planProfile(packageData, 'greenfield-project', consumerRoot);
+  const outside = path.join(root, 'outside');
+  fs.mkdirSync(outside);
+  try {
+    fs.symlinkSync(outside, path.join(consumerRoot, '.github'), 'dir');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('Directory symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => applyProfile(packageData, plan, consumerRoot, 'demo', 'base'), /symlink/);
+  assert.equal(fs.existsSync(path.join(outside, 'a.txt')), false);
+  assert.equal(fs.existsSync(path.join(consumerRoot, 'PROJECT_FORGE_BASELINE.json')), false);
+});
+
 test('local drift blocks the whole apply', () => {
   const { consumerRoot, packageData } = fixture();
   applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
