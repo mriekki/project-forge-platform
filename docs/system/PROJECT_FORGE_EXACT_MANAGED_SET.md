@@ -38,6 +38,30 @@ A package update is not clean merely because all newly declared files were copie
 - component baseline metadata represents the current component revision/distribution;
 - the baseline managed-path set exactly matches the selected distribution mappings.
 
+## Conservative same-version repair
+
+The package CLI's `repair` command is a separate, explicit repair workflow,
+not a shortcut for `update` or a license to overwrite a Builder's work.
+It is allowed only when the consumer's umbrella package version, selected
+profile, component revisions/distributions and existing managed paths match
+the **exact locally installed package**. The only permitted difference is a
+managed file that is missing but whose expected SHA-256 equals the installed
+baseline's recorded SHA-256.
+
+Repair previews missing managed paths by default and requires the ordinary
+explicit `--apply` (or interactive confirmation) before restoring any file.
+Restoration is exclusive: an unexpected file or symlink appearing after
+preflight blocks rather than overwrites it. A successful repair preserves
+every existing component and umbrella baseline byte-for-byte; it does not
+create new component owners, rotate revisions, remove retired paths or
+rewrite unrelated consumer files. A dirty or outdated package must instead
+follow the normal reviewed `update`/drift-resolution process.
+
+This behavior is covered by both native Platform tests and the Auth Kit's
+disposable synthetic unpublished npm consumer tests. It does not authorize
+using a future unreleased package against Production or bypassing Project
+owner review.
+
 ## Non-goals
 
 Exact Managed Set does **not** authorize Project Forge to:

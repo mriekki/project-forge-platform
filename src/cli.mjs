@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { applyBootstrapMigrations, planBootstrapMigrations } from './bootstrap-migrations.mjs';
-import { applyProfile, checkProfile, loadProjectForgeBaseline, planProfile } from './engine.mjs';
+import { applyProfile, applyRepair, checkProfile, loadProjectForgeBaseline, planProfile, planRepair } from './engine.mjs';
 import { loadPackageData } from './package-data.mjs';
 
 function parseArgs(argv) {
@@ -81,6 +81,7 @@ function usage(command) {
   const commandUsage = {
     install: 'project-forge install [--root PATH] [--profile NAME] [--apply|--yes] [--consumer NAME] [--consumer-baseline LABEL] [--accept-retired component:path]',
     update: 'project-forge update [--root PATH] [--profile NAME] [--apply|--yes] [--accept-retired component:path]',
+    repair: 'project-forge repair [--root PATH] [--profile NAME] [--apply|--yes]',
     status: 'project-forge status [--root PATH] [--profile NAME]',
     check: 'project-forge check [--root PATH] [--profile NAME]',
     version: 'project-forge version'
@@ -91,14 +92,14 @@ function usage(command) {
     return;
   }
 
-  console.log(`@mriekki/project-forge\n\nCommands:\n  install   Preview/install bundled Project Forge assets\n  update    Preview/update to this package's bundled Project Forge assets\n  status    Show installed umbrella/component provenance\n  check     Verify managed files and baselines exactly match this package\n  version   Show package version\n\nCommon options:\n  --root PATH\n  --profile greenfield-project\n  --apply | --yes\n  --consumer NAME\n  --consumer-baseline LABEL\n  --accept-retired core:path\n  -h, --help\n`);
+  console.log(`@mriekki/project-forge\n\nCommands:\n  install   Preview/install bundled Project Forge assets\n  update    Preview/update to this package's bundled Project Forge assets\n  repair    Restore missing managed files from exactly this installed package only\n  status    Show installed umbrella/component provenance\n  check     Verify managed files and baselines exactly match this package\n  version   Show package version\n\nCommon options:\n  --root PATH\n  --profile greenfield-project\n  --apply | --yes\n  --consumer NAME\n  --consumer-baseline LABEL\n  --accept-retired core:path\n  -h, --help\n`);
 }
 
 export async function run(argv = process.argv.slice(2), packageData = loadPackageData()) {
   const { command, options } = parseArgs(argv);
   if (command === 'help') { usage(); return 0; }
   if (options.help) {
-    if (!['install', 'update', 'status', 'check', 'version'].includes(command)) throw new Error(`Unknown command: ${command}`);
+    if (!['install', 'update', 'repair', 'status', 'check', 'version'].includes(command)) throw new Error(`Unknown command: ${command}`);
     usage(command);
     return 0;
   }
@@ -135,6 +136,34 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
     const clean = result.clean && bootstrapCurrent;
     console.log(`Project Forge check: ${clean ? 'PASS' : 'STALE OR DRIFTED'}`);
     return clean ? 0 : 1;
+  }
+
+  if (command === 'repair') {
+    if (!Object.keys(installed).length) throw new Error('No Project Forge baseline; install first.');
+    if (installed.profile !== profile) throw new Error('Repair must use the exact installed profile.');
+    const bootstrap = planBootstrapMigrations(packageData, root);
+    const plan = planRepair(packageData, profile, root);
+    console.log(`Project Forge repair: ${plan.missing.length} missing managed file(s)`);
+    for (const file of plan.missing) console.log(`  MISSING ${file.component}: ${file.path}`);
+    for (const blocker of plan.blockers) console.log(`  BLOCKED: ${blocker}`);
+    if (bootstrap.rows.length || bootstrap.unsafe.length || !plan.safe) {
+      console.log('Refusing repair: stale package, migration, local edits, or conflicting files. No changes made.');
+      return 2;
+    }
+    if (plan.missing.length === 0) {
+      console.log('Project Forge repair: already complete; no changes made.');
+      return 0;
+    }
+    if (!await shouldApply(options)) {
+      console.log('Preview only. Re-run with --apply after reviewing missing managed files.');
+      return 0;
+    }
+    applyRepair(packageData, profile, root);
+    if (!checkProfile(packageData, profile, root).clean) {
+      throw new Error('Repair completed but final managed-file verification is not clean.');
+    }
+    console.log(`Project Forge repair: PASS (${packageData.pkg.name}@${packageData.pkg.version})`);
+    return 0;
   }
 
   if (!['install', 'update'].includes(command)) throw new Error(`Unknown command: ${command}`);

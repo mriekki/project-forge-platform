@@ -19,6 +19,10 @@ on:
         description: Exact accepted Project Forge Deployment main revision
         required: true
         type: string
+      authentication_revision:
+        description: Optional exact reviewed Authentication Kit main revision for the complete next kit
+        required: false
+        type: string
   issues:
     types: [opened]
 
@@ -59,6 +63,7 @@ jobs:
           DISPATCH_SOURCE_COMMIT: ${{ inputs.source_commit }}
           DISPATCH_CORE_REVISION: ${{ inputs.core_revision }}
           DISPATCH_DEPLOYMENT_REVISION: ${{ inputs.deployment_revision }}
+          DISPATCH_AUTHENTICATION_REVISION: ${{ inputs.authentication_revision }}
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
@@ -69,7 +74,8 @@ jobs:
                 version: process.env.DISPATCH_VERSION,
                 sourceCommit: process.env.DISPATCH_SOURCE_COMMIT,
                 coreRevision: process.env.DISPATCH_CORE_REVISION,
-                deploymentRevision: process.env.DISPATCH_DEPLOYMENT_REVISION
+                deploymentRevision: process.env.DISPATCH_DEPLOYMENT_REVISION,
+                authenticationRevision: process.env.DISPATCH_AUTHENTICATION_REVISION
               }
             : JSON.parse(event.issue?.body ?? '');
 
@@ -82,7 +88,13 @@ jobs:
             }
           }
 
+          if (request.authenticationRevision &&
+              !/^[0-9a-f]{40}$/.test(request.authenticationRevision)) {
+            throw new Error('Authentication Kit revision must be an exact accepted lowercase commit SHA');
+          }
+
           for (const [key, value] of Object.entries({
+            authentication_revision: request.authenticationRevision ?? '',
             version: request.version,
             source_commit: request.sourceCommit,
             core_revision: request.coreRevision,
@@ -121,6 +133,8 @@ jobs:
         env:
           CORE_SOURCE_REPOSITORY: ${{ secrets.CORE_SOURCE_REPOSITORY }}
           DEPLOYMENT_SOURCE_REPOSITORY: ${{ secrets.DEPLOYMENT_SOURCE_REPOSITORY }}
+          AUTHENTICATION_SOURCE_REPOSITORY: ${{ secrets.AUTHENTICATION_SOURCE_REPOSITORY }}
+          AUTH_REVISION: ${{ steps.request.outputs.authentication_revision }}
         run: |
           set -euo pipefail
           for name in CORE_SOURCE_REPOSITORY DEPLOYMENT_SOURCE_REPOSITORY; do
@@ -133,6 +147,14 @@ jobs:
           done
           echo "core=$CORE_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
           echo "deployment=$DEPLOYMENT_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          if [[ -n "$AUTH_REVISION" ]]; then
+            if [[ ! "${AUTHENTICATION_SOURCE_REPOSITORY:-}" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+              echo "Missing protected Authentication source mapping" >&2
+              exit 1
+            fi
+            echo "::add-mask::$AUTHENTICATION_SOURCE_REPOSITORY"
+            echo "authentication=$AUTHENTICATION_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Checkout accepted Core main
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -154,11 +176,23 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Checkout accepted Authentication Kit main (only for requested complete release)
+        if: ${{ steps.request.outputs.authentication_revision != '' }}
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.sources.outputs.authentication }}
+          ref: main
+          path: .release-sources/authentication
+          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
+
       - name: Verify exact component main revisions
         shell: bash
         env:
           CORE_REVISION: ${{ steps.request.outputs.core_revision }}
           DEPLOYMENT_REVISION: ${{ steps.request.outputs.deployment_revision }}
+          AUTHENTICATION_REVISION: ${{ steps.request.outputs.authentication_revision }}
         run: |
           set -euo pipefail
 
@@ -177,6 +211,9 @@ jobs:
 
           verify_checkout .release-sources/core "$CORE_REVISION"
           verify_checkout .release-sources/deployment "$DEPLOYMENT_REVISION"
+          if [[ -n "$AUTHENTICATION_REVISION" ]]; then
+            verify_checkout .release-sources/authentication "$AUTHENTICATION_REVISION"
+          fi
 
       - name: Create isolated release branch
         id: branch
@@ -197,19 +234,29 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ steps.request.outputs.version }}
-        run: >-
-          node scripts/prepare-package-update.mjs
-          --version "$VERSION"
-          --core-root .release-sources/core
-          --deployment-root .release-sources/deployment
+          AUTHENTICATION_REVISION: ${{ steps.request.outputs.authentication_revision }}
+          PROJECT_FORGE_AUTH_SOURCE_REPOSITORY: ${{ steps.sources.outputs.authentication }}
+        run: |
+          set -euo pipefail
+          args=(--version "$VERSION"
+            --core-root .release-sources/core
+            --deployment-root .release-sources/deployment)
+          if [[ -n "$AUTHENTICATION_REVISION" ]]; then
+            args+=(--authentication-root .release-sources/authentication)
+          fi
+          node scripts/prepare-package-update.mjs "${args[@]}"
 
       - name: Assemble and verify exact package assets
         shell: bash
+        env:
+          AUTHENTICATION_REVISION: ${{ steps.request.outputs.authentication_revision }}
         run: |
           set -euo pipefail
-          node scripts/assemble-assets.mjs \
-            --core-root .release-sources/core \
-            --deployment-root .release-sources/deployment
+          args=(--core-root .release-sources/core --deployment-root .release-sources/deployment)
+          if [[ -n "$AUTHENTICATION_REVISION" ]]; then
+            args+=(--authentication-root .release-sources/authentication)
+          fi
+          node scripts/assemble-assets.mjs "${args[@]}"
           node scripts/verify-assets.mjs
           npm test
           git diff --check
@@ -217,6 +264,9 @@ jobs:
       - name: Verify preparation diff scope
         shell: bash
         run: |
+          if [ -f assets/authentication/distribution.json ]; then
+            git add -N assets/authentication/distribution.json
+          fi
           node --input-type=module <<'NODE'
           import { execFileSync } from 'node:child_process';
 
@@ -231,7 +281,8 @@ jobs:
             'package-lock.json',
             'assets/components.json',
             'assets/core/distribution.json',
-            'assets/deployment/distribution.json'
+            'assets/deployment/distribution.json',
+            'assets/authentication/distribution.json'
           ]);
           const unexpected = changed.filter((file) => !exact.has(file));
           if (unexpected.length) {
@@ -249,6 +300,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json assets/components.json assets/core/distribution.json assets/deployment/distribution.json
+          if [ -f assets/authentication/distribution.json ]; then
+            git add assets/authentication/distribution.json
+          fi
           git commit -m "Prepare Project Forge ${VERSION}"
           git push origin "HEAD:refs/heads/${BRANCH}"
 

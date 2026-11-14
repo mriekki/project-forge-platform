@@ -20,6 +20,28 @@ export function resolveUnder(root, relative, label = 'path') {
   const base = path.resolve(root);
   const candidate = path.resolve(base, ...rel.split('/'));
   if (candidate !== base && !candidate.startsWith(base + path.sep)) throw new Error(`${label} escapes root: ${relative}`);
+
+  // Lexical containment alone does not establish filesystem containment.
+  // A managed destination parent, package source parent, or even a dangling
+  // leaf symlink can redirect read/copy/delete operations outside the root.
+  // lstat (not exists/stat) also detects dangling links. Missing directories
+  // are allowed for first install, and are created only during apply.
+  let current = base;
+  const parts = [base, ...rel.split('/')];
+  for (const [index, part] of parts.entries()) {
+    if (index > 0) current = path.join(current, part);
+    let stat;
+    try {
+      stat = fs.lstatSync(current);
+    } catch (error) {
+      if (error.code === 'ENOENT') continue;
+      throw error;
+    }
+    if (stat.isSymbolicLink()) throw new Error(`Unsafe ${label}: symlink in managed path ${relative}`);
+    if (index < parts.length - 1 && !stat.isDirectory()) {
+      throw new Error(`Unsafe ${label}: non-directory ancestor in ${relative}`);
+    }
+  }
   return candidate;
 }
 
@@ -30,6 +52,7 @@ export function sha256File(file) {
 function baselineFile(componentId) {
   if (componentId === 'core') return 'CORE_BASELINE.json';
   if (componentId === 'deployment') return 'DEPLOYMENT_BASELINE.json';
+  if (componentId === 'authentication') return 'AUTHENTICATION_BASELINE.json';
   throw new Error(`Unsupported component: ${componentId}`);
 }
 
@@ -120,7 +143,7 @@ export function planComponent(packageData, componentId, targetRoot, acceptedReti
   if (!component) throw new Error(`Package does not define component ${componentId}`);
   componentRevision(component);
   const filename = baselineFile(componentId);
-  const baseline = loadOptionalJson(path.join(targetRoot, filename));
+  const baseline = loadOptionalJson(resolveUnder(targetRoot, filename, 'component baseline'));
   validateBaselineIdentity(baseline, componentId, component, filename);
 
   const entries = componentEntries(packageData, componentId);
@@ -197,6 +220,15 @@ export function planProfile(packageData, profileName, targetRoot, acceptedRetire
 
 export function applyProfile(packageData, profilePlan, targetRoot, consumer, consumerBaseline) {
   if (profilePlan.unsafe.length) throw new Error('Refusing apply: plan contains unsafe drift/conflicts');
+  // Preflight the complete write set before changing any managed files.
+  // Baselines must not be allowed to follow a symlink outside the Project
+  // after an otherwise safe plan was produced.
+  for (const plan of profilePlan.plans) {
+    resolveUnder(targetRoot, plan.filename, 'component baseline');
+    for (const row of plan.rows) resolveUnder(targetRoot, row.path, 'consumer destination');
+    for (const retired of plan.retired) resolveUnder(targetRoot, retired.path, 'retired destination');
+  }
+  resolveUnder(targetRoot, 'PROJECT_FORGE_BASELINE.json', 'umbrella baseline');
   for (const plan of profilePlan.plans) {
     for (const row of plan.rows) {
       if (!['ADD', 'CORE_UPDATE', 'KIT_UPDATE'].includes(row.state)) continue;
@@ -210,7 +242,7 @@ export function applyProfile(packageData, profilePlan, targetRoot, consumer, con
   }
   for (const plan of profilePlan.plans) {
     const baseline = buildComponentBaseline(plan, consumer, consumerBaseline);
-    fs.writeFileSync(path.join(targetRoot, plan.filename), JSON.stringify(baseline, null, 2) + '\n');
+    fs.writeFileSync(resolveUnder(targetRoot, plan.filename, 'component baseline'), JSON.stringify(baseline, null, 2) + '\n');
   }
   const projectForgeBaseline = {
     schemaVersion: 2,
@@ -225,18 +257,68 @@ export function applyProfile(packageData, profilePlan, targetRoot, consumer, con
       distribution: plan.component.distribution
     }]))
   };
-  fs.writeFileSync(path.join(targetRoot, 'PROJECT_FORGE_BASELINE.json'), JSON.stringify(projectForgeBaseline, null, 2) + '\n');
+  fs.writeFileSync(resolveUnder(targetRoot, 'PROJECT_FORGE_BASELINE.json', 'umbrella baseline'), JSON.stringify(projectForgeBaseline, null, 2) + '\n');
   return projectForgeBaseline;
 }
 
 export function checkProfile(packageData, profileName, targetRoot) {
   const plan = planProfile(packageData, profileName, targetRoot);
-  const projectForgeBaseline = loadOptionalJson(path.join(targetRoot, 'PROJECT_FORGE_BASELINE.json'));
+  const projectForgeBaseline = loadProjectForgeBaseline(targetRoot);
   const projectForgeCurrent = projectForgeBaseline.schemaVersion === 2 && projectForgeBaseline.package === packageData.pkg.name && projectForgeBaseline.version === packageData.pkg.version && projectForgeBaseline.profile === profileName;
   const componentClean = plan.plans.every((component) => component.metadataCurrent && component.rows.every((row) => row.state === 'SAME') && component.retired.length === 0);
   return { clean: projectForgeCurrent && componentClean, projectForgeCurrent, plan, projectForgeBaseline };
 }
 
+export function planRepair(packageData, profileName, targetRoot) {
+  const current = checkProfile(packageData, profileName, targetRoot);
+  const plan = current.plan;
+  const missing = [];
+  const blockers = [];
+  if (!current.projectForgeCurrent) blockers.push('Installed umbrella baseline is not this exact package/profile.');
+  for (const component of plan.plans) {
+    if (!component.metadataCurrent) blockers.push(`Stale or missing ${component.componentId} baseline.`);
+    if (component.retired.length) blockers.push(`Retired ${component.componentId} paths require update review.`);
+    const recorded = new Map((component.baseline.managedPaths ?? []).map((item) => [item.path, item.sha256]));
+    for (const row of component.rows) {
+      if (row.state === 'LOCAL_MISSING') {
+        if (recorded.get(row.path) !== row.desiredHash) {
+          blockers.push(`${component.componentId}: package bytes differ from installed baseline: ${row.path}`);
+        } else {
+          missing.push({ component: component.componentId, path: row.path });
+        }
+      } else if (row.state !== 'SAME') {
+        blockers.push(`${component.componentId}: ${row.state}: ${row.path}`);
+      }
+    }
+  }
+  return { plan, missing, blockers, safe: blockers.length === 0 };
+}
+
+export function applyRepair(packageData, profileName, targetRoot) {
+  // Do not trust a previously displayed plan: re-evaluate every digest and
+  // symlink/baseline path immediately before any restoration.
+  const repair = planRepair(packageData, profileName, targetRoot);
+  if (!repair.safe) throw new Error('Refusing repair: installed baselines, package, or managed paths are stale/drifted.');
+  for (const component of repair.plan.plans) {
+    resolveUnder(targetRoot, component.filename, 'component baseline');
+    for (const row of component.rows) resolveUnder(targetRoot, row.path, 'consumer destination');
+  }
+  resolveUnder(targetRoot, 'PROJECT_FORGE_BASELINE.json', 'umbrella baseline');
+  for (const component of repair.plan.plans) {
+    for (const row of component.rows) {
+      if (row.state !== 'LOCAL_MISSING') continue;
+      const destination = resolveUnder(targetRoot, row.path, 'consumer destination');
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      // COPYFILE_EXCL refuses a file created after the preflight, rather than
+      // following a fresh destination link or overwriting an unreviewed edit.
+      fs.copyFileSync(row.bundlePath, destination, fs.constants.COPYFILE_EXCL);
+    }
+  }
+  // Exactly the installed package's accepted bytes are restored; all
+  // component/umbrella provenance and consumer-owned files remain unchanged.
+  return repair.missing;
+}
+
 export function loadProjectForgeBaseline(targetRoot) {
-  return loadOptionalJson(path.join(targetRoot, 'PROJECT_FORGE_BASELINE.json'));
+  return loadOptionalJson(resolveUnder(targetRoot, 'PROJECT_FORGE_BASELINE.json', 'umbrella baseline'));
 }
