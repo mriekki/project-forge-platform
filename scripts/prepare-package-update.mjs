@@ -95,7 +95,10 @@ function assertPlatformPreparationState(root) {
 export function reconcileHouseholdAuthProfile(profiles) {
   const standard = profiles['greenfield-project'];
   if (!standard || !Array.isArray(standard.components) ||
-      standard.components.includes('authentication')) {
+      standard.components.includes('authentication') ||
+      !standard.components.includes('core') ||
+      !standard.components.includes('deployment') ||
+      new Set(standard.components).size !== standard.components.length) {
     throw new Error('Standard Project Forge profile must remain authentication-free');
   }
   const expected = [...standard.components, 'authentication'];
@@ -115,6 +118,58 @@ export function reconcileHouseholdAuthProfile(profiles) {
     ...structuredClone(standard),
     components: expected
   };
+}
+
+const REQUIRED_AUTH_RECOVERY_SOURCES = new Map([
+  ['tools/project_auth_recovery.py', 'tools/project-forge-auth-kit/project_auth_recovery.py'],
+  ['docs/AUTH_RECOVERY_RETENTION.md', 'tools/project-forge-auth-kit/docs/AUTH_RECOVERY_RETENTION.md']
+]);
+const REQUIRED_DEPLOYMENT_RECOVERY_SOURCES = new Map([
+  ['src/project_forge_deployment/auth_recovery_guard.py',
+    'tools/project-forge-deployment/project_forge_deployment/auth_recovery_guard.py'],
+  ['src/project_forge_deployment/auth_recovery_capture.py',
+    'tools/project-forge-deployment/project_forge_deployment/auth_recovery_capture.py'],
+  ['src/project_forge_deployment/auth_recovery_lifecycle.py',
+    'tools/project-forge-deployment/project_forge_deployment/auth_recovery_lifecycle.py']
+]);
+
+export function assertAuthRecoverySourceCoverage(deploymentRoot, authenticationRoot) {
+  // This is a release *source completeness* gate, not provider or dynamic
+  // application recovery evidence. Both roots are independently checked as
+  // clean, exact accepted Git main revisions by preparePackageUpdate.
+  for (const [id, root, required] of [
+    ['authentication', authenticationRoot, REQUIRED_AUTH_RECOVERY_SOURCES],
+    ['deployment', deploymentRoot, REQUIRED_DEPLOYMENT_RECOVERY_SOURCES]
+  ]) {
+    const descriptorPath = path.join(root, 'distributions', 'greenfield-project.json');
+    if (!fs.existsSync(descriptorPath) || fs.lstatSync(descriptorPath).isSymbolicLink()) {
+      throw new Error(`Missing accepted ${id} recovery distribution descriptor`);
+    }
+    const descriptor = readJson(descriptorPath);
+    if (descriptor.schemaVersion !== 1 || descriptor.name !== 'greenfield-project' ||
+        !Array.isArray(descriptor.mappings) ||
+        (id === 'authentication' && descriptor.component !== 'authentication')) {
+      throw new Error(`Invalid accepted ${id} recovery distribution`);
+    }
+    const mappings = new Map();
+    for (const row of descriptor.mappings) {
+      if (typeof row?.source !== 'string' || typeof row?.destination !== 'string' ||
+          mappings.has(row.destination)) {
+        throw new Error(`Malformed or duplicate ${id} managed recovery distribution mapping`);
+      }
+      mappings.set(row.destination, row.source);
+    }
+    for (const [source, destination] of required) {
+      if (mappings.get(destination) !== source) {
+        throw new Error(`Incomplete ${id} recovery source distribution: ${destination}`);
+      }
+      const file = path.join(root, source);
+      if (!fs.existsSync(file) || fs.lstatSync(file).isSymbolicLink() ||
+          !fs.statSync(file).isFile()) {
+        throw new Error(`Missing accepted ${id} recovery source: ${source}`);
+      }
+    }
+  }
 }
 
 export function parseArgs(argv) {
@@ -167,6 +222,7 @@ export function preparePackageUpdate(args, root = ROOT) {
     }
     authentication = assertExactAcceptedMain(args.authenticationRoot, 'Project Forge Authentication source');
     assertExpectedOrigin(authentication.root, [approvedSource], 'Project Forge Authentication source');
+    assertAuthRecoverySourceCoverage(deployment.root, authentication.root);
   } else if (components.components.authentication) {
     throw new Error('An existing Auth Kit component cannot be released without its exact accepted source');
   }
