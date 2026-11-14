@@ -54,7 +54,8 @@ test('Auth package preparation requires both pinned recovery source distribution
   const deploymentFiles = [
     ['src/project_forge_deployment/auth_recovery_guard.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_guard.py'],
     ['src/project_forge_deployment/auth_recovery_capture.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_capture.py'],
-    ['src/project_forge_deployment/auth_recovery_lifecycle.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_lifecycle.py']
+    ['src/project_forge_deployment/auth_recovery_lifecycle.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_lifecycle.py'],
+    ['src/project_forge_deployment/auth_recovery_schedule.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_schedule.py']
   ];
   function seed(root, files, id) {
     for (const [source] of files) {
@@ -75,9 +76,9 @@ test('Auth package preparation requires both pinned recovery source distribution
     const a = seed(authentication, authFiles, 'authentication');
     const d = seed(deployment, deploymentFiles, 'deployment');
     assert.equal(assertAuthRecoverySourceCoverage(deployment, authentication), undefined);
-    fs.rmSync(path.join(deployment, deploymentFiles[2][0]));
+    fs.rmSync(path.join(deployment, deploymentFiles[3][0]));
     assert.throws(() => assertAuthRecoverySourceCoverage(deployment, authentication), /Missing accepted deployment recovery source/);
-    fs.writeFileSync(path.join(deployment, deploymentFiles[2][0]), 'synthetic nonsecret fixture');
+    fs.writeFileSync(path.join(deployment, deploymentFiles[3][0]), 'synthetic nonsecret fixture');
     const original = fs.readFileSync(a, 'utf8');
     const broken = JSON.parse(original);
     broken.mappings = broken.mappings.slice(0, 1);
