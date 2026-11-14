@@ -41,7 +41,7 @@ test('publication recovery source guard is valid Bash and avoids nested heredoc 
 });
 
 test('publication optionally includes exact Auth Kit only when the package declares it', () => {
-  const workflow = fs.readFileSync(WORKFLOW, 'utf8');
+  const workflow = fs.readFileSync(WORKFLOW, 'utf8').replace(/\r\n/g, '\n');
   const pins = extractRunBlock(workflow, 'Resolve exact component pins');
   const sources = extractRunBlock(workflow, 'Resolve protected source repositories');
   const checkouts = extractRunBlock(workflow, 'Verify exact private source checkouts');
