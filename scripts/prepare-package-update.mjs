@@ -130,7 +130,9 @@ const REQUIRED_DEPLOYMENT_RECOVERY_SOURCES = new Map([
   ['src/project_forge_deployment/auth_recovery_capture.py',
     'tools/project-forge-deployment/project_forge_deployment/auth_recovery_capture.py'],
   ['src/project_forge_deployment/auth_recovery_lifecycle.py',
-    'tools/project-forge-deployment/project_forge_deployment/auth_recovery_lifecycle.py']
+    'tools/project-forge-deployment/project_forge_deployment/auth_recovery_lifecycle.py'],
+  ['src/project_forge_deployment/auth_recovery_schedule.py',
+    'tools/project-forge-deployment/project_forge_deployment/auth_recovery_schedule.py']
 ]);
 
 export function assertAuthRecoverySourceCoverage(deploymentRoot, authenticationRoot) {
