@@ -80,6 +80,9 @@ test('Auth package preparation requires both pinned recovery source distribution
     fs.rmSync(path.join(deployment, deploymentFiles[3][0]));
     assert.throws(() => assertAuthRecoverySourceCoverage(deployment, authentication), /Missing accepted deployment recovery source/);
     fs.writeFileSync(path.join(deployment, deploymentFiles[3][0]), 'synthetic nonsecret fixture');
+    fs.rmSync(path.join(deployment, deploymentFiles[4][0]));
+    assert.throws(() => assertAuthRecoverySourceCoverage(deployment, authentication), /Missing accepted deployment recovery source/);
+    fs.writeFileSync(path.join(deployment, deploymentFiles[4][0]), 'synthetic nonsecret fixture');
     const original = fs.readFileSync(a, 'utf8');
     const broken = JSON.parse(original);
     broken.mappings = broken.mappings.slice(0, 1);
