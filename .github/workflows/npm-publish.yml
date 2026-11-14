@@ -537,6 +537,9 @@ jobs:
               deployment: {
                 revision: components.components.deployment.revision,
               },
+              ...(components.components.authentication
+                ? { authentication: { revision: components.components.authentication.revision } }
+                : {}),
             },
             artifact: {
               releaseCandidateSha256: manifest.tarball.sha256,
