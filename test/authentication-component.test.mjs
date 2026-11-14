@@ -55,7 +55,8 @@ test('Auth package preparation requires both pinned recovery source distribution
     ['src/project_forge_deployment/auth_recovery_guard.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_guard.py'],
     ['src/project_forge_deployment/auth_recovery_capture.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_capture.py'],
     ['src/project_forge_deployment/auth_recovery_lifecycle.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_lifecycle.py'],
-    ['src/project_forge_deployment/auth_recovery_schedule.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_schedule.py']
+    ['src/project_forge_deployment/auth_recovery_schedule.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_schedule.py'],
+    ['src/project_forge_deployment/auth_recovery_retention.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_retention.py']
   ];
   function seed(root, files, id) {
     for (const [source] of files) {
