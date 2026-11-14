@@ -57,3 +57,31 @@ test('release receipt CLI requires one exact semantic version', () => {
   assert.throws(() => parseArgs(['--version', 'latest']), /version is invalid/);
   assert.throws(() => parseArgs([]), /version is invalid/);
 });
+
+test('Auth release receipts require accepted exact component revision and Auth CI', () => {
+  const base = JSON.parse(fs.readFileSync(path.join(RECEIPTS, '4.26.1.json'), 'utf8'));
+  const auth = structuredClone(base);
+  auth.components.authentication = { revision: 'a'.repeat(40) };
+  auth.ci.authenticationMain = { result: 'success', workflowRunId: 123456 };
+  assert.equal(validateReleaseReceipt(auth).components.authentication.revision, 'a'.repeat(40));
+
+  const noAuthCI = structuredClone(auth);
+  delete noAuthCI.ci.authenticationMain;
+  assert.throws(() => validateReleaseReceipt(noAuthCI), /ci.authenticationMain/);
+
+  const badRevision = structuredClone(auth);
+  badRevision.components.authentication.revision = 'main';
+  assert.throws(() => validateReleaseReceipt(badRevision), /components.authentication.revision/);
+
+  const exposedRepo = structuredClone(auth);
+  exposedRepo.components.authentication.sourceRepository = 'private/repository';
+  assert.throws(() => validateReleaseReceipt(exposedRepo), /forbidden component source field/);
+
+  const extraneous = structuredClone(auth);
+  extraneous.components.unknown = { revision: 'b'.repeat(40) };
+  assert.throws(() => validateReleaseReceipt(extraneous), /exactly Core, Deployment and optional Authentication/);
+
+  const legacyMislabel = structuredClone(base);
+  legacyMislabel.ci.authenticationMain = { result: 'success', workflowRunId: 123456 };
+  assert.throws(() => validateReleaseReceipt(legacyMislabel), /Non-Auth release receipt/);
+});
