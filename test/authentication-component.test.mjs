@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { applyProfile, checkProfile, planProfile } from '../src/engine.mjs';
-import { reconcileHouseholdAuthProfile } from '../scripts/prepare-package-update.mjs';
+import { reconcileHouseholdAuthProfile, assertAuthRecoverySourceCoverage } from '../scripts/prepare-package-update.mjs';
 
 function fixture() {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-auth-package-contract-'));
@@ -42,6 +42,56 @@ function fixture() {
   };
   return { base, target, file, pkg };
 }
+
+test('Auth package preparation requires both pinned recovery source distributions', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-recovery-source-gate-'));
+  const deployment = path.join(base, 'deployment');
+  const authentication = path.join(base, 'authentication');
+  const authFiles = [
+    ['tools/project_auth_recovery.py', 'tools/project-forge-auth-kit/project_auth_recovery.py'],
+    ['docs/AUTH_RECOVERY_RETENTION.md', 'tools/project-forge-auth-kit/docs/AUTH_RECOVERY_RETENTION.md']
+  ];
+  const deploymentFiles = [
+    ['src/project_forge_deployment/auth_recovery_guard.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_guard.py'],
+    ['src/project_forge_deployment/auth_recovery_capture.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_capture.py'],
+    ['src/project_forge_deployment/auth_recovery_lifecycle.py', 'tools/project-forge-deployment/project_forge_deployment/auth_recovery_lifecycle.py']
+  ];
+  function seed(root, files, id) {
+    for (const [source] of files) {
+      const file = path.join(root, source);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, 'synthetic nonsecret fixture');
+    }
+    const file = path.join(root, 'distributions', 'greenfield-project.json');
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify({
+      schemaVersion: 1, name: 'greenfield-project',
+      ...(id === 'authentication' ? { component: 'authentication' } : {}),
+      mappings: files.map(([source, destination]) => ({ source, destination }))
+    }));
+    return file;
+  }
+  try {
+    const a = seed(authentication, authFiles, 'authentication');
+    const d = seed(deployment, deploymentFiles, 'deployment');
+    assert.equal(assertAuthRecoverySourceCoverage(deployment, authentication), undefined);
+    fs.rmSync(path.join(deployment, deploymentFiles[2][0]));
+    assert.throws(() => assertAuthRecoverySourceCoverage(deployment, authentication), /Missing accepted deployment recovery source/);
+    fs.writeFileSync(path.join(deployment, deploymentFiles[2][0]), 'synthetic nonsecret fixture');
+    const original = fs.readFileSync(a, 'utf8');
+    const broken = JSON.parse(original);
+    broken.mappings = broken.mappings.slice(0, 1);
+    fs.writeFileSync(a, JSON.stringify(broken));
+    assert.throws(() => assertAuthRecoverySourceCoverage(deployment, authentication), /Incomplete authentication recovery source/);
+    fs.writeFileSync(a, original);
+    const origDeploy = JSON.parse(fs.readFileSync(d, 'utf8'));
+    origDeploy.mappings.push({ ...origDeploy.mappings[0] });
+    fs.writeFileSync(d, JSON.stringify(origDeploy));
+    assert.throws(() => assertAuthRecoverySourceCoverage(deployment, authentication), /duplicate deployment/);
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});
 
 test('Authentication Kit is an independent exact-revision managed component, not a private repo pointer', () => {
   const f = fixture();
@@ -136,4 +186,8 @@ test('Auth release preparation rejects unexpected profile settings and standard-
 
   const missingStandard = {};
   assert.throws(() => reconcileHouseholdAuthProfile(missingStandard), /authentication-free/);
+  const noRecoveryDeployment = { 'greenfield-project': { components: ['core'] } };
+  assert.throws(() => reconcileHouseholdAuthProfile(noRecoveryDeployment), /authentication-free/);
+  const duplicateDeployment = { 'greenfield-project': { components: ['core', 'deployment', 'deployment'] } };
+  assert.throws(() => reconcileHouseholdAuthProfile(duplicateDeployment), /authentication-free/);
 });
