@@ -39,3 +39,38 @@ test('publication recovery source guard is valid Bash and avoids nested heredoc 
     execFileSync('bash', ['-n'], { input: script, encoding: 'utf8' });
   }
 });
+
+test('publication optionally includes exact Auth Kit only when the package declares it', () => {
+  const workflow = fs.readFileSync(WORKFLOW, 'utf8');
+  const pins = extractRunBlock(workflow, 'Resolve exact component pins');
+  const sources = extractRunBlock(workflow, 'Resolve protected source repositories');
+  const checkouts = extractRunBlock(workflow, 'Verify exact private source checkouts');
+  const release = extractRunBlock(workflow, 'Prepare reproducible release candidate');
+
+  assert.match(pins, /Object\.keys\(data\.components \?\? \{\}\)\.sort\(\)/);
+  assert.match(pins, /ids\.includes\('authentication'\)/);
+  assert.match(pins, /only complete Core \+ Deployment and optional Authentication/);
+  assert.match(pins, /invalid \$\{id\} revision/);
+
+  assert.match(workflow, /secrets\.AUTHENTICATION_SOURCE_REPOSITORY/);
+  assert.match(workflow, /steps\.pins\.outputs\.authentication/);
+  assert.match(sources, /required\+=\(AUTHENTICATION_SOURCE_REPOSITORY\)/);
+  assert.match(sources, /authentication=\$AUTHENTICATION_SOURCE_REPOSITORY/);
+  assert.match(workflow, /- name: Checkout exact Authentication source only when advertised\n\s+if: steps\.pins\.outputs\.authentication != ''/);
+  assert.match(workflow, /ref: \$\{\{ steps\.pins\.outputs\.authentication \}\}/);
+  assert.match(workflow, /path: \.release-sources\/authentication/);
+  assert.match(checkouts, /verify_checkout \.release-sources\/authentication "\$AUTHENTICATION_REVISION"/);
+  assert.match(release, /args\+=\(--authentication-root \.release-sources\/authentication\)/);
+  assert.match(release, /node scripts\/prepare-release\.mjs "\$\{args\[@\]\}"/);
+
+  // Retain clean, reproducible two-component publication for existing releases.
+  assert.match(release, /if \[\[ -n "\$AUTHENTICATION_REVISION" \]\]/);
+  assert.doesNotMatch(workflow, /mriekki\/project-forge-auth-kit/);
+  if (process.platform !== 'win32') {
+    for (const script of [pins, sources, checkouts, release]) {
+      // Each block contains either shell commands or the existing Node heredoc;
+      // Bash syntax validation is valid for both forms.
+      execFileSync('bash', ['-n'], { input: script, encoding: 'utf8' });
+    }
+  }
+});
