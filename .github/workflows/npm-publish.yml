@@ -229,7 +229,14 @@ jobs:
           if (data.version !== process.env.EXPECTED_VERSION) {
             throw new Error(`components version mismatch: expected ${process.env.EXPECTED_VERSION}, got ${data.version}`);
           }
-          for (const id of ['core', 'deployment']) {
+          const ids = Object.keys(data.components ?? {}).sort();
+          const supported = ['core', 'deployment'];
+          if (ids.includes('authentication')) supported.push('authentication');
+          supported.sort();
+          if (JSON.stringify(ids) !== JSON.stringify(supported)) {
+            throw new Error('Publication supports only complete Core + Deployment and optional Authentication components.');
+          }
+          for (const id of ids) {
             const revision = data.components?.[id]?.revision;
             if (typeof revision !== 'string' || !/^[0-9a-f]{40}$/.test(revision)) {
               throw new Error(`invalid ${id} revision`);
@@ -244,9 +251,15 @@ jobs:
         env:
           CORE_SOURCE_REPOSITORY: ${{ secrets.CORE_SOURCE_REPOSITORY }}
           DEPLOYMENT_SOURCE_REPOSITORY: ${{ secrets.DEPLOYMENT_SOURCE_REPOSITORY }}
+          AUTHENTICATION_SOURCE_REPOSITORY: ${{ secrets.AUTHENTICATION_SOURCE_REPOSITORY }}
+          AUTHENTICATION_REVISION: ${{ steps.pins.outputs.authentication }}
         run: |
           set -euo pipefail
-          for name in CORE_SOURCE_REPOSITORY DEPLOYMENT_SOURCE_REPOSITORY; do
+          required=(CORE_SOURCE_REPOSITORY DEPLOYMENT_SOURCE_REPOSITORY)
+          if [[ -n "$AUTHENTICATION_REVISION" ]]; then
+            required+=(AUTHENTICATION_SOURCE_REPOSITORY)
+          fi
+          for name in "${required[@]}"; do
             value="${!name:-}"
             if [[ ! "$value" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
               echo "Missing or invalid protected source repository mapping: $name" >&2
@@ -256,6 +269,9 @@ jobs:
           done
           echo "core=$CORE_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
           echo "deployment=$DEPLOYMENT_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          if [[ -n "$AUTHENTICATION_REVISION" ]]; then
+            echo "authentication=$AUTHENTICATION_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Checkout exact Core source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -275,11 +291,47 @@ jobs:
           token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
           persist-credentials: false
 
+      - name: Checkout exact Authentication source only when advertised
+        if: steps.pins.outputs.authentication != ''
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.sources.outputs.authentication }}
+          ref: ${{ steps.pins.outputs.authentication }}
+          path: .release-sources/authentication
+          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          persist-credentials: false
+
+      - name: Verify exact private source checkouts
+        shell: bash
+        env:
+          CORE_REVISION: ${{ steps.pins.outputs.core }}
+          DEPLOYMENT_REVISION: ${{ steps.pins.outputs.deployment }}
+          AUTHENTICATION_REVISION: ${{ steps.pins.outputs.authentication }}
+        run: |
+          set -euo pipefail
+          verify_checkout() {
+            local root="$1"
+            local expected="$2"
+            test "$(git -C "$root" rev-parse HEAD)" = "$expected"
+            test -z "$(git -C "$root" status --porcelain --untracked-files=no)"
+          }
+          verify_checkout .release-sources/core "$CORE_REVISION"
+          verify_checkout .release-sources/deployment "$DEPLOYMENT_REVISION"
+          if [[ -n "$AUTHENTICATION_REVISION" ]]; then
+            verify_checkout .release-sources/authentication "$AUTHENTICATION_REVISION"
+          fi
+
       - name: Prepare reproducible release candidate
-        run: >-
-          node scripts/prepare-release.mjs
-          --core-root .release-sources/core
-          --deployment-root .release-sources/deployment
+        shell: bash
+        env:
+          AUTHENTICATION_REVISION: ${{ steps.pins.outputs.authentication }}
+        run: |
+          set -euo pipefail
+          args=(--core-root .release-sources/core --deployment-root .release-sources/deployment)
+          if [[ -n "$AUTHENTICATION_REVISION" ]]; then
+            args+=(--authentication-root .release-sources/authentication)
+          fi
+          node scripts/prepare-release.mjs "${args[@]}"
 
       - name: Verify release manifest matches authorization
         shell: bash
