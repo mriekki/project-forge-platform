@@ -18,7 +18,7 @@ test('Platform CI exposes one stable required branch-protection gate', () => {
 test('Platform CI tests every supported Node line on Ubuntu only', () => {
   const workflow = fs.readFileSync(path.join(WORKFLOWS, 'ci.yml'), 'utf8');
   assert.match(workflow, /runs-on: ubuntu-latest/);
-  assert.doesNotMatch(workflow, /windows-latest|macos-latest|matrix\\.os/);
+  assert.doesNotMatch(workflow, /windows-latest|macos-latest|matrix\.os/);
   for (const version of ['20', '22', '24']) {
     assert.match(workflow, new RegExp(`- '${version}'`));
   }
