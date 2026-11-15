@@ -48,12 +48,12 @@ test('npm publish reruns exact canonical and assembled recovery safety before pu
   assert.ok(checkouts >= 0 && checkouts < assemble);
   assert.ok(assemble < preflight && preflight < manifest && manifest < publish,
     'the recovery gate must run after exact release assembly and before the npm publish step');
-  assert.match(workflow, /test_auth_recovery_lifecycle\\.py/);
-  assert.match(workflow, /test_auth_recovery_retention\\.py/);
-  assert.match(workflow, /node scripts\\/verify-assets\\.mjs/);
-  assert.match(workflow, /PROJECT_FORGE_PACKAGED_DEPLOYMENT_ROOT=assets\\/generated\\/deployment\\/src/);
-  assert.match(workflow, /test_packaged_deployment_recovery_safety\\.py/);
-  assert.match(workflow, /python-version: '3\\.11'/);
+  assert.match(workflow, /test_auth_recovery_lifecycle\.py/);
+  assert.match(workflow, /test_auth_recovery_retention\.py/);
+  assert.match(workflow, /node scripts\/verify-assets\.mjs/);
+  assert.match(workflow, /PROJECT_FORGE_PACKAGED_DEPLOYMENT_ROOT=assets\/generated\/deployment\/src/);
+  assert.match(workflow, /test_packaged_deployment_recovery_safety\.py/);
+  assert.match(workflow, /python-version: '3\.11'/);
 });
 
 test('package-owned safety tests target packaged code and all four handoff risk areas', () => {
