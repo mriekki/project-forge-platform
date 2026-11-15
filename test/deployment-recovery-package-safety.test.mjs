@@ -38,6 +38,24 @@ test('release preparation runs canonical and package-owned Auth recovery safety 
   assert.doesNotMatch(workflow, /\bnpm publish\b/);
 });
 
+test('npm publish reruns exact canonical and assembled recovery safety before publication', () => {
+  const workflow = read('.github/workflows/npm-publish.yml');
+  const checkouts = workflow.indexOf('- name: Verify exact private source checkouts');
+  const assemble = workflow.indexOf('- name: Prepare reproducible release candidate');
+  const preflight = workflow.indexOf('- name: Reverify canonical and packaged Auth recovery before any npm publish');
+  const manifest = workflow.indexOf('- name: Verify release manifest matches authorization');
+  const publish = workflow.indexOf('- name: Publish exact package with npm Trusted Publishing');
+  assert.ok(checkouts >= 0 && checkouts < assemble);
+  assert.ok(assemble < preflight && preflight < manifest && manifest < publish,
+    'the recovery gate must run after exact release assembly and before the npm publish step');
+  assert.match(workflow, /test_auth_recovery_lifecycle\\.py/);
+  assert.match(workflow, /test_auth_recovery_retention\\.py/);
+  assert.match(workflow, /node scripts\\/verify-assets\\.mjs/);
+  assert.match(workflow, /PROJECT_FORGE_PACKAGED_DEPLOYMENT_ROOT=assets\\/generated\\/deployment\\/src/);
+  assert.match(workflow, /test_packaged_deployment_recovery_safety\\.py/);
+  assert.match(workflow, /python-version: '3\\.11'/);
+});
+
 test('package-owned safety tests target packaged code and all four handoff risk areas', () => {
   const fixture = read('test/fixtures/test_packaged_deployment_recovery_safety.py');
   const components = JSON.parse(read('assets/components.json'));
