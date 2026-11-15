@@ -29,7 +29,7 @@ test('CLI accepts global help flags', () => {
 });
 
 test('CLI accepts command help flags without requiring repository state', () => {
-  for (const command of ['install', 'update', 'status', 'check', 'version']) {
+  for (const command of ['install', 'update', 'repair', 'status', 'check', 'version']) {
     for (const flag of ['--help', '-h']) {
       const result = runCli([command, flag]);
       assert.equal(result.status, 0, `${command} ${flag}: ${result.stderr}`);
@@ -43,6 +43,17 @@ test('CLI still rejects unknown options', () => {
   const result = runCli(['update', '--definitely-not-an-option']);
   assert.equal(result.status, 2);
   assert.match(result.stderr, /Project Forge error: Unknown option: --definitely-not-an-option/);
+});
+
+test('CLI repair rejects a repository with no installed umbrella baseline', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'project-forge-cli-repair-'));
+  try {
+    const result = runCli(['repair', '--root', temp, '--apply']);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /No Project Forge baseline; install first/);
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
 });
 
 test('CLI component revision display prefers schema v2 revision with legacy fallback', () => {

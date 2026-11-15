@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { applyProfile, checkProfile, planProfile, sha256File } from '../src/engine.mjs';
+import { applyProfile, applyRepair, checkProfile, planProfile, planRepair, sha256File } from '../src/engine.mjs';
 
 function fixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'project-forge-package-'));
@@ -107,6 +107,179 @@ test('legacy schema v1 baselines upgrade in place without changing managed files
   assert.equal(JSON.parse(fs.readFileSync(path.join(consumerRoot, 'CORE_BASELINE.json'))).schemaVersion, 2);
   assert.equal(JSON.parse(fs.readFileSync(path.join(consumerRoot, 'DEPLOYMENT_BASELINE.json'))).schemaVersion, 2);
   assert.equal(checkProfile(packageData, 'greenfield-project', consumerRoot).clean, true);
+});
+
+test('managed destination symlinked parent cannot escape the Project root', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const outside = path.join(root, 'outside');
+  fs.mkdirSync(outside);
+  try {
+    fs.symlinkSync(outside, path.join(consumerRoot, '.github'), 'dir');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('Directory symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => planProfile(packageData, 'greenfield-project', consumerRoot), /symlink/);
+  assert.equal(fs.existsSync(path.join(outside, 'a.txt')), false);
+  assert.equal(fs.existsSync(path.join(consumerRoot, 'tools/b.txt')), false);
+});
+
+test('dangling symlink destination never becomes an implicit write target', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const outside = path.join(root, 'must-not-create');
+  fs.mkdirSync(path.join(consumerRoot, '.github'));
+  try {
+    fs.symlinkSync(outside, path.join(consumerRoot, '.github/a.txt'), 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => planProfile(packageData, 'greenfield-project', consumerRoot), /symlink/);
+  assert.equal(fs.existsSync(outside), false);
+});
+
+test('package assets cannot be read through a symlinked source', (t) => {
+  const { root, packageRoot, consumerRoot, packageData } = fixture();
+  const outside = path.join(root, 'outside-source.txt');
+  fs.writeFileSync(outside, 'unreviewed source');
+  const source = path.join(packageRoot, 'assets/core/source/core/a.txt');
+  fs.unlinkSync(source);
+  try {
+    fs.symlinkSync(outside, source, 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => planProfile(packageData, 'greenfield-project', consumerRoot), /symlink/);
+  assert.equal(fs.existsSync(path.join(consumerRoot, '.github/a.txt')), false);
+});
+
+test('late symlink replacement blocks apply rather than copying outside root', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const plan = planProfile(packageData, 'greenfield-project', consumerRoot);
+  const outside = path.join(root, 'outside');
+  fs.mkdirSync(outside);
+  try {
+    fs.symlinkSync(outside, path.join(consumerRoot, '.github'), 'dir');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('Directory symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => applyProfile(packageData, plan, consumerRoot, 'demo', 'base'), /symlink/);
+  assert.equal(fs.existsSync(path.join(outside, 'a.txt')), false);
+  assert.equal(fs.existsSync(path.join(consumerRoot, 'PROJECT_FORGE_BASELINE.json')), false);
+});
+
+test('component baseline symlink cannot write through to an external file', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const outside = path.join(root, 'external-baseline.json');
+  fs.writeFileSync(outside, '{"owner":"outside"}\n');
+  try {
+    fs.symlinkSync(outside, path.join(consumerRoot, 'CORE_BASELINE.json'), 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => planProfile(packageData, 'greenfield-project', consumerRoot), /symlink/);
+  assert.equal(fs.readFileSync(outside, 'utf8'), '{"owner":"outside"}\n');
+  assert.equal(fs.existsSync(path.join(consumerRoot, 'tools/b.txt')), false);
+});
+
+test('umbrella baseline symlink refuses install before managed asset writes', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const outside = path.join(root, 'external-umbrella.json');
+  fs.writeFileSync(outside, '{"owner":"outside"}\n');
+  const plan = planProfile(packageData, 'greenfield-project', consumerRoot);
+  try {
+    fs.symlinkSync(outside, path.join(consumerRoot, 'PROJECT_FORGE_BASELINE.json'), 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => applyProfile(packageData, plan, consumerRoot, 'demo', 'base'), /symlink/);
+  assert.equal(fs.readFileSync(outside, 'utf8'), '{"owner":"outside"}\n');
+  assert.equal(fs.existsSync(path.join(consumerRoot, '.github/a.txt')), false);
+  assert.equal(fs.existsSync(path.join(consumerRoot, 'tools/b.txt')), false);
+});
+
+test('late component baseline replacement refuses apply before managed writes', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  const plan = planProfile(packageData, 'greenfield-project', consumerRoot);
+  const victim = path.join(root, 'dangling-baseline-target');
+  try {
+    fs.symlinkSync(victim, path.join(consumerRoot, 'DEPLOYMENT_BASELINE.json'), 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => applyProfile(packageData, plan, consumerRoot, 'demo', 'base'), /symlink/);
+  assert.equal(fs.existsSync(victim), false);
+  assert.equal(fs.existsSync(path.join(consumerRoot, '.github/a.txt')), false);
+});
+
+test('exact-version repair restores missing managed files without changing any baseline', () => {
+  const { consumerRoot, packageData } = fixture();
+  applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
+  const recorded = ['CORE_BASELINE.json', 'DEPLOYMENT_BASELINE.json', 'PROJECT_FORGE_BASELINE.json'];
+  const before = recorded.map((name) => fs.readFileSync(path.join(consumerRoot, name)));
+  const missing = path.join(consumerRoot, 'tools/b.txt');
+  fs.unlinkSync(missing);
+  const repair = planRepair(packageData, 'greenfield-project', consumerRoot);
+  assert.equal(repair.safe, true);
+  assert.deepEqual(repair.missing.map((item) => item.path), ['tools/b.txt']);
+  assert.deepEqual(applyRepair(packageData, 'greenfield-project', consumerRoot).map((item) => item.path), ['tools/b.txt']);
+  assert.equal(fs.readFileSync(missing, 'utf8'), 'kit-v1\n');
+  assert.equal(checkProfile(packageData, 'greenfield-project', consumerRoot).clean, true);
+  for (let index = 0; index < recorded.length; index += 1) {
+    assert.deepEqual(fs.readFileSync(path.join(consumerRoot, recorded[index])), before[index]);
+  }
+  assert.deepEqual(applyRepair(packageData, 'greenfield-project', consumerRoot), []);
+});
+
+test('repair fails closed on local drift without restoring other missing files', () => {
+  const { consumerRoot, packageData } = fixture();
+  applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
+  fs.unlinkSync(path.join(consumerRoot, 'tools/b.txt'));
+  fs.writeFileSync(path.join(consumerRoot, '.github/a.txt'), 'developer change\n');
+  const repair = planRepair(packageData, 'greenfield-project', consumerRoot);
+  assert.equal(repair.safe, false);
+  assert(repair.blockers.some((item) => item.includes('LOCAL_DRIFT')));
+  assert.throws(() => applyRepair(packageData, 'greenfield-project', consumerRoot), /Refusing repair/);
+  assert.equal(fs.existsSync(path.join(consumerRoot, 'tools/b.txt')), false);
+  assert.equal(fs.readFileSync(path.join(consumerRoot, '.github/a.txt'), 'utf8'), 'developer change\n');
+});
+
+test('repair rejects a stale package version and changed source bytes', () => {
+  const { consumerRoot, packageData } = fixture();
+  applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
+  const missing = path.join(consumerRoot, 'tools/b.txt');
+  fs.unlinkSync(missing);
+  packageData.pkg.version = '0.2.0';
+  assert.equal(planRepair(packageData, 'greenfield-project', consumerRoot).safe, false);
+  assert.throws(() => applyRepair(packageData, 'greenfield-project', consumerRoot), /Refusing repair/);
+  packageData.pkg.version = '0.1.0';
+  fs.writeFileSync(path.join(packageData.root, 'assets/deployment/source/src/b.txt'), 'tampered-source\n');
+  const repair = planRepair(packageData, 'greenfield-project', consumerRoot);
+  assert.equal(repair.safe, false);
+  assert(repair.blockers.some((item) => item.includes('package bytes differ')));
+  assert.throws(() => applyRepair(packageData, 'greenfield-project', consumerRoot), /Refusing repair/);
+  assert.equal(fs.existsSync(missing), false);
+});
+
+test('repair refuses a symlinked replacement for a previously missing file', (t) => {
+  const { root, consumerRoot, packageData } = fixture();
+  applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
+  const missing = path.join(consumerRoot, 'tools/b.txt');
+  fs.unlinkSync(missing);
+  const outside = path.join(root, 'external-missing-target');
+  try {
+    fs.symlinkSync(outside, missing, 'file');
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) return t.skip('File symlinks unavailable');
+    throw error;
+  }
+  assert.throws(() => applyRepair(packageData, 'greenfield-project', consumerRoot), /symlink/);
+  assert.equal(fs.existsSync(outside), false);
 });
 
 test('local drift blocks the whole apply', () => {

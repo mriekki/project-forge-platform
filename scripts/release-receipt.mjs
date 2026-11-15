@@ -59,8 +59,22 @@ export function validateReleaseReceipt(receipt, expectedVersion = null) {
   requireMatch(core.version, EXACT_SEMVER, 'components.core.version');
   const deployment = requireObject(components.deployment, 'components.deployment');
   requireMatch(deployment.revision, SHA40, 'components.deployment.revision');
+  const componentIds = Object.keys(components).sort();
+  const acceptedIds = ['core', 'deployment'];
+  const hasAuthentication = Object.hasOwn(components, 'authentication');
+  if (hasAuthentication) acceptedIds.push('authentication');
+  acceptedIds.sort();
+  if (JSON.stringify(componentIds) !== JSON.stringify(acceptedIds)) {
+    throw new Error('Release receipt must contain exactly Core, Deployment and optional Authentication.');
+  }
+  const authentication = hasAuthentication
+    ? requireObject(components.authentication, 'components.authentication')
+    : null;
+  if (authentication) {
+    requireMatch(authentication.revision, SHA40, 'components.authentication.revision');
+  }
 
-  for (const component of [core, deployment]) {
+  for (const component of [core, deployment, ...(authentication ? [authentication] : [])]) {
     for (const forbidden of ['repository', 'sourceRepository', 'sourceRepositoryUrl', 'privateRepository']) {
       if (Object.hasOwn(component, forbidden)) {
         throw new Error(`release receipt exposes forbidden component source field ${forbidden}`);
@@ -89,6 +103,11 @@ export function validateReleaseReceipt(receipt, expectedVersion = null) {
   requireCiEvidence(ci.coreMain, 'ci.coreMain');
   requireCiEvidence(ci.deploymentMain, 'ci.deploymentMain');
   requireCiEvidence(ci.platformMain, 'ci.platformMain');
+  if (authentication) {
+    requireCiEvidence(ci.authenticationMain, 'ci.authenticationMain');
+  } else if (Object.hasOwn(ci, 'authenticationMain')) {
+    throw new Error('Non-Auth release receipt cannot claim Authentication CI.');
+  }
 
   return value;
 }

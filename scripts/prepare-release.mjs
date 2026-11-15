@@ -101,6 +101,7 @@ export function parseArgs(argv) {
     const arg = argv[i];
     if (arg === '--core-root') values.core = argv[++i];
     else if (arg === '--deployment-root') values.deployment = argv[++i];
+    else if (arg === '--authentication-root') values.authentication = argv[++i];
     else if (arg === '--output') values.output = argv[++i];
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -111,7 +112,11 @@ export function parseArgs(argv) {
 export function prepareRelease(args, packageData = loadPackageData()) {
   const sourceCommit = assertReleaseSource(packageData);
   runNpm(['test'], { cwd: packageData.root });
-  const assembly = assembleAssets(packageData, { core: args.core, deployment: args.deployment });
+  const assembly = assembleAssets(packageData, {
+    core: args.core,
+    deployment: args.deployment,
+    authentication: args.authentication
+  });
   const assetCount = verifyAssets(packageData);
 
   const releaseRoot = path.resolve(args.output ?? path.join(packageData.root, 'dist', 'release'));
