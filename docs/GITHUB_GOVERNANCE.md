@@ -21,7 +21,7 @@ If a bypass later becomes necessary, document the exact actor and reason before 
 
 External actions used by Platform workflows must be pinned to exact immutable commit SHAs. CI enforces this across `.github/workflows` so a floating action tag cannot be introduced silently.
 
-The public package advertises Node `>=20`. Routine Platform CI therefore exercises Node 20, 22, and 24 on both Ubuntu and Windows, with the stable aggregate `required` job remaining the branch-ruleset gate.
+The public package advertises Node `>=20`. Routine Platform CI exercises Node 20, 22, and 24 on Ubuntu only, with the stable aggregate `required` job remaining the branch-ruleset gate. The Linux-first policy and narrow native-host exceptions are documented in [`CI_EXECUTION_POLICY.md`](CI_EXECUTION_POLICY.md).
 
 ## Stable Platform Health
 
