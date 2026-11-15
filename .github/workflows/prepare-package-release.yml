@@ -127,6 +127,12 @@ jobs:
             exit 1
           fi
 
+      - name: Install .NET 10 for disposable Auth candidate proof
+        if: ${{ steps.request.outputs.authentication_revision != '' }}
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.0.x'
+
       - name: Resolve protected source repositories
         id: sources
         shell: bash
@@ -260,6 +266,15 @@ jobs:
           node scripts/verify-assets.mjs
           npm test
           git diff --check
+
+      - name: Qualify real unpublished Auth candidate in a disposable Project
+        if: ${{ steps.request.outputs.authentication_revision != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/qualify-auth-candidate.py \
+            --package-root . \
+            --authentication-root .release-sources/authentication
 
       - name: Verify preparation diff scope
         shell: bash
