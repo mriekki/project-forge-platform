@@ -104,6 +104,16 @@ jobs:
           }
           NODE
 
+      - name: Record owner-initiated unpublished preparation run
+        if: ${{ github.event_name == 'issues' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "Unpublished Project Forge preparation started: $RUN_URL. npm publication is not attempted."
+
       - name: Verify exact current Platform main source
         shell: bash
         env:
@@ -126,6 +136,12 @@ jobs:
             echo "@mriekki/project-forge@${VERSION} is already published" >&2
             exit 1
           fi
+
+      - name: Install .NET 10 for disposable Auth candidate proof
+        if: ${{ steps.request.outputs.authentication_revision != '' }}
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.0.x'
 
       - name: Resolve protected source repositories
         id: sources
@@ -261,6 +277,15 @@ jobs:
           npm test
           git diff --check
 
+      - name: Qualify real unpublished Auth candidate in a disposable Project
+        if: ${{ steps.request.outputs.authentication_revision != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/qualify-auth-candidate.py \
+            --package-root . \
+            --authentication-root .release-sources/authentication
+
       - name: Verify preparation diff scope
         shell: bash
         run: |
@@ -305,6 +330,16 @@ jobs:
           fi
           git commit -m "Prepare Project Forge ${VERSION}"
           git push origin "HEAD:refs/heads/${BRANCH}"
+
+      - name: Report failed preparation with a durable run link
+        if: ${{ failure() && github.event_name == 'issues' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "BLOCKED: unpublished Project Forge preparation failed; no npm package was published. Inspect the failed job: $RUN_URL"
 
       - name: Record cloud preparation result
         shell: bash
