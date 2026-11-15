@@ -73,7 +73,7 @@ test('descriptor keeps private foundational source topology out of the active pu
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'repository'), false);
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'commit'), false);
   assert.match(value.generation.bootstrap.revision, /^[0-9a-f]{40}$/);
-  assert.equal(value.generation.bootstrap.revision, '4b7acbef328cd809776e83673cd82b630b47f0b5');
+  assert.equal(value.generation.bootstrap.revision, 'ddbcd34d4318a94c1e5105c429e3acdc548b1261');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(Object.hasOwn(value.adoption.kit, 'repository'), false);
@@ -86,12 +86,12 @@ test('descriptor keeps private foundational source topology out of the active pu
 test('generation aligns the published package with the accepted Bootstrap revision', async () => {
   const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
-  assert.equal(value.generation.bootstrap.revision, '4b7acbef328cd809776e83673cd82b630b47f0b5');
+  assert.equal(value.generation.bootstrap.revision, 'ddbcd34d4318a94c1e5105c429e3acdc548b1261');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(value.generation.bootstrap.portableRequirements.bootstrapRevision, value.generation.bootstrap.revision);
   assert.equal(value.generation.package, '@mriekki/project-forge');
-  assert.equal(value.generation.packageVersion, '4.26.1');
+  assert.equal(value.generation.packageVersion, '4.27.1');
   assert.equal(value.generation.profile, 'greenfield-project');
   assert.equal(value.generation.bootstrapProtocolVersion, 12);
   assert.equal(value.bootstrapUrl, 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json');
