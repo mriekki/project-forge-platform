@@ -288,6 +288,18 @@
       "destination": ".github/skills/ux-review/SKILL.md"
     },
     {
+      "source": "core/skills/review-user-feedback/SKILL.md",
+      "destination": ".github/skills/review-user-feedback/SKILL.md"
+    },
+    {
+      "source": "core/process/ENGINEERING_BACKLOG.md",
+      "destination": "docs/process/ENGINEERING_BACKLOG.md"
+    },
+    {
+      "source": "core/skills/manage-backlog/SKILL.md",
+      "destination": ".github/skills/manage-backlog/SKILL.md"
+    },
+    {
       "source": "core/instructions/project-forge-web-guidance.instructions.md",
       "destination": ".github/instructions/project-forge-web-guidance.instructions.md"
     },

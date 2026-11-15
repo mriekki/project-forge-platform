@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.26.1",
+  "version": "4.27.1",
   "defaultProfile": "greenfield-project",
   "profiles": {
     "greenfield-project": {
@@ -9,11 +9,18 @@
         "core",
         "deployment"
       ]
+    },
+    "greenfield-household-project": {
+      "components": [
+        "core",
+        "deployment",
+        "authentication"
+      ]
     }
   },
   "components": {
     "core": {
-      "revision": "670b84af788323ce361a49677aff772c0d1541c4",
+      "revision": "eac51d50a9e3c8931159ee8dedba79e63ba7867b",
       "version": "4.3.1",
       "distribution": "greenfield-workspace",
       "descriptor": "assets/core/distribution.json",
@@ -21,10 +28,17 @@
       "canonicalDescriptor": "distributions/greenfield-workspace.json"
     },
     "deployment": {
-      "revision": "e9ca6e12e5b19f691b25ce0aba758a43c3df2913",
+      "revision": "0f80ad06eedeeeb84fcf70cd367873b23d70af25",
       "distribution": "greenfield-project",
       "descriptor": "assets/deployment/distribution.json",
       "sourceRoot": "assets/generated/deployment",
+      "canonicalDescriptor": "distributions/greenfield-project.json"
+    },
+    "authentication": {
+      "revision": "6db1c1e8a0d3cb0a20aa3415ca0e228f8849df46",
+      "distribution": "greenfield-project",
+      "descriptor": "assets/authentication/distribution.json",
+      "sourceRoot": "assets/generated/authentication",
       "canonicalDescriptor": "distributions/greenfield-project.json"
     }
   }
