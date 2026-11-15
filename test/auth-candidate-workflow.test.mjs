@@ -28,6 +28,13 @@ test('Actual-package qualification requires generation, repair and build without
   assert.match(candidate, /bootstrap\.materialize_reference_project\(/);
   assert.match(candidate, /"dotnet", "build"/);
   assert.match(candidate, /"repair"/);
+  assert.match(candidate, /_prove_package_runtime_recovery\(/);
+  assert.match(candidate, /tests\/generated_project_recovery_proof\.py/);
+  assert.match(candidate, /harness\.prove_generated_project_auth_recovery\(/);
+  assert.match(candidate, /"generatedRuntimeRecoveryProven": recovery\["isolatedRestoreVerified"\]/);
+  assert.match(candidate, /"dockerQuiescenceVerified"/);
+  assert.match(candidate, /"scheduledBackupVerified"/);
+  assert.match(candidate, /"alertInboxReceiptVerified"/);
   assert.match(candidate, /"applicationRecoveryReady": False/);
   assert.match(candidate, /"npmPublished": False/);
   assert.match(candidate, /"productionModified": False/);

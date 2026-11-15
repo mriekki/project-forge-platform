@@ -75,6 +75,52 @@ def _isolated_environment(home: Path) -> dict[str, str]:
     return result
 
 
+def _prove_package_runtime_recovery(
+    consumer: Path, auth_source: Path, work: Path, env: dict[str, str]
+) -> dict:
+    """Qualify actual packaged Auth Runtime and recovery helper, not repo src.
+
+    The fixture itself is read from the exact protected Auth Kit source
+    checkout; the executable it compiles references only the npm-installed
+    generated Project Runtime. No provider, Docker host or Production access.
+    """
+    proof_source = auth_source / "tests/generated_project_recovery_proof.py"
+    if not proof_source.is_file() or proof_source.is_symlink():
+        raise RuntimeError(
+            "Accepted Authentication source has no generated-Project recovery proof.")
+    spec = importlib.util.spec_from_file_location(
+        "exact_generated_auth_recovery_proof", proof_source)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Exact Auth recovery proof could not be loaded.")
+    harness = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(harness)
+    evidence = harness.prove_generated_project_auth_recovery(
+        consumer, work, auth_source=auth_source, env=env)
+    success = (
+        "installedRuntimeUsed",
+        "installedRecoveryHelperUsed",
+        "sqliteAndKeyRingCaptured",
+        "isolatedRestoreVerified",
+        "protectorAndSessionContinuityProven",
+        "restoredHttpAndCsrfProven",
+        "originalLiveSessionUntouched",
+        "tamperedKeyRingRejected",
+    )
+    not_ready = (
+        "applicationRecoveryReady",
+        "dockerQuiescenceVerified",
+        "providerAcceptanceVerified",
+        "scheduledBackupVerified",
+        "alertInboxReceiptVerified",
+    )
+    if (type(evidence) is not dict or
+            any(evidence.get(name) is not True for name in success) or
+            any(evidence.get(name) is not False for name in not_ready)):
+        raise RuntimeError(
+            "Generated Project Auth runtime recovery evidence is incomplete or overstated.")
+    return evidence
+
+
 def qualify(package_root: Path, auth_source: Path) -> dict:
     package_root = package_root.resolve(strict=True)
     auth_source = auth_source.resolve(strict=True)
@@ -179,8 +225,15 @@ def qualify(package_root: Path, auth_source: Path) -> dict:
               "--nologo", "-v", "minimal"], cwd=consumer, env=env, timeout=300)
         _run(cli + ["check"] + options, cwd=root, env=env)
 
+        recovery_work = root / "generated-runtime-recovery"
+        recovery_work.mkdir(mode=0o700)
+        recovery = _prove_package_runtime_recovery(
+            consumer, auth_source, recovery_work, env)
+
         return {
-            "result": "disposable-candidate-generation-and-build-passed",
+            "result": "disposable-candidate-generation-build-and-recovery-passed",
+            "generatedRuntimeRecoveryProven": recovery["isolatedRestoreVerified"],
+            "generatedRuntimeHttpSessionAndCsrfProven": recovery["restoredHttpAndCsrfProven"],
             "version": package_json["version"],
             "archiveSha256": candidate_sha256,
             "bootstrapRevision": bootstrap_sha,
