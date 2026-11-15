@@ -3,73 +3,297 @@
   "schemaVersion": 1,
   "description": "Reusable deployment tooling for generated Project Forge projects.",
   "mappings": [
-    {"source": "distribution/project-forge-deploy.py", "destination": "tools/project-forge-deployment/project-forge-deploy.py"},
-    {"source": "src/project_forge_deployment/__init__.py", "destination": "tools/project-forge-deployment/project_forge_deployment/__init__.py"},
-    {"source": "src/project_forge_deployment/__main__.py", "destination": "tools/project-forge-deployment/project_forge_deployment/__main__.py"},
-    {"source": "src/project_forge_deployment/access_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/access_cli.py"},
-    {"source": "src/project_forge_deployment/agent_session.py", "destination": "tools/project-forge-deployment/project_forge_deployment/agent_session.py"},
-    {"source": "src/project_forge_deployment/access_diagnosis.py", "destination": "tools/project-forge-deployment/project_forge_deployment/access_diagnosis.py"},
-    {"source": "src/project_forge_deployment/app_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/app_cli.py"},
-    {"source": "src/project_forge_deployment/app_deployment.py", "destination": "tools/project-forge-deployment/project_forge_deployment/app_deployment.py"},
-    {"source": "src/project_forge_deployment/app_runtime.py", "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime.py"},
-    {"source": "src/project_forge_deployment/app_runtime_remote.py", "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime_remote.py"},
-    {"source": "src/project_forge_deployment/app_runtime_workstation.py", "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime_workstation.py"},
-    {"source": "src/project_forge_deployment/box_platform.py", "destination": "tools/project-forge-deployment/project_forge_deployment/box_platform.py"},
-    {"source": "src/project_forge_deployment/box_platform_assets.py", "destination": "tools/project-forge-deployment/project_forge_deployment/box_platform_assets.py"},
-    {"source": "src/project_forge_deployment/box_platform_remote.py", "destination": "tools/project-forge-deployment/project_forge_deployment/box_platform_remote.py"},
-    {"source": "src/project_forge_deployment/cloudflare_api.py", "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_api.py"},
-    {"source": "src/project_forge_deployment/cloudflare_ingress.py", "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_ingress.py"},
-    {"source": "src/project_forge_deployment/cloudflare_ingress_remote.py", "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_ingress_remote.py"},
-    {"source": "src/project_forge_deployment/cloudflare_route_apply.py", "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_route_apply.py"},
-    {"source": "src/project_forge_deployment/cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/cli.py"},
-    {"source": "src/project_forge_deployment/doctor.py", "destination": "tools/project-forge-deployment/project_forge_deployment/doctor.py"},
-    {"source": "src/project_forge_deployment/entrypoint.py", "destination": "tools/project-forge-deployment/project_forge_deployment/entrypoint.py"},
-    {"source": "src/project_forge_deployment/environment_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/environment_cli.py"},
-    {"source": "src/project_forge_deployment/environment_isolation.py", "destination": "tools/project-forge-deployment/project_forge_deployment/environment_isolation.py"},
-    {"source": "src/project_forge_deployment/environment_probe.py", "destination": "tools/project-forge-deployment/project_forge_deployment/environment_probe.py"},
-    {"source": "src/project_forge_deployment/environment_setup.py", "destination": "tools/project-forge-deployment/project_forge_deployment/environment_setup.py"},
-    {"source": "src/project_forge_deployment/errors.py", "destination": "tools/project-forge-deployment/project_forge_deployment/errors.py"},
-    {"source": "src/project_forge_deployment/home_lab.py", "destination": "tools/project-forge-deployment/project_forge_deployment/home_lab.py"},
-    {"source": "src/project_forge_deployment/image_transfer.py", "destination": "tools/project-forge-deployment/project_forge_deployment/image_transfer.py"},
-    {"source": "src/project_forge_deployment/ingress_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/ingress_cli.py"},
-    {"source": "src/project_forge_deployment/keys.py", "destination": "tools/project-forge-deployment/project_forge_deployment/keys.py"},
-    {"source": "src/project_forge_deployment/local_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/local_cli.py"},
-    {"source": "src/project_forge_deployment/local_extensions.py", "destination": "tools/project-forge-deployment/project_forge_deployment/local_extensions.py"},
-    {"source": "src/project_forge_deployment/local_runtime.py", "destination": "tools/project-forge-deployment/project_forge_deployment/local_runtime.py"},
-    {"source": "src/project_forge_deployment/local_spec.py", "destination": "tools/project-forge-deployment/project_forge_deployment/local_spec.py"},
-    {"source": "src/project_forge_deployment/local_sqlite.py", "destination": "tools/project-forge-deployment/project_forge_deployment/local_sqlite.py"},
-    {"source": "src/project_forge_deployment/portable_profile.py", "destination": "tools/project-forge-deployment/project_forge_deployment/portable_profile.py"},
-    {"source": "src/project_forge_deployment/profile_migration.py", "destination": "tools/project-forge-deployment/project_forge_deployment/profile_migration.py"},
-    {"source": "src/project_forge_deployment/profile_repository.py", "destination": "tools/project-forge-deployment/project_forge_deployment/profile_repository.py"},
-    {"source": "src/project_forge_deployment/profiles.py", "destination": "tools/project-forge-deployment/project_forge_deployment/profiles.py"},
-    {"source": "src/project_forge_deployment/project_topology.py", "destination": "tools/project-forge-deployment/project_forge_deployment/project_topology.py"},
-    {"source": "src/project_forge_deployment/proof_receipt.py", "destination": "tools/project-forge-deployment/project_forge_deployment/proof_receipt.py"},
-    {"source": "src/project_forge_deployment/proxy_peer.py", "destination": "tools/project-forge-deployment/project_forge_deployment/proxy_peer.py"},
-    {"source": "src/project_forge_deployment/recovery_scope.py", "destination": "tools/project-forge-deployment/project_forge_deployment/recovery_scope.py"},
-    {"source": "src/project_forge_deployment/registry_access.py", "destination": "tools/project-forge-deployment/project_forge_deployment/registry_access.py"},
-    {"source": "src/project_forge_deployment/registry_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/registry_cli.py"},
-    {"source": "src/project_forge_deployment/route_registry.py", "destination": "tools/project-forge-deployment/project_forge_deployment/route_registry.py"},
-    {"source": "src/project_forge_deployment/route_registry_remote.py", "destination": "tools/project-forge-deployment/project_forge_deployment/route_registry_remote.py"},
-    {"source": "src/project_forge_deployment/safe_diagnostics.py", "destination": "tools/project-forge-deployment/project_forge_deployment/safe_diagnostics.py"},
-    {"source": "src/project_forge_deployment/security.py", "destination": "tools/project-forge-deployment/project_forge_deployment/security.py"},
-    {"source": "src/project_forge_deployment/sqlite_adapter.py", "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_adapter.py"},
-    {"source": "src/project_forge_deployment/sqlite_adapter_remote.py", "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_adapter_remote.py"},
-    {"source": "src/project_forge_deployment/sqlite_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_cli.py"},
-    {"source": "src/project_forge_deployment/sqlite_import_recovery.py", "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_import_recovery.py"},
-    {"source": "src/project_forge_deployment/ssh.py", "destination": "tools/project-forge-deployment/project_forge_deployment/ssh.py"},
-    {"source": "src/project_forge_deployment/teardown.py", "destination": "tools/project-forge-deployment/project_forge_deployment/teardown.py"},
-    {"source": "src/project_forge_deployment/teardown_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/teardown_cli.py"},
-    {"source": "src/project_forge_deployment/teardown_remote.py", "destination": "tools/project-forge-deployment/project_forge_deployment/teardown_remote.py"},
-    {"source": "src/project_forge_deployment/topology_cli.py", "destination": "tools/project-forge-deployment/project_forge_deployment/topology_cli.py"},
-    {"source": "src/project_forge_deployment/trust.py", "destination": "tools/project-forge-deployment/project_forge_deployment/trust.py"},
-    {"source": "docs/CLOUDFLARE_INGRESS.md", "destination": "docs/project-forge/CLOUDFLARE_INGRESS.md"},
-    {"source": "docs/DEVELOPER_ENVIRONMENTS.md", "destination": "docs/project-forge/DEVELOPER_ENVIRONMENTS.md"},
-    {"source": "docs/WORKSPACE_INSTANCES.md", "destination": "docs/project-forge/WORKSPACE_INSTANCES.md"},
-    {"source": "docs/ENVIRONMENT_PROOF.md", "destination": "docs/project-forge/ENVIRONMENT_PROOF.md"},
-    {"source": "docs/PROJECT_TOPOLOGY_BINDING.md", "destination": "docs/project-forge/PROJECT_TOPOLOGY_BINDING.md"},
-    {"source": "docs/RECOVERY_READINESS.md", "destination": "docs/project-forge/RECOVERY_READINESS.md"},
-    {"source": "docs/images/developer-environment-journey.svg", "destination": "docs/project-forge/images/developer-environment-journey.svg"},
-    {"source": "docs/images/personal-environment-architecture.svg", "destination": "docs/project-forge/images/personal-environment-architecture.svg"},
-    {"source": "docs/images/project-environment-model.svg", "destination": "docs/project-forge/images/project-environment-model.svg"}
+    {
+      "source": "distribution/project-forge-deploy.py",
+      "destination": "tools/project-forge-deployment/project-forge-deploy.py"
+    },
+    {
+      "source": "src/project_forge_deployment/__init__.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/__init__.py"
+    },
+    {
+      "source": "src/project_forge_deployment/__main__.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/__main__.py"
+    },
+    {
+      "source": "src/project_forge_deployment/access_cli.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/access_cli.py"
+    },
+    {
+      "source": "src/project_forge_deployment/agent_session.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/agent_session.py"
+    },
+    {
+      "source": "src/project_forge_deployment/access_diagnosis.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/access_diagnosis.py"
+    },
+    {
+      "source": "src/project_forge_deployment/app_cli.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/app_cli.py"
+    },
+    {
+      "source": "src/project_forge_deployment/app_deployment.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/app_deployment.py"
+    },
+    {
+      "source": "src/project_forge_deployment/app_runtime.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime.py"
+    },
+    {
+      "source": "src/project_forge_deployment/app_runtime_remote.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime_remote.py"
+    },
+    {
+      "source": "src/project_forge_deployment/app_runtime_workstation.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime_workstation.py"
+    },
+    {
+      "source": "src/project_forge_deployment/box_platform.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/box_platform.py"
+    },
+    {
+      "source": "src/project_forge_deployment/box_platform_assets.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/box_platform_assets.py"
+    },
+    {
+      "source": "src/project_forge_deployment/box_platform_remote.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/box_platform_remote.py"
+    },
+    {
+      "source": "src/project_forge_deployment/cloudflare_api.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_api.py"
+    },
+    {
+      "source": "src/project_forge_deployment/cloudflare_ingress.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_ingress.py"
+    },
+    {
+      "source": "src/project_forge_deployment/cloudflare_ingress_remote.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_ingress_remote.py"
+    },
+    {
+      "source": "src/project_forge_deployment/cloudflare_route_apply.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_route_apply.py"
+    },
+    {
+      "source": "src/project_forge_deployment/cli.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/cli.py"
+    },
+    {
+      "source": "src/project_forge_deployment/doctor.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/doctor.py"
+    },
+    {
+      "source": "src/project_forge_deployment/entrypoint.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/entrypoint.py"
+    },
+    {
+      "source": "src/project_forge_deployment/environment_cli.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/environment_cli.py"
+    },
+    {
+      "source": "src/project_forge_deployment/environment_isolation.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/environment_isolation.py"
+    },
+    {
+      "source": "src/project_forge_deployment/environment_probe.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/environment_probe.py"
+    },
+    {
+      "source": "src/project_forge_deployment/environment_setup.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/environment_setup.py"
+    },
+    {
+      "source": "src/project_forge_deployment/errors.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/errors.py"
+    },
+    {
+      "source": "src/project_forge_deployment/home_lab.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/home_lab.py"
+    },
+    {
+      "source": "src/project_forge_deployment/image_transfer.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/image_transfer.py"
+    },
+    {
+      "source": "src/project_forge_deployment/ingress_cli.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/ingress_cli.py"
+    },
+    {
+      "source": "src/project_forge_deployment/keys.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/keys.py"
+    },
+    {
+      "source": "src/project_forge_deployment/local_cli.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/local_cli.py"
+    },
+    {
+      "source": "src/project_forge_deployment/local_extensions.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/local_extensions.py"
+    },
+    {
+      "source": "src/project_forge_deployment/local_runtime.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/local_runtime.py"
+    },
+    {
+      "source": "src/project_forge_deployment/local_spec.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/local_spec.py"
+    },
+    {
+      "source": "src/project_forge_deployment/local_sqlite.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/local_sqlite.py"
+    },
+    {
+      "source": "src/project_forge_deployment/portable_profile.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/portable_profile.py"
+    },
+    {
+      "source": "src/project_forge_deployment/profile_migration.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/profile_migration.py"
+    },
+    {
+      "source": "src/project_forge_deployment/profile_repository.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/profile_repository.py"
+    },
+    {
+      "source": "src/project_forge_deployment/profiles.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/profiles.py"
+    },
+    {
+      "source": "src/project_forge_deployment/project_topology.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/project_topology.py"
+    },
+    {
+      "source": "src/project_forge_deployment/proof_receipt.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/proof_receipt.py"
+    },
+    {
+      "source": "src/project_forge_deployment/proxy_peer.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/proxy_peer.py"
+    },
+    {
+      "source": "src/project_forge_deployment/auth_recovery_guard.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_guard.py"
+    },
+    {
+      "source": "src/project_forge_deployment/auth_recovery_capture.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_capture.py"
+    },
+    {
+      "source": "src/project_forge_deployment/auth_recovery_lifecycle.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_lifecycle.py"
+    },
+    {
+      "source": "src/project_forge_deployment/auth_recovery_schedule.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_schedule.py"
+    },
+    {
+      "source": "src/project_forge_deployment/auth_recovery_retention.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_retention.py"
+    },
+    {
+      "source": "src/project_forge_deployment/recovery_scope.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/recovery_scope.py"
+    },
+    {
+      "source": "src/project_forge_deployment/registry_access.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/registry_access.py"
+    },
+    {
+      "source": "src/project_forge_deployment/registry_cli.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/registry_cli.py"
+    },
+    {
+      "source": "src/project_forge_deployment/route_registry.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/route_registry.py"
+    },
+    {
+      "source": "src/project_forge_deployment/route_registry_remote.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/route_registry_remote.py"
+    },
+    {
+      "source": "src/project_forge_deployment/safe_diagnostics.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/safe_diagnostics.py"
+    },
+    {
+      "source": "src/project_forge_deployment/security.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/security.py"
+    },
+    {
+      "source": "src/project_forge_deployment/sqlite_adapter.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_adapter.py"
+    },
+    {
+      "source": "src/project_forge_deployment/sqlite_adapter_remote.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_adapter_remote.py"
+    },
+    {
+      "source": "src/project_forge_deployment/sqlite_cli.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_cli.py"
+    },
+    {
+      "source": "src/project_forge_deployment/sqlite_import_recovery.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_import_recovery.py"
+    },
+    {
+      "source": "src/project_forge_deployment/ssh.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/ssh.py"
+    },
+    {
+      "source": "src/project_forge_deployment/teardown.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/teardown.py"
+    },
+    {
+      "source": "src/project_forge_deployment/teardown_cli.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/teardown_cli.py"
+    },
+    {
+      "source": "src/project_forge_deployment/teardown_remote.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/teardown_remote.py"
+    },
+    {
+      "source": "src/project_forge_deployment/topology_cli.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/topology_cli.py"
+    },
+    {
+      "source": "src/project_forge_deployment/trust.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/trust.py"
+    },
+    {
+      "source": "docs/CLOUDFLARE_INGRESS.md",
+      "destination": "docs/project-forge/CLOUDFLARE_INGRESS.md"
+    },
+    {
+      "source": "docs/DEVELOPER_ENVIRONMENTS.md",
+      "destination": "docs/project-forge/DEVELOPER_ENVIRONMENTS.md"
+    },
+    {
+      "source": "docs/WORKSPACE_INSTANCES.md",
+      "destination": "docs/project-forge/WORKSPACE_INSTANCES.md"
+    },
+    {
+      "source": "docs/ENVIRONMENT_PROOF.md",
+      "destination": "docs/project-forge/ENVIRONMENT_PROOF.md"
+    },
+    {
+      "source": "docs/PROJECT_TOPOLOGY_BINDING.md",
+      "destination": "docs/project-forge/PROJECT_TOPOLOGY_BINDING.md"
+    },
+    {
+      "source": "docs/RECOVERY_READINESS.md",
+      "destination": "docs/project-forge/RECOVERY_READINESS.md"
+    },
+    {
+      "source": "docs/images/developer-environment-journey.svg",
+      "destination": "docs/project-forge/images/developer-environment-journey.svg"
+    },
+    {
+      "source": "docs/images/personal-environment-architecture.svg",
+      "destination": "docs/project-forge/images/personal-environment-architecture.svg"
+    },
+    {
+      "source": "docs/images/project-environment-model.svg",
+      "destination": "docs/project-forge/images/project-environment-model.svg"
+    }
   ]
 }

@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "name": "greenfield-project",
+  "component": "authentication",
+  "accountAuthority": "per-project",
+  "registryRequiredForLogin": false,
+  "requiresReviewedProviderBindings": true,
+  "mappings": [
+    {
+      "source": "src/ProjectForge.Auth/AdmissionPolicy.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth/AdmissionPolicy.cs"
+    },
+    {
+      "source": "src/ProjectForge.Auth/AuthenticationDiagnostics.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth/AuthenticationDiagnostics.cs"
+    },
+    {
+      "source": "src/ProjectForge.Auth/ProjectForge.Auth.csproj",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth/ProjectForge.Auth.csproj"
+    },
+    {
+      "source": "src/ProjectForge.Auth/PwaExistingProjectCompatibility.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth/PwaExistingProjectCompatibility.cs"
+    },
+    {
+      "source": "src/ProjectForge.Auth.Runtime/ProjectAuthStore.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthStore.cs"
+    },
+    {
+      "source": "src/ProjectForge.Auth.Runtime/ProjectForge.Auth.Runtime.csproj",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForge.Auth.Runtime.csproj"
+    },
+    {
+      "source": "src/ProjectForge.Auth.Runtime/ProjectForgeAuthRuntimeExtensions.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForgeAuthRuntimeExtensions.cs"
+    },
+    {
+      "source": "tools/household_connect.py",
+      "destination": "tools/project-forge-auth-kit/household_connect.py"
+    },
+    {
+      "source": "docs/HOUSEHOLD_REGISTRY.md",
+      "destination": "tools/project-forge-auth-kit/docs/HOUSEHOLD_REGISTRY.md"
+    },
+    {
+      "source": "docs/HOUSEHOLD_INFRASTRUCTURE_ADOPTION.md",
+      "destination": "tools/project-forge-auth-kit/docs/HOUSEHOLD_INFRASTRUCTURE_ADOPTION.md"
+    },
+    {
+      "source": "src/ProjectForge.Transport/ProjectForge.Transport.csproj",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Transport/ProjectForge.Transport.csproj"
+    },
+    {
+      "source": "src/ProjectForge.Transport/StrictPublicOriginTransport.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Transport/StrictPublicOriginTransport.cs"
+    },
+    {
+      "source": "samples/ProjectForgeAuth.Api/Program.cs",
+      "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/Program.cs"
+    },
+    {
+      "source": "samples/ProjectForgeAuth.Api/ProjectForgeAuth.Api.csproj",
+      "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/ProjectForgeAuth.Api.csproj"
+    },
+    {
+      "source": "samples/ProjectForgeAuth.Api/wwwroot/index.html",
+      "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/wwwroot/index.html"
+    },
+    {
+      "source": "samples/ProjectForgeAuth.Api/wwwroot/auth.js",
+      "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/wwwroot/auth.js"
+    },
+    {
+      "source": "src/ProjectForge.Auth.Runtime/ResendProjectInvitationDelivery.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ResendProjectInvitationDelivery.cs"
+    },
+    {
+      "source": "docs/PROJECT_AUTH_REFERENCE.md",
+      "destination": "tools/project-forge-auth-kit/docs/PROJECT_AUTH_REFERENCE.md"
+    },
+    {
+      "source": "tools/project_auth_recovery.py",
+      "destination": "tools/project-forge-auth-kit/project_auth_recovery.py"
+    },
+    {
+      "source": "docs/AUTH_RECOVERY_RETENTION.md",
+      "destination": "tools/project-forge-auth-kit/docs/AUTH_RECOVERY_RETENTION.md"
+    }
+  ]
+}
