@@ -333,6 +333,25 @@ jobs:
           fi
           node scripts/prepare-release.mjs "${args[@]}"
 
+      - name: Setup Python for exact Deployment recovery safety gate
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Reverify canonical and packaged Auth recovery before any npm publish
+        shell: bash
+        env:
+          PYTHONPATH: .release-sources/deployment/src
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s .release-sources/deployment/tests -p 'test_auth_recovery_lifecycle.py' -v
+          python -m unittest discover -s .release-sources/deployment/tests -p 'test_auth_recovery_retention.py' -v
+          node scripts/verify-assets.mjs
+          PROJECT_FORGE_PACKAGED_DEPLOYMENT_ROOT=assets/generated/deployment/src \
+          PYTHONPATH=assets/generated/deployment/src \
+            python -m unittest discover -s test/fixtures \
+              -p 'test_packaged_deployment_recovery_safety.py' -v
+
       - name: Verify release manifest matches authorization
         shell: bash
         env:

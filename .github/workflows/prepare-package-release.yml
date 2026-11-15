@@ -231,6 +231,20 @@ jobs:
             verify_checkout .release-sources/authentication "$AUTHENTICATION_REVISION"
           fi
 
+      - name: Setup Python for canonical and assembled recovery safety tests
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Verify exact Deployment recovery safety before package preparation
+        shell: bash
+        env:
+          PYTHONPATH: .release-sources/deployment/src
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s .release-sources/deployment/tests -p 'test_auth_recovery_lifecycle.py' -v
+          python -m unittest discover -s .release-sources/deployment/tests -p 'test_auth_recovery_retention.py' -v
+
       - name: Create isolated release branch
         id: branch
         shell: bash
@@ -274,6 +288,12 @@ jobs:
           fi
           node scripts/assemble-assets.mjs "${args[@]}"
           node scripts/verify-assets.mjs
+          # Run Platform-owned tests against the exact assembled Deployment
+          # code, never an installed package or the consumer workspace.
+          PROJECT_FORGE_PACKAGED_DEPLOYMENT_ROOT=assets/generated/deployment/src \
+          PYTHONPATH=assets/generated/deployment/src \
+            python -m unittest discover -s test/fixtures \
+              -p 'test_packaged_deployment_recovery_safety.py' -v
           npm test
           git diff --check
 
