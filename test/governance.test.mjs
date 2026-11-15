@@ -25,6 +25,14 @@ test('Platform CI tests every supported Node line on Ubuntu only', () => {
   assert.match(workflow, /node-version: \$\{\{ matrix\.node \}\}/);
 });
 
+test('PR CI cancels only superseded PR runs and preserves post-merge and manual runs', () => {
+  const workflow = fs.readFileSync(path.join(WORKFLOWS, 'ci.yml'), 'utf8');
+  assert.match(workflow, /^concurrency:$/m);
+  assert.ok(workflow.includes("format('pr-{0}', github.event.pull_request.number)"));
+  assert.ok(workflow.includes("format('run-{0}', github.run_id)"));
+  assert.ok(workflow.includes("cancel-in-progress: ${{ github.event_name == 'pull_request' }}"));
+});
+
 test('all external Platform workflow actions are pinned by immutable commit SHA', () => {
   for (const entry of fs.readdirSync(WORKFLOWS, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith('.yml')) continue;
