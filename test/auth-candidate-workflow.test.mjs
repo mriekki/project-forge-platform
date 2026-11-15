@@ -16,6 +16,9 @@ test('Auth candidate qualification is opt-in and occurs before release branch co
   assert.match(workflow.slice(qualification, commit), /python3 scripts\/qualify-auth-candidate\.py/);
   assert.match(workflow, /dotnet-version: '10\.0\.x'/);
   assert.doesNotMatch(workflow.slice(qualification, commit), /npm publish/);
+  assert.match(workflow, /Record owner-initiated unpublished preparation run/);
+  assert.match(workflow, /Report failed preparation with a durable run link/);
+  assert.match(workflow, /BLOCKED: unpublished Project Forge preparation failed/);
 });
 
 test('Actual-package qualification requires generation, repair and build without readiness overclaim', () => {
