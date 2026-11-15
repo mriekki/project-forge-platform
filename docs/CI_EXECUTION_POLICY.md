@@ -20,7 +20,7 @@ Prefer manually dispatched or path-scoped native compatibility workflows. For a 
 
 ## Cost and concurrency
 
-Private-repository macOS and Windows hosted minutes are substantially more expensive than Linux hosted minutes. For normal PR checks, prefer concurrency cancellation of superseded commits. Do not cancel stateful generation, invitation, release, or publication jobs.
+Private-repository macOS and Windows hosted minutes are substantially more expensive than Linux hosted minutes. Routine PR-validation workflows must cancel superseded runs for the **same pull request**. Their concurrency group must include a unique `github.run_id` fallback for every non-PR event; `main`-branch post-merge validation and manually dispatched runs must never displace each other, including while pending. Do not apply PR cancellation to stateful generation, invitation, release, deployment, or publication jobs.
 
 Public repositories may already receive standard hosted-runner compute without charges. Optimize them for latency and signal quality, not assumed cash savings.
 
