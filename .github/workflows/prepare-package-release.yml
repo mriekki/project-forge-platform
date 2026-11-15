@@ -104,6 +104,16 @@ jobs:
           }
           NODE
 
+      - name: Record owner-initiated unpublished preparation run
+        if: ${{ github.event_name == 'issues' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "Unpublished Project Forge preparation started: $RUN_URL. npm publication is not attempted."
+
       - name: Verify exact current Platform main source
         shell: bash
         env:
@@ -320,6 +330,16 @@ jobs:
           fi
           git commit -m "Prepare Project Forge ${VERSION}"
           git push origin "HEAD:refs/heads/${BRANCH}"
+
+      - name: Report failed preparation with a durable run link
+        if: ${{ failure() && github.event_name == 'issues' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "BLOCKED: unpublished Project Forge preparation failed; no npm package was published. Inspect the failed job: $RUN_URL"
 
       - name: Record cloud preparation result
         shell: bash
