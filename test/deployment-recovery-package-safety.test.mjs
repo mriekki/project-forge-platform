@@ -15,6 +15,7 @@ test('release preparation runs canonical and package-owned Auth recovery safety 
   const packageSource = workflow.indexOf('node scripts/verify-assets.mjs', assembly);
   const packagedTest = workflow.indexOf('test_packaged_deployment_recovery_safety.py', assembly);
   const otherTests = workflow.indexOf('npm test', assembly);
+  const finalAssetCheck = workflow.indexOf('node scripts/verify-assets.mjs', packageSource + 1);
   const branchPush = workflow.indexOf('- name: Commit and push prepared release branch');
 
   assert.ok(sourceCheck >= 0 && sourceCheck < canonical,
@@ -23,11 +24,12 @@ test('release preparation runs canonical and package-owned Auth recovery safety 
     'canonical recovery tests must pass before assembly');
   assert.ok(assembly < packageSource && packageSource < packagedTest,
     'verify exact assembled asset hashes before package-owned behavior tests');
-  assert.ok(packagedTest < otherTests && otherTests < branchPush,
-    'run both package behavior and npm tests before pushing prepared branch');
+  assert.ok(packagedTest < otherTests && otherTests < finalAssetCheck && finalAssetCheck < branchPush,
+    'run package behavior and npm tests, then reverify assets before pushing prepared branch');
   assert.match(workflow, /test_auth_recovery_lifecycle\.py/);
   assert.match(workflow, /test_auth_recovery_retention\.py/);
   assert.match(workflow, /PYTHONPATH: \.release-sources\/deployment\/src/);
+  assert.match(workflow, /PYTHONDONTWRITEBYTECODE: '1'/);
   assert.match(workflow, /PROJECT_FORGE_PACKAGED_DEPLOYMENT_ROOT=assets\/generated\/deployment\/src/);
   assert.match(workflow, /PYTHONPATH=assets\/generated\/deployment\/src/);
   assert.match(workflow, /python -m unittest discover -s test\/fixtures/);
@@ -48,8 +50,10 @@ test('release preparation validates and commits ignored generated package assets
   assert.ok(scopeStart >= 0 && commitStart > scopeStart);
   assert.match(scope, /git add -f -N assets\/generated\//);
   assert.match(scope, /assets\/generated\/ASSEMBLY\.json/);
-  assert.match(scope, /assets\/generated\/\$\{component\}\//);
+  assert.match(scope, /const generatedAssets = new Set/);
+  assert.match(scope, /entry\.files/);
   assert.match(scope, /unexpected package components/);
+  assert.match(scope, /unexpected release-preparation paths/);
   assert.match(commit, /git add -f assets\/generated\//);
 });
 

@@ -313,6 +313,7 @@ jobs:
       - name: Assemble and verify exact package assets
         shell: bash
         env:
+          PYTHONDONTWRITEBYTECODE: '1'
           AUTHENTICATION_REVISION: ${{ steps.request.outputs.authentication_revision }}
           FEEDBACK_REVISION: ${{ steps.request.outputs.feedback_revision }}
         run: |
@@ -333,6 +334,7 @@ jobs:
             python -m unittest discover -s test/fixtures \
               -p 'test_packaged_deployment_recovery_safety.py' -v
           npm test
+          node scripts/verify-assets.mjs
           git diff --check
 
       - name: Qualify real unpublished Auth candidate in a disposable Project
@@ -364,10 +366,31 @@ jobs:
             .filter(Boolean);
           if (!changed.length) throw new Error('release preparation produced no changes');
           const components = JSON.parse(fs.readFileSync('assets/components.json', 'utf8')).components;
+          const assembly = JSON.parse(fs.readFileSync('assets/generated/ASSEMBLY.json', 'utf8'));
+          const assemblyComponents = assembly.components;
           const supportedComponents = new Set(['core', 'deployment', 'authentication', 'feedback']);
           const unsupported = Object.keys(components).filter((component) => !supportedComponents.has(component));
           if (unsupported.length) {
             throw new Error(`unexpected package components: ${unsupported.join(', ')}`);
+          }
+          const componentIds = Object.keys(components).sort();
+          const assembledIds = Object.keys(assemblyComponents ?? {}).sort();
+          if (JSON.stringify(componentIds) !== JSON.stringify(assembledIds)) {
+            throw new Error('assembly component set does not match package metadata');
+          }
+          const generatedAssets = new Set(['assets/generated/ASSEMBLY.json']);
+          for (const [component, entry] of Object.entries(assemblyComponents)) {
+            if (!supportedComponents.has(component) || !Array.isArray(entry.files)) {
+              throw new Error(`invalid generated asset manifest for ${component}`);
+            }
+            for (const asset of entry.files) {
+              const source = asset?.source;
+              if (typeof source !== 'string' || !source || source.startsWith('/') ||
+                  source.includes('\\') || source.split('/').includes('..')) {
+                throw new Error(`invalid generated asset source for ${component}`);
+              }
+              generatedAssets.add(`assets/generated/${component}/${source}`);
+            }
           }
 
           const exact = new Set([
@@ -379,10 +402,7 @@ jobs:
             'assets/authentication/distribution.json',
             'assets/feedback/distribution.json'
           ]);
-          const isGeneratedAsset = (file) => file === 'assets/generated/ASSEMBLY.json' ||
-            [...supportedComponents].some((component) =>
-              Object.hasOwn(components, component) && file.startsWith(`assets/generated/${component}/`));
-          const unexpected = changed.filter((file) => !exact.has(file) && !isGeneratedAsset(file));
+          const unexpected = changed.filter((file) => !exact.has(file) && !generatedAssets.has(file));
           if (unexpected.length) {
             throw new Error(`unexpected release-preparation paths: ${unexpected.join(', ')}`);
           }
