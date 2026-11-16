@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.27.1",
+  "version": "4.28.0",
   "defaultProfile": "greenfield-project",
   "profiles": {
     "greenfield-project": {
@@ -16,29 +16,59 @@
         "deployment",
         "authentication"
       ]
+    },
+    "greenfield-feedback-project": {
+      "components": [
+        "core",
+        "deployment",
+        "feedback"
+      ]
+    },
+    "greenfield-household-feedback-project": {
+      "components": [
+        "core",
+        "deployment",
+        "authentication",
+        "feedback"
+      ]
     }
   },
   "components": {
     "core": {
-      "revision": "eac51d50a9e3c8931159ee8dedba79e63ba7867b",
+      "revision": "44fb888353ee479cd16749720ffbad270df89087",
       "version": "4.3.1",
       "distribution": "greenfield-workspace",
       "descriptor": "assets/core/distribution.json",
       "sourceRoot": "assets/generated/core",
-      "canonicalDescriptor": "distributions/greenfield-workspace.json"
+      "canonicalDescriptor": "distributions/greenfield-workspace.json",
+      "profileVariants": {
+        "existing-github": {
+          "source": "profiles/existing-github/project-forge-workspace.json",
+          "destination": ".github/project-forge-workspace.json",
+          "descriptor": "distributions/adoption-kit-source.json",
+          "descriptorDestination": "profiles/existing-github-issues.json"
+        }
+      }
     },
     "deployment": {
-      "revision": "0f80ad06eedeeeb84fcf70cd367873b23d70af25",
+      "revision": "058309bb61aa88e96d5a76ada07646c97650a4a5",
       "distribution": "greenfield-project",
       "descriptor": "assets/deployment/distribution.json",
       "sourceRoot": "assets/generated/deployment",
       "canonicalDescriptor": "distributions/greenfield-project.json"
     },
     "authentication": {
-      "revision": "6db1c1e8a0d3cb0a20aa3415ca0e228f8849df46",
+      "revision": "99808353289cffabd591d47a71684b45b0b5c0a8",
       "distribution": "greenfield-project",
       "descriptor": "assets/authentication/distribution.json",
       "sourceRoot": "assets/generated/authentication",
+      "canonicalDescriptor": "distributions/greenfield-project.json"
+    },
+    "feedback": {
+      "revision": "94c9b853afae7ec51c2d048de366c2d95d3bf0bb",
+      "distribution": "greenfield-project",
+      "descriptor": "assets/feedback/distribution.json",
+      "sourceRoot": "assets/generated/feedback",
       "canonicalDescriptor": "distributions/greenfield-project.json"
     }
   }

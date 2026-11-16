@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "profile": "existing-github",
+  "workItemSource": "github-issues",
+  "productBriefs": {"mode": "ask"},
+  "featureBriefs": {"mode": "ask"},
+  "engineeringEnablers": {"mode": "existing-team-convention"},
+  "localDetailedRequirements": {"mode": "optional-supplemental"},
+  "delivery": {"pr": true, "explicitFinalPrAcceptance": true, "explicitMerge": true, "postMergeCi": "observe-if-configured"},
+  "productionReadiness": {"enabled": "when-production-in-scope"}
+}
