@@ -120,6 +120,17 @@ Package-managed updates follow the **Exact Managed Set** invariant: after a succ
 
 The package CLI remains available for exact-version troubleshooting and maintainer verification. Use the exact version recorded by the Project or selected by the Project Forge workflow rather than a floating tag.
 
+GitHub Issues Feedback is an optional, default-off component. On a Project that
+already has a clean package baseline, an explicitly approved package can opt
+in additively with `project-forge enable feedback --root <project>`. The command
+previews the managed changes, retains an existing household Authentication
+selection, refuses local drift, and requires `--apply` or interactive
+confirmation. New Projects remain on the standard profile unless Feedback is
+selected during approved generation. Runtime activation still requires the
+Project's authenticated account/session grants, exact repository binding, and
+protected GitHub App secrets; the component does not provision these or enable
+Feedback merely by being installed.
+
 ## Maintainer system reference
 
 For cross-repository architecture, ownership, lifecycle, provenance, deployment, support-evidence, and governance questions, start with:

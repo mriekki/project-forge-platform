@@ -120,6 +120,33 @@ export function reconcileHouseholdAuthProfile(profiles) {
   };
 }
 
+export function reconcileFeedbackProfiles(profiles) {
+  const standard = profiles['greenfield-project'];
+  if (!standard || !Array.isArray(standard.components) ||
+      standard.components.includes('feedback') ||
+      standard.components.includes('authentication') ||
+      !standard.components.includes('core') ||
+      !standard.components.includes('deployment') ||
+      new Set(standard.components).size !== standard.components.length) {
+    throw new Error('Standard Project Forge profile must remain Feedback-free');
+  }
+  const bases = [['greenfield-feedback-project', standard]];
+  if (profiles['greenfield-household-project']) {
+    bases.push(['greenfield-household-feedback-project', profiles['greenfield-household-project']]);
+  }
+  for (const [name, base] of bases) {
+    if (!Array.isArray(base.components) || base.components.includes('feedback') ||
+        new Set(base.components).size !== base.components.length) {
+      throw new Error(`Invalid base profile for ${name}`);
+    }
+    const expected = { ...structuredClone(base), components: [...base.components, 'feedback'] };
+    if (profiles[name] && JSON.stringify(profiles[name]) !== JSON.stringify(expected)) {
+      throw new Error(`Existing ${name} profile differs from its approved base`);
+    }
+    profiles[name] = expected;
+  }
+}
+
 const REQUIRED_AUTH_RECOVERY_SOURCES = new Map([
   ['tools/project_auth_recovery.py', 'tools/project-forge-auth-kit/project_auth_recovery.py'],
   ['docs/AUTH_RECOVERY_RETENTION.md', 'tools/project-forge-auth-kit/docs/AUTH_RECOVERY_RETENTION.md']
@@ -184,6 +211,7 @@ export function parseArgs(argv) {
     else if (arg === '--core-root') values.coreRoot = argv[++i];
     else if (arg === '--deployment-root') values.deploymentRoot = argv[++i];
     else if (arg === '--authentication-root') values.authenticationRoot = argv[++i];
+    else if (arg === '--feedback-root') values.feedbackRoot = argv[++i];
     else throw new Error(`Unknown argument: ${arg}`);
   }
   if (!values.version || !values.coreRoot || !values.deploymentRoot) {
@@ -230,6 +258,17 @@ export function preparePackageUpdate(args, root = ROOT) {
   } else if (components.components.authentication) {
     throw new Error('An existing Auth Kit component cannot be released without its exact accepted source');
   }
+  let feedback = null;
+  if (args.feedbackRoot) {
+    const approvedSource = process.env.PROJECT_FORGE_FEEDBACK_SOURCE_REPOSITORY;
+    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(approvedSource ?? '')) {
+      throw new Error('Protected Feedback Kit source repository mapping is missing');
+    }
+    feedback = assertExactAcceptedMain(args.feedbackRoot, 'Project Forge Feedback source');
+    assertExpectedOrigin(feedback.root, [approvedSource], 'Project Forge Feedback source');
+  } else if (components.components.feedback) {
+    throw new Error('An existing Feedback Kit component cannot be released without its exact accepted source');
+  }
 
   const coreCompatibility = readJson(path.join(core.root, 'COMPATIBILITY.json'));
   const coreVersion = coreCompatibility.projectForgeCoreVersion;
@@ -253,6 +292,16 @@ export function preparePackageUpdate(args, root = ROOT) {
     // household-auth Projects. No separate user-facing creation mode.
     reconcileHouseholdAuthProfile(nextComponents.profiles);
   }
+  if (feedback) {
+    nextComponents.components.feedback = {
+      revision: feedback.revision,
+      distribution: 'greenfield-project',
+      descriptor: 'assets/feedback/distribution.json',
+      sourceRoot: 'assets/generated/feedback',
+      canonicalDescriptor: 'distributions/greenfield-project.json'
+    };
+    reconcileFeedbackProfiles(nextComponents.profiles);
+  }
   for (const component of Object.values(nextComponents.components)) {
     delete component.repository;
     delete component.commit;
@@ -269,7 +318,7 @@ export function preparePackageUpdate(args, root = ROOT) {
   // a missing descriptor cannot leave a partially prepared release branch.
   const descriptorUpdates = [];
   for (const [componentId, checkout] of Object.entries({
-    core, deployment, ...(authentication ? { authentication } : {})
+    core, deployment, ...(authentication ? { authentication } : {}), ...(feedback ? { feedback } : {})
   })) {
     const component = nextComponents.components[componentId];
     const canonical = path.join(checkout.root, component.canonicalDescriptor);
@@ -296,7 +345,8 @@ export function preparePackageUpdate(args, root = ROOT) {
     version: args.version,
     core: { revision: core.revision, version: coreVersion },
     deployment: { revision: deployment.revision },
-    ...(authentication ? { authentication: { revision: authentication.revision } } : {})
+    ...(authentication ? { authentication: { revision: authentication.revision } } : {}),
+    ...(feedback ? { feedback: { revision: feedback.revision } } : {})
   };
 }
 
@@ -307,6 +357,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.log(`Core: ${result.core.version} ${result.core.revision}`);
     console.log(`Deployment: ${result.deployment.revision}`);
     if (result.authentication) console.log(`Authentication: ${result.authentication.revision}`);
+    if (result.feedback) console.log(`Feedback: ${result.feedback.revision}`);
   } catch (error) {
     console.error(`Package update preparation failed: ${error.message}`);
     process.exitCode = 2;

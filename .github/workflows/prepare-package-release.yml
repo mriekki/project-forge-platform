@@ -23,6 +23,10 @@ on:
         description: Optional exact reviewed Authentication Kit main revision for the complete next kit
         required: false
         type: string
+      feedback_revision:
+        description: Optional exact reviewed Feedback Kit main revision
+        required: false
+        type: string
   issues:
     types: [opened]
 
@@ -64,6 +68,7 @@ jobs:
           DISPATCH_CORE_REVISION: ${{ inputs.core_revision }}
           DISPATCH_DEPLOYMENT_REVISION: ${{ inputs.deployment_revision }}
           DISPATCH_AUTHENTICATION_REVISION: ${{ inputs.authentication_revision }}
+          DISPATCH_FEEDBACK_REVISION: ${{ inputs.feedback_revision }}
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
@@ -75,7 +80,8 @@ jobs:
                 sourceCommit: process.env.DISPATCH_SOURCE_COMMIT,
                 coreRevision: process.env.DISPATCH_CORE_REVISION,
                 deploymentRevision: process.env.DISPATCH_DEPLOYMENT_REVISION,
-                authenticationRevision: process.env.DISPATCH_AUTHENTICATION_REVISION
+                authenticationRevision: process.env.DISPATCH_AUTHENTICATION_REVISION,
+                feedbackRevision: process.env.DISPATCH_FEEDBACK_REVISION
               }
             : JSON.parse(event.issue?.body ?? '');
 
@@ -92,9 +98,13 @@ jobs:
               !/^[0-9a-f]{40}$/.test(request.authenticationRevision)) {
             throw new Error('Authentication Kit revision must be an exact accepted lowercase commit SHA');
           }
+          if (request.feedbackRevision && !/^[0-9a-f]{40}$/.test(request.feedbackRevision)) {
+            throw new Error('Feedback Kit revision must be an exact accepted lowercase commit SHA');
+          }
 
           for (const [key, value] of Object.entries({
             authentication_revision: request.authenticationRevision ?? '',
+            feedback_revision: request.feedbackRevision ?? '',
             version: request.version,
             source_commit: request.sourceCommit,
             core_revision: request.coreRevision,
@@ -150,26 +160,30 @@ jobs:
           CORE_SOURCE_REPOSITORY: ${{ secrets.CORE_SOURCE_REPOSITORY }}
           DEPLOYMENT_SOURCE_REPOSITORY: ${{ secrets.DEPLOYMENT_SOURCE_REPOSITORY }}
           AUTHENTICATION_SOURCE_REPOSITORY: ${{ secrets.AUTHENTICATION_SOURCE_REPOSITORY }}
+          FEEDBACK_SOURCE_REPOSITORY: ${{ secrets.FEEDBACK_SOURCE_REPOSITORY }}
           AUTH_REVISION: ${{ steps.request.outputs.authentication_revision }}
+          FEEDBACK_REVISION: ${{ steps.request.outputs.feedback_revision }}
         run: |
           set -euo pipefail
-          for name in CORE_SOURCE_REPOSITORY DEPLOYMENT_SOURCE_REPOSITORY; do
-            value="${!name:-}"
+          check_mapping() {
+            local name="$1" value="$2"
             if [[ ! "$value" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
               echo "Missing or invalid protected source repository mapping: $name" >&2
               exit 1
             fi
             echo "::add-mask::$value"
-          done
+          }
+          check_mapping CORE_SOURCE_REPOSITORY "$CORE_SOURCE_REPOSITORY"
+          check_mapping DEPLOYMENT_SOURCE_REPOSITORY "$DEPLOYMENT_SOURCE_REPOSITORY"
           echo "core=$CORE_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
           echo "deployment=$DEPLOYMENT_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
           if [[ -n "$AUTH_REVISION" ]]; then
-            if [[ ! "${AUTHENTICATION_SOURCE_REPOSITORY:-}" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
-              echo "Missing protected Authentication source mapping" >&2
-              exit 1
-            fi
-            echo "::add-mask::$AUTHENTICATION_SOURCE_REPOSITORY"
+            check_mapping AUTHENTICATION_SOURCE_REPOSITORY "$AUTHENTICATION_SOURCE_REPOSITORY"
             echo "authentication=$AUTHENTICATION_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ -n "$FEEDBACK_REVISION" ]]; then
+            check_mapping FEEDBACK_SOURCE_REPOSITORY "$FEEDBACK_SOURCE_REPOSITORY"
+            echo "feedback=$FEEDBACK_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout accepted Core main
@@ -203,12 +217,24 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Checkout accepted Feedback Kit main
+        if: ${{ steps.request.outputs.feedback_revision != '' }}
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.sources.outputs.feedback }}
+          ref: main
+          path: .release-sources/feedback
+          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
+
       - name: Verify exact component main revisions
         shell: bash
         env:
           CORE_REVISION: ${{ steps.request.outputs.core_revision }}
           DEPLOYMENT_REVISION: ${{ steps.request.outputs.deployment_revision }}
           AUTHENTICATION_REVISION: ${{ steps.request.outputs.authentication_revision }}
+          FEEDBACK_REVISION: ${{ steps.request.outputs.feedback_revision }}
         run: |
           set -euo pipefail
 
@@ -229,6 +255,9 @@ jobs:
           verify_checkout .release-sources/deployment "$DEPLOYMENT_REVISION"
           if [[ -n "$AUTHENTICATION_REVISION" ]]; then
             verify_checkout .release-sources/authentication "$AUTHENTICATION_REVISION"
+          fi
+          if [[ -n "$FEEDBACK_REVISION" ]]; then
+            verify_checkout .release-sources/feedback "$FEEDBACK_REVISION"
           fi
 
       - name: Setup Python for canonical and assembled recovery safety tests
@@ -266,6 +295,8 @@ jobs:
           VERSION: ${{ steps.request.outputs.version }}
           AUTHENTICATION_REVISION: ${{ steps.request.outputs.authentication_revision }}
           PROJECT_FORGE_AUTH_SOURCE_REPOSITORY: ${{ steps.sources.outputs.authentication }}
+          FEEDBACK_REVISION: ${{ steps.request.outputs.feedback_revision }}
+          PROJECT_FORGE_FEEDBACK_SOURCE_REPOSITORY: ${{ steps.sources.outputs.feedback }}
         run: |
           set -euo pipefail
           args=(--version "$VERSION"
@@ -274,17 +305,24 @@ jobs:
           if [[ -n "$AUTHENTICATION_REVISION" ]]; then
             args+=(--authentication-root .release-sources/authentication)
           fi
+          if [[ -n "$FEEDBACK_REVISION" ]]; then
+            args+=(--feedback-root .release-sources/feedback)
+          fi
           node scripts/prepare-package-update.mjs "${args[@]}"
 
       - name: Assemble and verify exact package assets
         shell: bash
         env:
           AUTHENTICATION_REVISION: ${{ steps.request.outputs.authentication_revision }}
+          FEEDBACK_REVISION: ${{ steps.request.outputs.feedback_revision }}
         run: |
           set -euo pipefail
           args=(--core-root .release-sources/core --deployment-root .release-sources/deployment)
           if [[ -n "$AUTHENTICATION_REVISION" ]]; then
             args+=(--authentication-root .release-sources/authentication)
+          fi
+          if [[ -n "$FEEDBACK_REVISION" ]]; then
+            args+=(--feedback-root .release-sources/feedback)
           fi
           node scripts/assemble-assets.mjs "${args[@]}"
           node scripts/verify-assets.mjs
@@ -312,6 +350,9 @@ jobs:
           if [ -f assets/authentication/distribution.json ]; then
             git add -N assets/authentication/distribution.json
           fi
+          if [ -f assets/feedback/distribution.json ]; then
+            git add -N assets/feedback/distribution.json
+          fi
           node --input-type=module <<'NODE'
           import { execFileSync } from 'node:child_process';
 
@@ -327,7 +368,8 @@ jobs:
             'assets/components.json',
             'assets/core/distribution.json',
             'assets/deployment/distribution.json',
-            'assets/authentication/distribution.json'
+            'assets/authentication/distribution.json',
+            'assets/feedback/distribution.json'
           ]);
           const unexpected = changed.filter((file) => !exact.has(file));
           if (unexpected.length) {
@@ -347,6 +389,9 @@ jobs:
           git add package.json package-lock.json assets/components.json assets/core/distribution.json assets/deployment/distribution.json
           if [ -f assets/authentication/distribution.json ]; then
             git add assets/authentication/distribution.json
+          fi
+          if [ -f assets/feedback/distribution.json ]; then
+            git add assets/feedback/distribution.json
           fi
           git commit -m "Prepare Project Forge ${VERSION}"
           git push origin "HEAD:refs/heads/${BRANCH}"

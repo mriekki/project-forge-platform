@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { applyBootstrapMigrations, planBootstrapMigrations } from './bootstrap-migrations.mjs';
-import { applyProfile, applyRepair, checkProfile, loadProjectForgeBaseline, planProfile, planRepair } from './engine.mjs';
+import { applyProfile, applyRepair, checkProfile, loadProjectForgeBaseline, planProfile, planRepair, resolveUnder } from './engine.mjs';
 import { loadPackageData } from './package-data.mjs';
 
 function parseArgs(argv) {
@@ -29,6 +29,9 @@ function parseArgs(argv) {
     } else if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`);
     else positional.push(arg);
   }
+  if (positional.length > 2) throw new Error('Unexpected positional arguments');
+  if (positional[0] === 'enable') options.capability = positional[1];
+  else if (positional.length > 1) throw new Error('Unexpected positional arguments');
   return { command: positional[0] ?? 'help', options };
 }
 
@@ -81,6 +84,7 @@ function usage(command) {
   const commandUsage = {
     install: 'project-forge install [--root PATH] [--profile NAME] [--apply|--yes] [--consumer NAME] [--consumer-baseline LABEL] [--accept-retired component:path]',
     update: 'project-forge update [--root PATH] [--profile NAME] [--apply|--yes] [--accept-retired component:path]',
+    enable: 'project-forge enable feedback [--root PATH] [--apply|--yes]',
     repair: 'project-forge repair [--root PATH] [--profile NAME] [--apply|--yes]',
     status: 'project-forge status [--root PATH] [--profile NAME]',
     check: 'project-forge check [--root PATH] [--profile NAME]',
@@ -92,14 +96,14 @@ function usage(command) {
     return;
   }
 
-  console.log(`@mriekki/project-forge\n\nCommands:\n  install   Preview/install bundled Project Forge assets\n  update    Preview/update to this package's bundled Project Forge assets\n  repair    Restore missing managed files from exactly this installed package only\n  status    Show installed umbrella/component provenance\n  check     Verify managed files and baselines exactly match this package\n  version   Show package version\n\nCommon options:\n  --root PATH\n  --profile greenfield-project\n  --apply | --yes\n  --consumer NAME\n  --consumer-baseline LABEL\n  --accept-retired core:path\n  -h, --help\n`);
+  console.log(`@mriekki/project-forge\n\nCommands:\n  install   Preview/install bundled Project Forge assets\n  update    Preview/update to this package's bundled Project Forge assets\n  enable    Explicitly opt an existing Project into an optional capability\n  repair    Restore missing managed files from exactly this installed package only\n  status    Show installed umbrella/component provenance\n  check     Verify managed files and baselines exactly match this package\n  version   Show package version\n\nCommon options:\n  --root PATH\n  --profile greenfield-project\n  --apply | --yes\n  --consumer NAME\n  --consumer-baseline LABEL\n  --accept-retired core:path\n  -h, --help\n`);
 }
 
 export async function run(argv = process.argv.slice(2), packageData = loadPackageData()) {
   const { command, options } = parseArgs(argv);
   if (command === 'help') { usage(); return 0; }
   if (options.help) {
-    if (!['install', 'update', 'repair', 'status', 'check', 'version'].includes(command)) throw new Error(`Unknown command: ${command}`);
+    if (!['install', 'update', 'enable', 'repair', 'status', 'check', 'version'].includes(command)) throw new Error(`Unknown command: ${command}`);
     usage(command);
     return 0;
   }
@@ -108,6 +112,78 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
   if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) throw new Error(`Repository root not found: ${root}`);
   const installed = loadProjectForgeBaseline(root);
   const profile = options.profile ?? installed.profile ?? packageData.assets.defaultProfile;
+
+  if (command === 'enable') {
+    if (options.capability !== 'feedback') throw new Error('Usage: project-forge enable feedback');
+    if (!Object.keys(installed).length) throw new Error('No Project Forge baseline; install the Project Forge profile first.');
+    if (installed.schemaVersion !== 2 ||
+        !['greenfield-project', 'greenfield-household-project'].includes(installed.profile)) {
+      throw new Error('Feedback opt-in requires an intact schema-v2 standard or household Auth profile; update or reconcile the Project first.');
+    }
+
+    const baseProfile = packageData.assets.profiles[installed.profile];
+    if (!baseProfile || !Array.isArray(baseProfile.components)) {
+      throw new Error(`The package does not provide the installed base profile: ${installed.profile}`);
+    }
+    const recordedComponents = installed.components;
+    const baseComponents = [...baseProfile.components];
+    if (!recordedComponents || typeof recordedComponents !== 'object' || Array.isArray(recordedComponents) ||
+        Object.keys(recordedComponents).sort().join('\0') !== [...baseComponents].sort().join('\0')) {
+      throw new Error('Installed component set does not match the selected base profile; refusing capability transition.');
+    }
+    for (const componentId of baseComponents) {
+      const recorded = recordedComponents[componentId];
+      const baselinePath = componentId === 'core' ? 'CORE_BASELINE.json'
+        : componentId === 'deployment' ? 'DEPLOYMENT_BASELINE.json'
+          : componentId === 'authentication' ? 'AUTHENTICATION_BASELINE.json' : null;
+      if (!baselinePath) throw new Error(`Unsupported base component for Feedback opt-in: ${componentId}`);
+      const componentBaseline = JSON.parse(fs.readFileSync(resolveUnder(root, baselinePath, 'component baseline'), 'utf8'));
+      if (!recorded || typeof recorded !== 'object' ||
+          componentBaseline.schemaVersion !== 2 ||
+          componentBaseline.component !== componentId ||
+          componentBaseline.revision !== recorded.revision ||
+          componentBaseline.distribution !== recorded.distribution ||
+          (componentBaseline.version ?? null) !== (recorded.version ?? null)) {
+        throw new Error(`Installed ${componentId} baseline does not match the umbrella provenance; refusing capability transition.`);
+      }
+    }
+
+    const targetProfile = installed.profile === 'greenfield-household-project'
+      ? 'greenfield-household-feedback-project'
+      : 'greenfield-feedback-project';
+    if (options.profile && options.profile !== targetProfile) {
+      throw new Error(`Feedback opt-in selects ${targetProfile}; refusing a different requested profile.`);
+    }
+    if (!packageData.assets.components.feedback || !packageData.assets.profiles[targetProfile]) {
+      throw new Error('This Project Forge package does not provide the opt-in Feedback capability.');
+    }
+    if (Object.hasOwn(recordedComponents, 'feedback')) {
+      throw new Error('Feedback is already recorded in the installed component set.');
+    }
+
+    const bootstrapMigrations = planBootstrapMigrations(packageData, root);
+    const plan = planProfile(packageData, targetProfile, root, options.acceptedRetired);
+    printPlan(plan, bootstrapMigrations);
+    if (plan.unsafe.length || bootstrapMigrations.unsafe.length) {
+      console.log('\nRefusing opt-in. Resolve managed-file drift/conflicts or the unsupported Bootstrap migration and preview again. No managed files were changed.');
+      return 2;
+    }
+    if (!await shouldApply(options)) {
+      console.log('\nPreview only. Re-run with --apply, or run interactively and approve the prompt.');
+      return 0;
+    }
+    applyBootstrapMigrations(packageData, bootstrapMigrations, root);
+    applyProfile(
+      packageData, plan, root,
+      installed.consumer ?? inferConsumer(root),
+      installed.consumerBaseline ?? `${packageData.pkg.name}@${packageData.pkg.version}`
+    );
+    if (!checkProfile(packageData, targetProfile, root).clean) {
+      throw new Error('Feedback opt-in completed but final managed-file verification is not clean.');
+    }
+    console.log(`\nProject Forge Feedback opt-in: PASS (${packageData.pkg.name}@${packageData.pkg.version})`);
+    return 0;
+  }
 
   if (command === 'status') {
     if (!Object.keys(installed).length) {

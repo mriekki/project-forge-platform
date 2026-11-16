@@ -59,6 +59,32 @@ test('first install writes privacy-safe component baselines and umbrella provena
   assert.equal(checkProfile(packageData, 'greenfield-project', consumerRoot).clean, true);
 });
 
+test('check and repair reject component ownership or source provenance drift', () => {
+  const { consumerRoot, packageData } = fixture();
+  applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');
+  const umbrellaFile = path.join(consumerRoot, 'PROJECT_FORGE_BASELINE.json');
+  const componentFile = path.join(consumerRoot, 'CORE_BASELINE.json');
+  const umbrella = JSON.parse(fs.readFileSync(umbrellaFile));
+  const component = JSON.parse(fs.readFileSync(componentFile));
+
+  const badRevision = structuredClone(umbrella);
+  badRevision.components.core.revision = 'f'.repeat(40);
+  fs.writeFileSync(umbrellaFile, JSON.stringify(badRevision));
+  assert.equal(checkProfile(packageData, 'greenfield-project', consumerRoot).clean, false);
+  assert.equal(planRepair(packageData, 'greenfield-project', consumerRoot).safe, false);
+
+  const extraComponent = structuredClone(umbrella);
+  extraComponent.components.feedback = { revision: 'e'.repeat(40), distribution: 'greenfield-project' };
+  fs.writeFileSync(umbrellaFile, JSON.stringify(extraComponent));
+  assert.equal(checkProfile(packageData, 'greenfield-project', consumerRoot).clean, false);
+
+  fs.writeFileSync(umbrellaFile, JSON.stringify(umbrella));
+  component.managedPaths[0].source = 'another/source';
+  fs.writeFileSync(componentFile, JSON.stringify(component));
+  assert.equal(checkProfile(packageData, 'greenfield-project', consumerRoot).clean, false);
+  assert.equal(planRepair(packageData, 'greenfield-project', consumerRoot).safe, false);
+});
+
 test('legacy schema v1 baselines upgrade in place without changing managed files', () => {
   const { consumerRoot, packageData } = fixture();
   applyProfile(packageData, planProfile(packageData, 'greenfield-project', consumerRoot), consumerRoot, 'demo', 'base');

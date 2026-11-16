@@ -85,3 +85,12 @@ test('Auth release receipts require accepted exact component revision and Auth C
   legacyMislabel.ci.authenticationMain = { result: 'success', workflowRunId: 123456 };
   assert.throws(() => validateReleaseReceipt(legacyMislabel), /Non-Auth release receipt/);
 });
+
+test('Feedback release receipts require exact revision and successful component CI', () => {
+  const receipt = JSON.parse(fs.readFileSync(path.join(RECEIPTS, '4.26.1.json'), 'utf8'));
+  receipt.components.feedback = { revision: 'c'.repeat(40) };
+  receipt.ci.feedbackMain = { result: 'success', workflowRunId: 123 };
+  assert.equal(validateReleaseReceipt(receipt).components.feedback.revision, 'c'.repeat(40));
+  delete receipt.ci.feedbackMain;
+  assert.throws(() => validateReleaseReceipt(receipt), /ci.feedbackMain/);
+});

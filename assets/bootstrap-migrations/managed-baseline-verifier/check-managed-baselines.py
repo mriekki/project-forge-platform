@@ -157,6 +157,10 @@ def main() -> int:
                 filename = "CORE_BASELINE.json"
             elif component == "deployment":
                 filename = "DEPLOYMENT_BASELINE.json"
+            elif component == "authentication":
+                filename = "AUTHENTICATION_BASELINE.json"
+            elif component == "feedback":
+                filename = "FEEDBACK_BASELINE.json"
             else:
                 raise RuntimeError(f"Unsupported Project Forge component: {component}")
             if not isinstance(metadata, dict):
