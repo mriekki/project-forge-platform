@@ -108,6 +108,10 @@
       "destination": "tools/project-forge-deployment/project_forge_deployment/errors.py"
     },
     {
+      "source": "src/project_forge_deployment/feedback_release_evidence.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/feedback_release_evidence.py"
+    },
+    {
       "source": "src/project_forge_deployment/home_lab.py",
       "destination": "tools/project-forge-deployment/project_forge_deployment/home_lab.py"
     },

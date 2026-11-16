@@ -1,0 +1,939 @@
+{
+  "schemaVersion": 2,
+  "package": "@mriekki/project-forge",
+  "version": "4.28.0",
+  "components": {
+    "core": {
+      "revision": "44fb888353ee479cd16749720ffbad270df89087",
+      "version": "4.3.1",
+      "distribution": "greenfield-workspace",
+      "files": [
+        {
+          "source": "profiles/greenfield/project-forge-workspace.json",
+          "destination": ".github/project-forge-workspace.json",
+          "sha256": "c827fabe0ca3130edbdd5fb3f62d8a05c921d5834f058bcb4ad641e400565b92"
+        },
+        {
+          "source": "core/agents/reviewer.agent.md",
+          "destination": ".github/agents/reviewer.agent.md",
+          "sha256": "ef62ef56803eebc224727a2b7f94c6210fb0d3cfc99800ba58ac8e2f4dba5d19"
+        },
+        {
+          "source": "core/instructions/project-forge-workflow.instructions.md",
+          "destination": ".github/instructions/project-forge-workflow.instructions.md",
+          "sha256": "c2ab2b578c3b5b47d79f9aa64daeafcd40c89cfa8924244177950bdf4e10115b"
+        },
+        {
+          "source": "core/instructions/project-forge-local-development.instructions.md",
+          "destination": ".github/instructions/project-forge-local-development.instructions.md",
+          "sha256": "e7f884f123877b21913af111cde42fc0ff0ac82abe6fd18b8f4584d749fb6c3a"
+        },
+        {
+          "source": "core/instructions/project-forge-docs.instructions.md",
+          "destination": ".github/instructions/project-forge-docs.instructions.md",
+          "sha256": "8ea123843f3e565a58e481dd5dc7182d84569bcd22d4b169c464b792bbe76275"
+        },
+        {
+          "source": "core/skills/define-feature/SKILL.md",
+          "destination": ".github/skills/define-feature/SKILL.md",
+          "sha256": "c9f85d76a701b3d1af5c70cd74b19ce119b5735cf3537e2618159d58394ffd02"
+        },
+        {
+          "source": "core/skills/grill-me/SKILL.md",
+          "destination": ".github/skills/grill-me/SKILL.md",
+          "sha256": "a71c2dcf63d7d88beb9112fcfe0cf19dbc233934f30bbe95727f58b29e845ffb"
+        },
+        {
+          "source": "core/skills/refine-requirements/SKILL.md",
+          "destination": ".github/skills/refine-requirements/SKILL.md",
+          "sha256": "5787cd7f70231355b951d58f792665a79da336d6f17ea9f4d6634928ab452623"
+        },
+        {
+          "source": "core/skills/start-work/SKILL.md",
+          "destination": ".github/skills/start-work/SKILL.md",
+          "sha256": "8a1213e59c5452feb5c8820530f6131115f88419299e42462ee5d32361d62fb6"
+        },
+        {
+          "source": "core/skills/setup/SKILL.md",
+          "destination": ".github/skills/setup/SKILL.md",
+          "sha256": "30a9dbfbd132f7c333ca515736a7957494bbe2fd4b5860dfff90ba3437bc135d"
+        },
+        {
+          "source": "core/skills/build/SKILL.md",
+          "destination": ".github/skills/build/SKILL.md",
+          "sha256": "e7ba7663a99603f1212930045bec420c71774e56cad963e38867242605afdad4"
+        },
+        {
+          "source": "core/skills/run/SKILL.md",
+          "destination": ".github/skills/run/SKILL.md",
+          "sha256": "3dfc25cff7b03eafe0b8d64cc2102584c7b90793f434313f62c9e61c1b587c9e"
+        },
+        {
+          "source": "core/skills/export-requirements/SKILL.md",
+          "destination": ".github/skills/export-requirements/SKILL.md",
+          "sha256": "05d2ce830b2924f3508641f6bfa056f577862f27d236526f5a217a790d1ad490"
+        },
+        {
+          "source": "core/skills/replatform/SKILL.md",
+          "destination": ".github/skills/replatform/SKILL.md",
+          "sha256": "c43896b2b8ec92467769c32bf39de1e9d4f1090cef42005e22126cb2df88af59"
+        },
+        {
+          "source": "core/skills/progress/SKILL.md",
+          "destination": ".github/skills/progress/SKILL.md",
+          "sha256": "9b0ba914529e6bd91ad5fd7a30f666884c1687b35b847bfe77ed745c50f0fd12"
+        },
+        {
+          "source": "core/skills/next-step/SKILL.md",
+          "destination": ".github/skills/next-step/SKILL.md",
+          "sha256": "7c24a15b9069dcc5218319ab7fb72231e48efd2ebd325d8ff250e142cb3aa813"
+        },
+        {
+          "source": "core/skills/deliver/SKILL.md",
+          "destination": ".github/skills/deliver/SKILL.md",
+          "sha256": "5e4d64d91e429b636e0fda4094a84dd2f0b09aa7c1f281cbba7d630b67820076"
+        },
+        {
+          "source": "core/skills/work-item-status/SKILL.md",
+          "destination": ".github/skills/work-item-status/SKILL.md",
+          "sha256": "b09fc1b9666a81f5c5a85dc691a6db9869097fe560d45fc14dec71256eabdc52"
+        },
+        {
+          "source": "core/skills/cleanup-branches/SKILL.md",
+          "destination": ".github/skills/cleanup-branches/SKILL.md",
+          "sha256": "b44af82b8e21693fcc600cb9628c50f49a117c7cfb7840af0f2ccedad2f96dc7"
+        },
+        {
+          "source": "core/skills/pull-latest/SKILL.md",
+          "destination": ".github/skills/pull-latest/SKILL.md",
+          "sha256": "709471b55c41ec72fe0ca4eb87af0740ab9a947ef0b31c36f8cf51afc58d3ccb"
+        },
+        {
+          "source": "core/skills/project-forge-update/SKILL.md",
+          "destination": ".github/skills/project-forge-update/SKILL.md",
+          "sha256": "510d60fab8d91e54abbc49dbc963a93b132ac5cdfd97ec87f64128ca138d2b1a"
+        },
+        {
+          "source": "core/skills/upstream-fix/SKILL.md",
+          "destination": ".github/skills/upstream-fix/SKILL.md",
+          "sha256": "cec11a112840b37a5ff61e28281d26eb9490e9d7b05df99ae5fa152231316798"
+        },
+        {
+          "source": "core/skills/wait-what/SKILL.md",
+          "destination": ".github/skills/wait-what/SKILL.md",
+          "sha256": "dba3aa4f042b813de960b60c47ae4c8a3dccb72fdc89c597fe04b720b27f5316"
+        },
+        {
+          "source": "core/skills/deployment-readiness/SKILL.md",
+          "destination": ".github/skills/deployment-readiness/SKILL.md",
+          "sha256": "8b83d06056cbc10c0a9df69d1bb76db62753b52f5d4be9858488e400cd4b836d"
+        },
+        {
+          "source": "core/skills/deploy/SKILL.md",
+          "destination": ".github/skills/deploy/SKILL.md",
+          "sha256": "3ac67207c9cb6870c56313b2c4ce02d15c0756cb092937013f66512d2ec9576a"
+        },
+        {
+          "source": "core/skills/tear-down/SKILL.md",
+          "destination": ".github/skills/tear-down/SKILL.md",
+          "sha256": "468314030c6033885c46aba50f54410928cbe44c74d73b998b88338fe495f3d9"
+        },
+        {
+          "source": "core/skills/coach/SKILL.md",
+          "destination": ".github/skills/coach/SKILL.md",
+          "sha256": "68c28d5b9a55eedbf4261d12f1cd06f86b905e973b7ed7973fa4c49cf5338091"
+        },
+        {
+          "source": "core/skills/db-lab/SKILL.md",
+          "destination": ".github/skills/db-lab/SKILL.md",
+          "sha256": "340af48955f6413df249fb3123fb3006d9a0ed2e0a7b3cc0ab1a8b767b89b545"
+        },
+        {
+          "source": "core/skills/system-lab/SKILL.md",
+          "destination": ".github/skills/system-lab/SKILL.md",
+          "sha256": "a2f408105eec47a547c64315a22f21bd6d4a86457667fb5f9a2f91a4fa2b4489"
+        },
+        {
+          "source": "core/skills/docs/SKILL.md",
+          "destination": ".github/skills/docs/SKILL.md",
+          "sha256": "25016d90af1a6f94b72f46b41dbb59bb7179d7c4c01348ea897efae5b571a85c"
+        },
+        {
+          "source": "core/skills/code-walkthrough/SKILL.md",
+          "destination": ".github/skills/code-walkthrough/SKILL.md",
+          "sha256": "34cb60680a3effc6af3a5ec22fe0c20d4b9b8064b8b808afed673be988b0f210"
+        },
+        {
+          "source": "core/skills/learning-review/SKILL.md",
+          "destination": ".github/skills/learning-review/SKILL.md",
+          "sha256": "b77ccbbd85fbe6c8d77d42bfea4b0d474e320c182f7d1f72010ff2301d869e66"
+        },
+        {
+          "source": "core/process/WORK_ITEM_MODEL.md",
+          "destination": "docs/process/WORK_ITEM_MODEL.md",
+          "sha256": "8d891d41691324b0552f94fe79b9f6f33ec3c50aaed96bef69a86c2fef3d93e3"
+        },
+        {
+          "source": "core/process/PR_WORKFLOW.md",
+          "destination": "docs/process/PR_WORKFLOW.md",
+          "sha256": "a98338d7883b25136d8b5c7768c796ed88e19686a8972109cd284ed7d10a03f2"
+        },
+        {
+          "source": "core/process/DEPLOYMENT_ENABLEMENT.md",
+          "destination": "docs/process/DEPLOYMENT_ENABLEMENT.md",
+          "sha256": "f45b84f64975f5f90f639ed1f4f8709d0153d48d109198764c0ec13218956188"
+        },
+        {
+          "source": "core/process/HUMAN_GATES.md",
+          "destination": "docs/process/HUMAN_IN_LOOP_GATES.md",
+          "sha256": "d884eccd7e9e04d7c81868792adebcdc7f376206786ced37d467f81fca6dbd7f"
+        },
+        {
+          "source": "core/process/GUIDED_NEXT_STEPS.md",
+          "destination": "docs/process/GUIDED_NEXT_STEPS.md",
+          "sha256": "f25f08e6b2e904f44652fb7ea78b9f576f544a55950d63741b6f4806e4ee3287"
+        },
+        {
+          "source": "core/process/INTERACTIVE_SESSION_GUIDE.md",
+          "destination": "docs/process/INTERACTIVE_SESSION_GUIDE.md",
+          "sha256": "43bb5959fcc71755a76f9c4adcbc24576907db817d9dc0ced4e1607630493843"
+        },
+        {
+          "source": "core/process/COACHING_GUIDE.md",
+          "destination": "docs/process/COACHING_GUIDE.md",
+          "sha256": "cf141525e71467b189b18283ba8616859c665bba632f92de80e94f2de2e8f7b4"
+        },
+        {
+          "source": "core/process/DATABASE_LEARNING_WORKBENCH.md",
+          "destination": "docs/process/DATABASE_LEARNING_WORKBENCH.md",
+          "sha256": "b00a8b2a66b72c8d085acb8ff0517f3331dff2f4dad14f879a2409d0f1e4f46c"
+        },
+        {
+          "source": "core/process/SYSTEM_DESIGN_LEARNING_WORKBENCH.md",
+          "destination": "docs/process/SYSTEM_DESIGN_LEARNING_WORKBENCH.md",
+          "sha256": "a4ce68e5180ee86507b0a5cf5351ac68111efe60f320c17ef570470ee59a6340"
+        },
+        {
+          "source": "core/process/PROJECT_DOCUMENTATION_FRAMEWORK.md",
+          "destination": "docs/process/PROJECT_DOCUMENTATION_FRAMEWORK.md",
+          "sha256": "bcb9f73dad1490ac5b45fe1bac931d488112727bad537534d8b9ffd5b115d84b"
+        },
+        {
+          "source": "core/process/PROJECT_FORGE_ENGINEERING_GUIDE.md",
+          "destination": "docs/project-forge/PROJECT_FORGE_ENGINEERING_GUIDE.md",
+          "sha256": "c09e0f088682302751d2f98629959cc4dab5e8a441ba19fb3417468e3895cc20"
+        },
+        {
+          "source": "core/process/SETUP_ACCEPTANCE_CHECKLIST.md",
+          "destination": "docs/process/SETUP_ACCEPTANCE_CHECKLIST.md",
+          "sha256": "8bf7936d8ae33b1656532669a278b3c73aaf4d47f87e641d48bfb38ecd8c56b5"
+        },
+        {
+          "source": "core/process/OPERATION_JOURNAL.md",
+          "destination": "docs/process/OPERATION_JOURNAL.md",
+          "sha256": "7051e4554ee6f3cca1b7ee8105ad1ab9f2cde4f1afc7d0f39e310144df45f390"
+        },
+        {
+          "source": "core/process/PROJECT_REQUIREMENTS_EXPORT.md",
+          "destination": "docs/process/PROJECT_REQUIREMENTS_EXPORT.md",
+          "sha256": "f3e171cf466db69f46798859d9c174c177f5a1cb02bf19a3f02a66a16f5c43df"
+        },
+        {
+          "source": "core/process/APPLICATION_VERSIONING.md",
+          "destination": "docs/process/APPLICATION_VERSIONING.md",
+          "sha256": "846abd1085501bebf3ffd8025f875dcf2bfb3f57e67110e684c605ae11c3246b"
+        },
+        {
+          "source": "core/process/LOCAL_DEVELOPMENT_COMMANDS.md",
+          "destination": "docs/process/LOCAL_DEVELOPMENT_COMMANDS.md",
+          "sha256": "44a62a68cbf211658d0e928f595b357fab3993eebbe5228ffeab9336b79e7ba6"
+        },
+        {
+          "source": "core/templates/PULL_REQUEST_TEMPLATE.md",
+          "destination": ".github/PULL_REQUEST_TEMPLATE.md",
+          "sha256": "e108fcde3eaae4f4f89b3199844a894c60164d43af42586382e2e9621cbd7505"
+        },
+        {
+          "source": "core/templates/PRODUCT_BRIEF_TEMPLATE.md",
+          "destination": "docs/templates/PRODUCT_BRIEF_TEMPLATE.md",
+          "sha256": "fcab7508dd5d53ea9dac3a35b7c31b4adac8c1c37b5df2224f2fb47c52432f58"
+        },
+        {
+          "source": "core/templates/FEATURE_BRIEF_TEMPLATE.md",
+          "destination": "docs/templates/FEATURE_BRIEF_TEMPLATE.md",
+          "sha256": "d09737d7e67b7bad50a779ce0a6b3a95d17ba9de7a2e60423763ea3d934ce768"
+        },
+        {
+          "source": "core/templates/REQUIREMENTS_TEMPLATE.md",
+          "destination": "docs/templates/REQUIREMENTS_TEMPLATE.md",
+          "sha256": "ec85cc723071edb01f09acca41e20e9833afe21d06d103b39dfcdbfb59a31aed"
+        },
+        {
+          "source": "core/templates/ADR_TEMPLATE.md",
+          "destination": "docs/templates/ADR_TEMPLATE.md",
+          "sha256": "f802ae066438642de9a4948980a4ab48c4cb68309fa5de16d48b08415a1a31fb"
+        },
+        {
+          "source": "core/learning/ENGINEERING_LEARNING_WORKBOOK.md",
+          "destination": "learning/ENGINEERING_LEARNING_WORKBOOK.md",
+          "sha256": "e065342b6a5fb8a5f39ec616c1f59b7417cf3cba4238d01b0fee6d23ba881af6"
+        },
+        {
+          "source": "core/learning/LEARNING_MAP.md",
+          "destination": "learning/LEARNING_MAP.md",
+          "sha256": "c1e3b565b57fa0cced6a0a1abe66cbbe67c7cd4960ff9c0307564cf1e2c76470"
+        },
+        {
+          "source": "core/learning/LEARNING_PROGRESS.md",
+          "destination": "learning/LEARNING_PROGRESS.md",
+          "sha256": "50a19d3d3c7da4c2082ab7f5832c1ed5f90b54495db6c4aced3cb3a07ad78f89"
+        },
+        {
+          "source": "core/learning/CODING_DRILLS.md",
+          "destination": "learning/CODING_DRILLS.md",
+          "sha256": "cbdb054ea5571b1c79f6dcf104bffb1b830ac8b99f04eb77dcede4b00d1f1234"
+        },
+        {
+          "source": "core/learning/SQL_DRILLS.md",
+          "destination": "learning/SQL_DRILLS.md",
+          "sha256": "696b9c97d3c1bd7adc7be1a43dcd655056bbf55ab58bc7741c59225d52f8c239"
+        },
+        {
+          "source": "core/learning/SYSTEM_DESIGN_DRILLS.md",
+          "destination": "learning/SYSTEM_DESIGN_DRILLS.md",
+          "sha256": "1fbcd5b0cebfb1fa0ba3051cb019ef110790190b06e034075a37109711963154"
+        },
+        {
+          "source": "core/learning/DIAGRAM_GUIDE.md",
+          "destination": "learning/DIAGRAM_GUIDE.md",
+          "sha256": "a2c9a3475dca76f2192b0ad2250ae20731c6ab213204b364e2305e37bf867e84"
+        },
+        {
+          "source": "core/learning/RESOURCE_CATALOG.md",
+          "destination": "learning/RESOURCE_CATALOG.md",
+          "sha256": "88fc894dd51da7280aabd3df439bcbda337f437ece43640d86dfc0842dd0f91e"
+        },
+        {
+          "source": "tools/db_lab/sqlite_workbench.py",
+          "destination": "tools/project-forge-db-lab/sqlite-workbench.py",
+          "sha256": "323a4fe977cacf658b1ec331c44dcf554f262ffbfe579fedb6dae6b3fbe1fe20"
+        },
+        {
+          "source": "tools/system_lab/system_workbench.py",
+          "destination": "tools/project-forge-system-lab/system-workbench.py",
+          "sha256": "3fc6c6d575ad53aa09d9dd68f020b9d9937da56a00ac57d84cde977c37aa88d9"
+        },
+        {
+          "source": "tools/docs_site/docs_site.py",
+          "destination": "tools/project-forge-docs/docs-site.py",
+          "sha256": "8b0fe9a63a84a09ceeb71db0265186e427e92c8ce61e925b98f3be66682078ec"
+        },
+        {
+          "source": "tools/vscode_work_item_status/install.py",
+          "destination": "tools/project-forge-vscode/work-item-status/install.py",
+          "sha256": "1f19a8d47b916bd8b21669c50a418010807832db879993a39c3a74d49aa662e1"
+        },
+        {
+          "source": "tools/vscode_work_item_status/extension/package.json",
+          "destination": "tools/project-forge-vscode/work-item-status/extension/package.json",
+          "sha256": "1dd1f7bba7f6e519ad73f1ee8ad67900cabec2ef475b1b6bc5db931ab9cd615b"
+        },
+        {
+          "source": "tools/vscode_work_item_status/extension/extension.js",
+          "destination": "tools/project-forge-vscode/work-item-status/extension/extension.js",
+          "sha256": "2688291de42fab15edd3487cc17410bf57d8358e9f606e292dc44c9cb0439009"
+        },
+        {
+          "source": "tools/vscode_work_item_status/extension/README.md",
+          "destination": "tools/project-forge-vscode/work-item-status/extension/README.md",
+          "sha256": "b5f1e2d6051fa7b62f724fcfbf9413ff5bbef61437c780bee566be66475f0855"
+        },
+        {
+          "source": "tools/package/check_baseline.py",
+          "destination": "tools/project-forge-core/check-core-baseline.py",
+          "sha256": "fdd8c85a29e7549cc469e50f592a006cef45c7b92cc19b35e9c7f1ab2b351365"
+        },
+        {
+          "source": "tools/package/check_upstream.py",
+          "destination": "tools/project-forge-core/check-core-upstream.py",
+          "sha256": "8c23422f0a72b3e8ec6021791bb46d484ddb5f014ba9f81eccb004b0605d931a"
+        },
+        {
+          "source": "core/skills/web-guidance/SKILL.md",
+          "destination": ".github/skills/web-guidance/SKILL.md",
+          "sha256": "b2064b1fea2ae7249685278e291cda6b4739a7601f8c2dc43a797f324c9fbda1"
+        },
+        {
+          "source": "core/skills/ux-review/SKILL.md",
+          "destination": ".github/skills/ux-review/SKILL.md",
+          "sha256": "2d0031a7041b8174ef056cf35015d5a9faadbc960313b3d1117bf55b8cb44486"
+        },
+        {
+          "source": "core/skills/review-user-feedback/SKILL.md",
+          "destination": ".github/skills/review-user-feedback/SKILL.md",
+          "sha256": "e9e3812acece33a466ea2d6812b00d30c0c9aa3468cfac7d0172f37797319906"
+        },
+        {
+          "source": "core/process/ENGINEERING_BACKLOG.md",
+          "destination": "docs/process/ENGINEERING_BACKLOG.md",
+          "sha256": "d6e7531bbc5e03c55d90e0cba760f3a9e8fee0239ea4fa4dbcdbba347469f9a5"
+        },
+        {
+          "source": "core/skills/manage-backlog/SKILL.md",
+          "destination": ".github/skills/manage-backlog/SKILL.md",
+          "sha256": "a2f282fa378603cb0221746efcbd7c102f1e53ab846bbdaa2ad828b45f116146"
+        },
+        {
+          "source": "core/skills/brainstorm/SKILL.md",
+          "destination": ".github/skills/brainstorm/SKILL.md",
+          "sha256": "75e29a1547a1063013ced4f96135a031b17e50de184bb443c20cd8c27aa6bc0b"
+        },
+        {
+          "source": "core/instructions/project-forge-web-guidance.instructions.md",
+          "destination": ".github/instructions/project-forge-web-guidance.instructions.md",
+          "sha256": "5e9c32ea86d0ad868882ec8d6c5263931cd12eb26d7f9a432dfae1895f8b0738"
+        },
+        {
+          "source": "tools/setup_maintenance/maintenance.py",
+          "destination": "tools/project-forge-setup/maintenance.py",
+          "sha256": "15292e1059bc017139a11692346234fe34d98e5745acdfff2197d1232ce57c34"
+        },
+        {
+          "source": "core/process/WORKSTATION_MAINTENANCE.md",
+          "destination": "docs/process/WORKSTATION_MAINTENANCE.md",
+          "sha256": "beff0c78e9ef139f6e611176f02ee5b188387be1ee876d67401c5212566c36cb"
+        }
+      ],
+      "profileVariants": {
+        "existing-github": {
+          "source": "profiles/existing-github/project-forge-workspace.json",
+          "destination": ".github/project-forge-workspace.json",
+          "sha256": "3834aa7e0414f7f679fb03142428390347b67f253f368b41a526cb78dd66ca90"
+        }
+      }
+    },
+    "deployment": {
+      "revision": "058309bb61aa88e96d5a76ada07646c97650a4a5",
+      "distribution": "greenfield-project",
+      "files": [
+        {
+          "source": "distribution/project-forge-deploy.py",
+          "destination": "tools/project-forge-deployment/project-forge-deploy.py",
+          "sha256": "b1ef86051ca0afafa8c763323950749322d4cc4a8d31e7db06d3fa6918312ea8"
+        },
+        {
+          "source": "src/project_forge_deployment/__init__.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/__init__.py",
+          "sha256": "abcd28e99d48cdbd0890f1f3c4c7af64df56e0e389f0b805a45cac678fc9f98a"
+        },
+        {
+          "source": "src/project_forge_deployment/__main__.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/__main__.py",
+          "sha256": "8742c1b766812edb07174a724d676ffeff58b71b3c192d35102a3e652e962946"
+        },
+        {
+          "source": "src/project_forge_deployment/access_cli.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/access_cli.py",
+          "sha256": "007d01ae0c4e28e64f75fb96f9e8e7b99db5c4c8129698a78923baeac2f51953"
+        },
+        {
+          "source": "src/project_forge_deployment/agent_session.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/agent_session.py",
+          "sha256": "c1bc83cc9a4daa50e86fdfe54cc5902ae5052fe1ad8c193082d0b1966cf8a1d0"
+        },
+        {
+          "source": "src/project_forge_deployment/access_diagnosis.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/access_diagnosis.py",
+          "sha256": "92861e58a29b17758a927f7a527b089f172a1bc0c9725c79731ef07e00294af1"
+        },
+        {
+          "source": "src/project_forge_deployment/app_cli.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/app_cli.py",
+          "sha256": "b44ec913fd1080ff66bff6643d2d9fad17262725c0f35557c56f52c86090c060"
+        },
+        {
+          "source": "src/project_forge_deployment/app_deployment.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/app_deployment.py",
+          "sha256": "aeecda05bd2f71276dd49f09fd599cf529ea9fe9b0aae7c1e26ab92bd57e7f22"
+        },
+        {
+          "source": "src/project_forge_deployment/app_runtime.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime.py",
+          "sha256": "0ffcf5bd7f73035627fcc129e100f7dd6439bf762a7ae5707bb659f8ce3d9400"
+        },
+        {
+          "source": "src/project_forge_deployment/app_runtime_remote.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime_remote.py",
+          "sha256": "cdd5848917858d062a51c54cb96de6061cdadaa2cf9a5681f395d3b5fed362fd"
+        },
+        {
+          "source": "src/project_forge_deployment/app_runtime_workstation.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime_workstation.py",
+          "sha256": "2eeeb507f8de4d8b5053ffec20fdbb51e7e79a0ab88fe4697f2b6646cbdd3af4"
+        },
+        {
+          "source": "src/project_forge_deployment/box_platform.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/box_platform.py",
+          "sha256": "a11603daa47e33570732e349f59720811b5fdc2ec26ea04d08896764e089b682"
+        },
+        {
+          "source": "src/project_forge_deployment/box_platform_assets.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/box_platform_assets.py",
+          "sha256": "84ef997cb81ea5d726d095aa79e513ebc90a20a1a29d993021d4498b4905c6a3"
+        },
+        {
+          "source": "src/project_forge_deployment/box_platform_remote.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/box_platform_remote.py",
+          "sha256": "18a47000d0755c645d5fe8a950f917331abedc332f3e11b9d6638946843a3f0e"
+        },
+        {
+          "source": "src/project_forge_deployment/cloudflare_api.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_api.py",
+          "sha256": "de383926e04f6ebb3b8fd95948b475a9dc40d8da01ff2499afbe0f3a7305d4df"
+        },
+        {
+          "source": "src/project_forge_deployment/cloudflare_ingress.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_ingress.py",
+          "sha256": "31541e115f474fd3bd2a426eac1ca1beea429633c6ecc48afeace025a85054a9"
+        },
+        {
+          "source": "src/project_forge_deployment/cloudflare_ingress_remote.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_ingress_remote.py",
+          "sha256": "5c8f0611cdeb18cffd108cc77bee6f43f72c01b8d5e9579c635a6494733784ec"
+        },
+        {
+          "source": "src/project_forge_deployment/cloudflare_route_apply.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/cloudflare_route_apply.py",
+          "sha256": "ddcc5caf9006402b77c57eb77d9777f4e5b7c7a5c5847770f5963b29935c8984"
+        },
+        {
+          "source": "src/project_forge_deployment/cli.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/cli.py",
+          "sha256": "5f22a0fed79fe7dcb12b94f670bda04ea503f5254ccacfd841f03dfedd2ceeb5"
+        },
+        {
+          "source": "src/project_forge_deployment/doctor.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/doctor.py",
+          "sha256": "139914e437832fd8c5b8d2d8d6fc0ef8aa004862fde45989547e572c461f299d"
+        },
+        {
+          "source": "src/project_forge_deployment/entrypoint.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/entrypoint.py",
+          "sha256": "c9dd332a68e923ef15a9f228e0666306c9692dd3ffe724b73160ce313f627ab6"
+        },
+        {
+          "source": "src/project_forge_deployment/environment_cli.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/environment_cli.py",
+          "sha256": "ff4883a491dc4b4fab4e4c2afbb2eb3f65ddce6ae7ff22df7ab355ded5cc4f6b"
+        },
+        {
+          "source": "src/project_forge_deployment/environment_isolation.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/environment_isolation.py",
+          "sha256": "aa2f380c7cbf474084375460c9d9168390c608a6566559eab778764ad5cf094d"
+        },
+        {
+          "source": "src/project_forge_deployment/environment_probe.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/environment_probe.py",
+          "sha256": "0a7b7a939fa38172abf85a036e2e8e9e97fa2c890f63a2e4d9304b4d62ebfa2d"
+        },
+        {
+          "source": "src/project_forge_deployment/environment_setup.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/environment_setup.py",
+          "sha256": "934b6d8f2309128da07ced858ea4b9c56b04c5ff67b6efc5c52d81a10a1a696b"
+        },
+        {
+          "source": "src/project_forge_deployment/errors.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/errors.py",
+          "sha256": "e92719788aa163890f5970b2f7e3282bf5690c2340d0abba6a9a14e9b935ddfd"
+        },
+        {
+          "source": "src/project_forge_deployment/feedback_release_evidence.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/feedback_release_evidence.py",
+          "sha256": "a780cff1fa8b724f260914d44883b849de090d585eeace0b34cc26e6990eca9d"
+        },
+        {
+          "source": "src/project_forge_deployment/home_lab.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/home_lab.py",
+          "sha256": "481b22ee7983dbe39b9e727ad874356a5dc4d55a4d7380545f2577e4a9ea45e7"
+        },
+        {
+          "source": "src/project_forge_deployment/image_transfer.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/image_transfer.py",
+          "sha256": "dadd1fe7724372a4ca0e04ab2280769b6c2381f0f9ae75a096f6c5a5f5add755"
+        },
+        {
+          "source": "src/project_forge_deployment/ingress_cli.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/ingress_cli.py",
+          "sha256": "069a7e5a4c7921448e6965ebff2df8b38a9aba77aaff1154a54969ab0e234324"
+        },
+        {
+          "source": "src/project_forge_deployment/keys.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/keys.py",
+          "sha256": "619da5559d9e5bac2f31112c4eb90af391735ff0b0a0c29ebec7d2fc6917a310"
+        },
+        {
+          "source": "src/project_forge_deployment/local_cli.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/local_cli.py",
+          "sha256": "b0b99dc66a95a5f9cb386a15d7a32f3f935bf37be2cf06175ceb9cc2c9a479cd"
+        },
+        {
+          "source": "src/project_forge_deployment/local_extensions.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/local_extensions.py",
+          "sha256": "cf90ef1fc122c6626b7f53d8e9b1eb88c97f7f8106d248e5b04f25263184ca93"
+        },
+        {
+          "source": "src/project_forge_deployment/local_runtime.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/local_runtime.py",
+          "sha256": "1fc1ab9520641bb92024351e3f4148df516c41ebfa55f2dd6f693643ea7c92f5"
+        },
+        {
+          "source": "src/project_forge_deployment/local_spec.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/local_spec.py",
+          "sha256": "bddaafcb5785e74103cb82d73f01d4e577c97476bd6a6549b3e332cca5eb50f8"
+        },
+        {
+          "source": "src/project_forge_deployment/local_sqlite.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/local_sqlite.py",
+          "sha256": "767c91f2af1f0df6f88b81a867826e4beaa1871865a97a9002a6b3fc53c781c9"
+        },
+        {
+          "source": "src/project_forge_deployment/portable_profile.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/portable_profile.py",
+          "sha256": "604406f9eac914f8a7532593a51be304b9a6f09501cde11a9ba5b8d8519ef381"
+        },
+        {
+          "source": "src/project_forge_deployment/profile_migration.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/profile_migration.py",
+          "sha256": "02e63ec3729d17c02fe654c8fedaa83f71b831d5d2435ec25d0aeaa95e2cc736"
+        },
+        {
+          "source": "src/project_forge_deployment/profile_repository.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/profile_repository.py",
+          "sha256": "8891e17c1d149d29d4b8edeecd8294649eeab8a022af83d4a9e8a08afa86d4c4"
+        },
+        {
+          "source": "src/project_forge_deployment/profiles.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/profiles.py",
+          "sha256": "c8fb1c378af9d39d28f46b300064bec967e2a6f7a13e22d089fc00413c42fd9d"
+        },
+        {
+          "source": "src/project_forge_deployment/project_topology.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/project_topology.py",
+          "sha256": "72e810d5c6438529195069a5640c74e2774816c16bc6b0f5beff152710240bf7"
+        },
+        {
+          "source": "src/project_forge_deployment/proof_receipt.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/proof_receipt.py",
+          "sha256": "9b4bbb559747fc4ee3ba984a050fc6425e532527ae82f9897c73e04d8d0291b6"
+        },
+        {
+          "source": "src/project_forge_deployment/proxy_peer.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/proxy_peer.py",
+          "sha256": "ae6c8cb26b83ed07765fa4740ce5c68f52cafd2209b4f055887a4457cfb41c03"
+        },
+        {
+          "source": "src/project_forge_deployment/auth_recovery_guard.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_guard.py",
+          "sha256": "8ca97923b994f07655b04062556e2dd755c2127ff134ecbfe64c64f20f0e5ac8"
+        },
+        {
+          "source": "src/project_forge_deployment/auth_recovery_capture.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_capture.py",
+          "sha256": "de8e2db1d66b07d69afe11aa331264cc180cd9b3ecf734c175cd1fdff5764d4c"
+        },
+        {
+          "source": "src/project_forge_deployment/auth_recovery_lifecycle.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_lifecycle.py",
+          "sha256": "ade089a5b1e9ee98ca06e81f6629b07f3786e65a106f3bdd0c3639cfccd038a8"
+        },
+        {
+          "source": "src/project_forge_deployment/auth_recovery_schedule.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_schedule.py",
+          "sha256": "10e7e9b8d2f1b24c9abb1f10aebbd9a89677896ee4d51d33d12f8a0f174bed23"
+        },
+        {
+          "source": "src/project_forge_deployment/auth_recovery_retention.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_retention.py",
+          "sha256": "953a5e4ef790a61b6ba8742352a89b97ace346b116033e03831c9a19dd7e6288"
+        },
+        {
+          "source": "src/project_forge_deployment/recovery_scope.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/recovery_scope.py",
+          "sha256": "1773369f26dea95795eb971a8433699897db74d6c38223c0d93c8626c3b9f2aa"
+        },
+        {
+          "source": "src/project_forge_deployment/registry_access.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/registry_access.py",
+          "sha256": "1f582f1b5da656579625748b13c779f6d67ed6a6049f0ebb104ce8c3f9185a4b"
+        },
+        {
+          "source": "src/project_forge_deployment/registry_cli.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/registry_cli.py",
+          "sha256": "2ce977fa570580407c04a3e59d0a524f128af420b7ee20fd9706e6452378b7b3"
+        },
+        {
+          "source": "src/project_forge_deployment/route_registry.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/route_registry.py",
+          "sha256": "ea08753878e9e6b59a8986aac7e40e40f66651cc704fff50842badf956705744"
+        },
+        {
+          "source": "src/project_forge_deployment/route_registry_remote.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/route_registry_remote.py",
+          "sha256": "c8f397a09ff9efc904230eeec68aa85bab9c21529e44dd925e5db0f02f406b6f"
+        },
+        {
+          "source": "src/project_forge_deployment/safe_diagnostics.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/safe_diagnostics.py",
+          "sha256": "58372e220e25fc468be490c8a788e347a1026ccbdff899217cdbe8aecb7c00ce"
+        },
+        {
+          "source": "src/project_forge_deployment/security.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/security.py",
+          "sha256": "d24d4faa0d98b2e7484e2a9e959ba4624927be61a84453ed2db150aa6132c0cf"
+        },
+        {
+          "source": "src/project_forge_deployment/sqlite_adapter.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_adapter.py",
+          "sha256": "a5fe59886946ef90b664959f7030831c60f8157d30825887bb1d2eac8f891e8b"
+        },
+        {
+          "source": "src/project_forge_deployment/sqlite_adapter_remote.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_adapter_remote.py",
+          "sha256": "e327a079cb2fb1bec744c77684811ee3a6f382523484b70b430c9cdd73f730f1"
+        },
+        {
+          "source": "src/project_forge_deployment/sqlite_cli.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_cli.py",
+          "sha256": "37132cc141afe9196a96fd91db55597998886d037b2baded62526c08df148f5d"
+        },
+        {
+          "source": "src/project_forge_deployment/sqlite_import_recovery.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_import_recovery.py",
+          "sha256": "b047494e403963120d8667e189f20ed6310526870b56adb1f433a9b0154c7636"
+        },
+        {
+          "source": "src/project_forge_deployment/ssh.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/ssh.py",
+          "sha256": "b45ace8c35e622cb336ade9aeafa7405f96660e1e4faed0303faa4edb24b95c5"
+        },
+        {
+          "source": "src/project_forge_deployment/teardown.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/teardown.py",
+          "sha256": "4c4516c06f8b8aa13c125fc06e47633197c50f0301fb20d0005d79952a8e92d6"
+        },
+        {
+          "source": "src/project_forge_deployment/teardown_cli.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/teardown_cli.py",
+          "sha256": "5dbe92b1d5683824bbf3b4892f9099db2d68ad95c0a514bf73f7b596a62775be"
+        },
+        {
+          "source": "src/project_forge_deployment/teardown_remote.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/teardown_remote.py",
+          "sha256": "5a898ee8ce981c60839d12c63a776bf742e2c32bc409fbb29cdfd798cf9baa19"
+        },
+        {
+          "source": "src/project_forge_deployment/topology_cli.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/topology_cli.py",
+          "sha256": "83523efa8c175dfc0235844fcfe3b51a4af3e807e83165cca63c81f675030f8c"
+        },
+        {
+          "source": "src/project_forge_deployment/trust.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/trust.py",
+          "sha256": "b143fa828c3a23df3909dacfd78ae56b9ec1159628eb45261d69c0aa6ddd1a7b"
+        },
+        {
+          "source": "docs/CLOUDFLARE_INGRESS.md",
+          "destination": "docs/project-forge/CLOUDFLARE_INGRESS.md",
+          "sha256": "396327ae00bf4a54eeaea6eec8c07a17af6084eed5c4d0be97b55b29bd0160ff"
+        },
+        {
+          "source": "docs/DEVELOPER_ENVIRONMENTS.md",
+          "destination": "docs/project-forge/DEVELOPER_ENVIRONMENTS.md",
+          "sha256": "cac10b7e30db24992225a88b43e16aa55404317c87a2ef136f21a2589ee4dc5f"
+        },
+        {
+          "source": "docs/WORKSPACE_INSTANCES.md",
+          "destination": "docs/project-forge/WORKSPACE_INSTANCES.md",
+          "sha256": "43da263213d3822308d4a9bc57b53119e8b0abdc92e14afb354e88dedd2b0706"
+        },
+        {
+          "source": "docs/ENVIRONMENT_PROOF.md",
+          "destination": "docs/project-forge/ENVIRONMENT_PROOF.md",
+          "sha256": "2ce7225ad6166a4ee30f51ea67ec077de0c29ce3a5c39b4ff57bf11cbe25e927"
+        },
+        {
+          "source": "docs/PROJECT_TOPOLOGY_BINDING.md",
+          "destination": "docs/project-forge/PROJECT_TOPOLOGY_BINDING.md",
+          "sha256": "50988ac1d797494bcb2d5dd6cece04f6313fb30179ca3132191dea75bcd759cd"
+        },
+        {
+          "source": "docs/RECOVERY_READINESS.md",
+          "destination": "docs/project-forge/RECOVERY_READINESS.md",
+          "sha256": "61d4b26d5f126acbc544925489acb3adc8d6c7ea5d2d02b4b71bf6ccb3d3171b"
+        },
+        {
+          "source": "docs/images/developer-environment-journey.svg",
+          "destination": "docs/project-forge/images/developer-environment-journey.svg",
+          "sha256": "f799027ee52105f482231998ecda9bf6f6e05590f131ec0c7d04cd8d27b3ca51"
+        },
+        {
+          "source": "docs/images/personal-environment-architecture.svg",
+          "destination": "docs/project-forge/images/personal-environment-architecture.svg",
+          "sha256": "a2d5a4a6b52eaa451bb3b28eb9a856a30750b00e9f1c5932c645bdc8e96f935f"
+        },
+        {
+          "source": "docs/images/project-environment-model.svg",
+          "destination": "docs/project-forge/images/project-environment-model.svg",
+          "sha256": "357896c40ff2c7a93bf77811af61d2559103d2e386a5fd887c7041d016114b10"
+        }
+      ]
+    },
+    "authentication": {
+      "revision": "99808353289cffabd591d47a71684b45b0b5c0a8",
+      "distribution": "greenfield-project",
+      "files": [
+        {
+          "source": "src/ProjectForge.Auth/AdmissionPolicy.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth/AdmissionPolicy.cs",
+          "sha256": "74b76dd227ff3dd5545e14ff69283ef02dd06017165bf35189bf99e041103f22"
+        },
+        {
+          "source": "src/ProjectForge.Auth/AuthenticationDiagnostics.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth/AuthenticationDiagnostics.cs",
+          "sha256": "b1c0d112e963bc3122b56c1a5459c2d3e6575d391433b85f6e02d0bc4fbb58a2"
+        },
+        {
+          "source": "src/ProjectForge.Auth/ProjectForge.Auth.csproj",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth/ProjectForge.Auth.csproj",
+          "sha256": "25d111608dc0c1dd47702cd0501f7de2e20d67552ff7e1c3779722985c27641e"
+        },
+        {
+          "source": "src/ProjectForge.Auth/PwaExistingProjectCompatibility.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth/PwaExistingProjectCompatibility.cs",
+          "sha256": "5ab5b6b4f017b8eed3d1d412966420eba07ed102b4fb41ecffd012ed77812d2c"
+        },
+        {
+          "source": "src/ProjectForge.Auth.Runtime/ProjectAuthStore.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthStore.cs",
+          "sha256": "e8255f660c6834803effc5659ca8c7d8517f34c195d371c811b77dee3ecd9c23"
+        },
+        {
+          "source": "src/ProjectForge.Auth.Runtime/ProjectForge.Auth.Runtime.csproj",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForge.Auth.Runtime.csproj",
+          "sha256": "ae704a37487250b5198cc5c61bfcb600fe03b877d6b818c9700b8768d14365bc"
+        },
+        {
+          "source": "src/ProjectForge.Auth.Runtime/ProjectForgeAuthRuntimeExtensions.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForgeAuthRuntimeExtensions.cs",
+          "sha256": "73a73a3aca995030c3e2db90b8670e2998df348266bff196b3686751ce0325f9"
+        },
+        {
+          "source": "tools/household_connect.py",
+          "destination": "tools/project-forge-auth-kit/household_connect.py",
+          "sha256": "f3517f483fc027f9db3cfb3256000bf9738509cbeb17711fa3fbf93dd91df7be"
+        },
+        {
+          "source": "docs/HOUSEHOLD_REGISTRY.md",
+          "destination": "tools/project-forge-auth-kit/docs/HOUSEHOLD_REGISTRY.md",
+          "sha256": "17a466927402398f5b69a958325aaaaf5ea953193b8d3c60d5d5bf201dca8009"
+        },
+        {
+          "source": "docs/HOUSEHOLD_INFRASTRUCTURE_ADOPTION.md",
+          "destination": "tools/project-forge-auth-kit/docs/HOUSEHOLD_INFRASTRUCTURE_ADOPTION.md",
+          "sha256": "5cbbc6843d4a02b8f50153b6cc9cbaad9df6629748d8a541524af31bc9b07bdf"
+        },
+        {
+          "source": "src/ProjectForge.Transport/ProjectForge.Transport.csproj",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Transport/ProjectForge.Transport.csproj",
+          "sha256": "213e625c19e95b2a5ef315f01e2ca63fa56d3f5d1634dce920d493aeec1a4240"
+        },
+        {
+          "source": "src/ProjectForge.Transport/StrictPublicOriginTransport.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Transport/StrictPublicOriginTransport.cs",
+          "sha256": "3c91970ad8f7f4feb0db8eda2289109a7748d439d71752a13a1c8e394b8070fd"
+        },
+        {
+          "source": "samples/ProjectForgeAuth.Api/Program.cs",
+          "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/Program.cs",
+          "sha256": "baf0471b649864aeb7bdad76a74fe91279cc0a6b708b4487f62b2b940f6334cf"
+        },
+        {
+          "source": "samples/ProjectForgeAuth.Api/ProjectForgeAuth.Api.csproj",
+          "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/ProjectForgeAuth.Api.csproj",
+          "sha256": "5f77a342dbfd3f062705f77f42285d41ee7ded2122533045d54de8d66cacb93b"
+        },
+        {
+          "source": "samples/ProjectForgeAuth.Api/wwwroot/index.html",
+          "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/wwwroot/index.html",
+          "sha256": "97f28fd0a4269ecbff7cc2ac94d12fdcad236b0f5bd07c538e7d241f4796dfb0"
+        },
+        {
+          "source": "samples/ProjectForgeAuth.Api/wwwroot/auth.js",
+          "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/wwwroot/auth.js",
+          "sha256": "cfb0d94c2c4b9bb2093dc9e322c226a8e4eead0a8cef31f194ddbac5d3420823"
+        },
+        {
+          "source": "src/ProjectForge.Auth.Runtime/ResendProjectInvitationDelivery.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ResendProjectInvitationDelivery.cs",
+          "sha256": "ff6a62f99eb984388c265aa72f47f3b223a3594371f8f041208f5f4e4887f017"
+        },
+        {
+          "source": "docs/PROJECT_AUTH_REFERENCE.md",
+          "destination": "tools/project-forge-auth-kit/docs/PROJECT_AUTH_REFERENCE.md",
+          "sha256": "1bbca014b897f3748e8af9039ba39cf14e8c445cf4748b2596b5ee733876a90b"
+        },
+        {
+          "source": "tools/project_auth_recovery.py",
+          "destination": "tools/project-forge-auth-kit/project_auth_recovery.py",
+          "sha256": "4f7864e33a1bc8bbb577a3459e06ed2fcf7e65a8349513c17510917680e68c9e"
+        },
+        {
+          "source": "docs/AUTH_RECOVERY_RETENTION.md",
+          "destination": "tools/project-forge-auth-kit/docs/AUTH_RECOVERY_RETENTION.md",
+          "sha256": "bc75171c05fdc3f454c67dcc3e2b7e226946ac32b5d02de62c9fc3b0b3bef0cf"
+        }
+      ]
+    },
+    "feedback": {
+      "revision": "94c9b853afae7ec51c2d048de366c2d95d3bf0bb",
+      "distribution": "greenfield-project",
+      "files": [
+        {
+          "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/ProjectForge.Feedback.GitHub.csproj",
+          "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/ProjectForge.Feedback.GitHub.csproj",
+          "sha256": "213e625c19e95b2a5ef315f01e2ca63fa56d3f5d1634dce920d493aeec1a4240"
+        },
+        {
+          "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/GitHubAppInstallationTokens.cs",
+          "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/GitHubAppInstallationTokens.cs",
+          "sha256": "32e56dc2a9e70c1b4cc583aa11b44183043c0b1a61938c1efffd14a3e62c8252"
+        },
+        {
+          "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/GitHubFeedbackClient.cs",
+          "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/GitHubFeedbackClient.cs",
+          "sha256": "9e6b9aff571c24ebce1fb4b02340e14ccdfad1f2d6148ea2482fc9f93ddde021"
+        },
+        {
+          "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/GitHubFeedbackContracts.cs",
+          "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/GitHubFeedbackContracts.cs",
+          "sha256": "5ff2a15aae37edbb78a520cd9bbf47ef7d8a51e918f1a53729c6192f2bf0df56"
+        },
+        {
+          "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/GitHubFeedbackEndpoints.cs",
+          "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/GitHubFeedbackEndpoints.cs",
+          "sha256": "8b1c17de96674235d0b9cbbfd6b903376d16c09beca9f90ea1da94c5a534e038"
+        },
+        {
+          "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/GitHubFeedbackHosting.cs",
+          "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/GitHubFeedbackHosting.cs",
+          "sha256": "145ecec487563b6a12e7359d02c8e17a4620ba6fac14b66d7d981424a399a9e6"
+        },
+        {
+          "source": "docs/PROJECT_INTEGRATION.md",
+          "destination": "tools/project-forge-feedback-kit/PROJECT_INTEGRATION.md",
+          "sha256": "37ce2e667bcf46d0556973a517dc4e0cfdccda33b92b19d1955ab8c2eaf012b7"
+        }
+      ]
+    }
+  }
+}

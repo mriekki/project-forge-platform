@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "name": "greenfield-project",
+  "component": "feedback",
+  "mappings": [
+    {
+      "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/ProjectForge.Feedback.GitHub.csproj",
+      "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/ProjectForge.Feedback.GitHub.csproj"
+    },
+    {
+      "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/GitHubAppInstallationTokens.cs",
+      "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/GitHubAppInstallationTokens.cs"
+    },
+    {
+      "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/GitHubFeedbackClient.cs",
+      "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/GitHubFeedbackClient.cs"
+    },
+    {
+      "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/GitHubFeedbackContracts.cs",
+      "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/GitHubFeedbackContracts.cs"
+    },
+    {
+      "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/GitHubFeedbackEndpoints.cs",
+      "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/GitHubFeedbackEndpoints.cs"
+    },
+    {
+      "source": "adapters/dotnet/ProjectForge.Feedback.GitHub/GitHubFeedbackHosting.cs",
+      "destination": "tools/project-forge-feedback-kit/ProjectForge.Feedback.GitHub/GitHubFeedbackHosting.cs"
+    },
+    {
+      "source": "docs/PROJECT_INTEGRATION.md",
+      "destination": "tools/project-forge-feedback-kit/PROJECT_INTEGRATION.md"
+    }
+  ]
+}

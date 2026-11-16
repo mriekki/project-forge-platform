@@ -1,0 +1,70 @@
+{
+  "name": "project-forge-work-item-status",
+  "displayName": "Project Forge Work Item Status",
+  "description": "Shows evidence-backed Project Forge work-item status badges and provides read-only review-surface helpers in VS Code.",
+  "version": "0.3.0",
+  "publisher": "project-forge",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "project-forge",
+    "work-items",
+    "explorer",
+    "review"
+  ],
+  "activationEvents": [
+    "workspaceContains:docs/work-items/*",
+    "onCommand:projectForge.openReviewArtifact",
+    "onLanguageModelTool:projectForge_openReviewArtifact"
+  ],
+  "main": "./extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The extension reads local Git state and optional GitHub CLI pull-request evidence, and may open workspace review artifacts on explicit Project Forge commands."
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "projectForge.refreshWorkItemStatus",
+        "title": "Project Forge: Refresh Work Item Status"
+      },
+      {
+        "command": "projectForge.openReviewArtifact",
+        "title": "Project Forge: Open Review Artifact"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "projectForge_openReviewArtifact",
+        "displayName": "Open Project Forge Review Artifact",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "projectForgeReviewArtifact",
+        "userDescription": "Open an exact workspace review artifact using the safest read-only review surface available.",
+        "modelDescription": "Use immediately before a Project Forge artifact-based human approval gate when the exact review artifact path is already known. Opens only that exact workspace-contained file and returns structured presentation evidence. It never approves, edits, commits, or guesses an ambiguous target.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Exact workspace-relative or absolute workspace-contained path of the PRIMARY review artifact. Do not infer it from editor focus."
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "additionalProperties": false
+        }
+      }
+    ]
+  }
+}

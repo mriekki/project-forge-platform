@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "profile": "greenfield",
+  "workItemSource": "local-docs",
+  "productBriefs": {"mode": "authoritative"},
+  "featureBriefs": {"mode": "authoritative"},
+  "engineeringEnablers": {"mode": "authoritative"},
+  "localDetailedRequirements": {"mode": "authoritative-combined"},
+  "jira": {"accessMode": "none", "epics": "not-used"},
+  "delivery": {"pr": true, "explicitFinalPrAcceptance": true, "explicitMerge": true, "postMergeCi": "observe-if-configured"},
+  "productionReadiness": {"enabled": "when-production-in-scope"}
+}

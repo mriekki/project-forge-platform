@@ -300,6 +300,10 @@
       "destination": ".github/skills/manage-backlog/SKILL.md"
     },
     {
+      "source": "core/skills/brainstorm/SKILL.md",
+      "destination": ".github/skills/brainstorm/SKILL.md"
+    },
+    {
       "source": "core/instructions/project-forge-web-guidance.instructions.md",
       "destination": ".github/instructions/project-forge-web-guidance.instructions.md"
     },
