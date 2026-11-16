@@ -6,12 +6,13 @@
   "asset": "assets/bootstrap-migrations/managed-baseline-verifier/check-managed-baselines.py",
   "source": {
     "component": "bootstrap",
-    "revision": "b5a83729d211e0492be5368ff7f1e59b63986419",
+    "revision": "ebef6de2ffee21f373654c7bd4cb24a4b51171f1",
     "artifact": "migration-assets/package-workspace/check-managed-baselines.py"
   },
-  "targetGitBlob": "26496854ed5d6ad47c7b6136078b2114473ac773",
+  "targetGitBlob": "518aefe73d0d4321a8942eb6b46302d47af33b9b",
   "supportedPredecessorGitBlobs": [
-    "f7ccfc0e8efaac4d6aed6ed5d8e2130d4fb3dc9d"
+    "f7ccfc0e8efaac4d6aed6ed5d8e2130d4fb3dc9d",
+    "26496854ed5d6ad47c7b6136078b2114473ac773"
   ],
   "supportedProjectBaselineSchemas": [1, 2]
 }

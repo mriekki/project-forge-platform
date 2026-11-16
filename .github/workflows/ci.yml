@@ -15,23 +15,6 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  feedback-source-access:
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.head.ref == 'feat/github-feedback-distribution' &&
-      github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout exact accepted Feedback source
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          repository: ${{ secrets.FEEDBACK_SOURCE_REPOSITORY }}
-          ref: 465b5c956bf4b224b96f64cf3e47318ae5f1523e
-          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
-          persist-credentials: false
-      - name: Verify source revision
-        run: test "$(git rev-parse HEAD)" = 465b5c956bf4b224b96f64cf3e47318ae5f1523e
-
   test:
     strategy:
       fail-fast: false

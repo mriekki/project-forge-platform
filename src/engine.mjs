@@ -186,7 +186,11 @@ export function planComponent(packageData, componentId, targetRoot, acceptedReti
     rows,
     retired,
     unsafe,
-    metadataCurrent: componentMetadataCurrent(baseline, componentId, component)
+    metadataCurrent: componentMetadataCurrent(baseline, componentId, component) &&
+      rows.every((row) => {
+        const recorded = baseMap.get(row.path);
+        return recorded?.source === row.source && recorded.sha256 === row.desiredHash;
+      })
   };
 }
 
@@ -265,7 +269,17 @@ export function applyProfile(packageData, profilePlan, targetRoot, consumer, con
 export function checkProfile(packageData, profileName, targetRoot) {
   const plan = planProfile(packageData, profileName, targetRoot);
   const projectForgeBaseline = loadProjectForgeBaseline(targetRoot);
-  const projectForgeCurrent = projectForgeBaseline.schemaVersion === 2 && projectForgeBaseline.package === packageData.pkg.name && projectForgeBaseline.version === packageData.pkg.version && projectForgeBaseline.profile === profileName;
+  const components = projectForgeBaseline.components;
+  const componentsCurrent = components && typeof components === 'object' && !Array.isArray(components) &&
+    Object.keys(components).length === plan.plans.length &&
+    plan.plans.every(({ componentId, component }) => {
+      const recorded = components[componentId];
+      return recorded && typeof recorded === 'object' && !Array.isArray(recorded) &&
+        recorded.revision === componentRevision(component) &&
+        recorded.distribution === component.distribution &&
+        recorded.version === component.version;
+    });
+  const projectForgeCurrent = projectForgeBaseline.schemaVersion === 2 && projectForgeBaseline.package === packageData.pkg.name && projectForgeBaseline.version === packageData.pkg.version && projectForgeBaseline.profile === profileName && Boolean(componentsCurrent);
   const componentClean = plan.plans.every((component) => component.metadataCurrent && component.rows.every((row) => row.state === 'SAME') && component.retired.length === 0);
   return { clean: projectForgeCurrent && componentClean, projectForgeCurrent, plan, projectForgeBaseline };
 }

@@ -10,7 +10,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OLD_FIXTURE = path.join(ROOT, 'test/fixtures/bootstrap-verifiers/schema1-check-managed-baselines.py');
 const DESTINATION = 'tools/project-forge-package/check-managed-baselines.py';
 const OLD_BLOB = 'f7ccfc0e8efaac4d6aed6ed5d8e2130d4fb3dc9d';
-const TARGET_BLOB = '26496854ed5d6ad47c7b6136078b2114473ac773';
+const OLD_SCHEMA2_BLOB = '26496854ed5d6ad47c7b6136078b2114473ac773';
+const TARGET_BLOB = '518aefe73d0d4321a8942eb6b46302d47af33b9b';
 const WSL_PREDECESSOR_BOOTSTRAP = '0c45eb332a815ad79ea061443f337500b9dc5712';
 const WSL_PREVIOUS_LAUNCHER_BOOTSTRAP = '173203baaf36935d04eb81c89f1d016131a40442';
 const WSL_PREVIOUS_RUNTIME_BOOTSTRAP = '9f0f7fd4e0e2220250f6fd5b035706a7d15834af';
@@ -64,6 +65,22 @@ test('known schema-1 Bootstrap verifier is planned and migrated exactly', () => 
   assert.deepEqual(after, { rows: [], unsafe: [] });
 });
 
+test('known schema-2 verifier migrates to optional component support', () => {
+  const { root, destination } = generatedConsumer();
+  const target = fs.readFileSync(path.join(ROOT, 'assets/bootstrap-migrations/managed-baseline-verifier/check-managed-baselines.py'), 'utf8');
+  const previous = target.replace(
+    '            elif component == "authentication":\n                filename = "AUTHENTICATION_BASELINE.json"\n            elif component == "feedback":\n                filename = "FEEDBACK_BASELINE.json"\n',
+    ''
+  );
+  assert.equal(gitBlobSha(previous), OLD_SCHEMA2_BLOB);
+  fs.writeFileSync(destination, previous);
+  const plan = planBootstrapMigrations(packageData, root);
+  assert.deepEqual(plan.rows.map((row) => [row.fromGitBlob, row.toGitBlob]), [[OLD_SCHEMA2_BLOB, TARGET_BLOB]]);
+  assert.equal(plan.unsafe.length, 0);
+  applyBootstrapMigrations(packageData, plan, root);
+  assert.equal(gitBlobSha(fs.readFileSync(destination)), TARGET_BLOB);
+});
+
 test('unknown generated verifier fails preflight without overwrite', () => {
   const { root, destination } = generatedConsumer();
   fs.writeFileSync(destination, '# consumer customization\n');
@@ -93,11 +110,12 @@ test('bundled verifier migration asset records exact privacy-safe Bootstrap prov
   const asset = fs.readFileSync(path.join(ROOT, manifest.asset));
   assert.equal(manifest.owner, 'bootstrap');
   assert.equal(manifest.source.component, 'bootstrap');
-  assert.equal(manifest.source.revision, 'b5a83729d211e0492be5368ff7f1e59b63986419');
+  assert.equal(manifest.source.revision, 'ebef6de2ffee21f373654c7bd4cb24a4b51171f1');
   assert.equal(manifest.source.artifact, 'migration-assets/package-workspace/check-managed-baselines.py');
   assert.equal(Object.hasOwn(manifest.source, 'repository'), false);
   assert.equal(manifest.targetGitBlob, TARGET_BLOB);
   assert(manifest.supportedPredecessorGitBlobs.includes(OLD_BLOB));
+  assert(manifest.supportedPredecessorGitBlobs.includes(OLD_SCHEMA2_BLOB));
   assert.equal(gitBlobSha(asset), TARGET_BLOB);
 });
 
