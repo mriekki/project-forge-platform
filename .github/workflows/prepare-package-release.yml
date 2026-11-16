@@ -347,6 +347,7 @@ jobs:
       - name: Verify preparation diff scope
         shell: bash
         run: |
+          git add -f -N assets/generated/
           if [ -f assets/authentication/distribution.json ]; then
             git add -N assets/authentication/distribution.json
           fi
@@ -355,12 +356,19 @@ jobs:
           fi
           node --input-type=module <<'NODE'
           import { execFileSync } from 'node:child_process';
+          import fs from 'node:fs';
 
           const changed = execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' })
             .trim()
             .split(/\r?\n/)
             .filter(Boolean);
           if (!changed.length) throw new Error('release preparation produced no changes');
+          const components = JSON.parse(fs.readFileSync('assets/components.json', 'utf8')).components;
+          const supportedComponents = new Set(['core', 'deployment', 'authentication', 'feedback']);
+          const unsupported = Object.keys(components).filter((component) => !supportedComponents.has(component));
+          if (unsupported.length) {
+            throw new Error(`unexpected package components: ${unsupported.join(', ')}`);
+          }
 
           const exact = new Set([
             'package.json',
@@ -371,7 +379,10 @@ jobs:
             'assets/authentication/distribution.json',
             'assets/feedback/distribution.json'
           ]);
-          const unexpected = changed.filter((file) => !exact.has(file));
+          const isGeneratedAsset = (file) => file === 'assets/generated/ASSEMBLY.json' ||
+            [...supportedComponents].some((component) =>
+              Object.hasOwn(components, component) && file.startsWith(`assets/generated/${component}/`));
+          const unexpected = changed.filter((file) => !exact.has(file) && !isGeneratedAsset(file));
           if (unexpected.length) {
             throw new Error(`unexpected release-preparation paths: ${unexpected.join(', ')}`);
           }
@@ -393,6 +404,7 @@ jobs:
           if [ -f assets/feedback/distribution.json ]; then
             git add assets/feedback/distribution.json
           fi
+          git add -f assets/generated/
           git commit -m "Prepare Project Forge ${VERSION}"
           git push origin "HEAD:refs/heads/${BRANCH}"
 

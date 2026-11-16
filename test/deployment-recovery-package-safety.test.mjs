@@ -38,6 +38,21 @@ test('release preparation runs canonical and package-owned Auth recovery safety 
   assert.doesNotMatch(workflow, /\bnpm publish\b/);
 });
 
+test('release preparation validates and commits ignored generated package assets', () => {
+  const workflow = read('.github/workflows/prepare-package-release.yml');
+  const scopeStart = workflow.indexOf('- name: Verify preparation diff scope');
+  const commitStart = workflow.indexOf('- name: Commit and push prepared release branch');
+  const scope = workflow.slice(scopeStart, commitStart);
+  const commit = workflow.slice(commitStart);
+
+  assert.ok(scopeStart >= 0 && commitStart > scopeStart);
+  assert.match(scope, /git add -f -N assets\/generated\//);
+  assert.match(scope, /assets\/generated\/ASSEMBLY\.json/);
+  assert.match(scope, /assets\/generated\/\$\{component\}\//);
+  assert.match(scope, /unexpected package components/);
+  assert.match(commit, /git add -f assets\/generated\//);
+});
+
 test('npm publish reruns exact canonical and assembled recovery safety before publication', () => {
   const workflow = read('.github/workflows/npm-publish.yml');
   const checkouts = workflow.indexOf('- name: Verify exact private source checkouts');
