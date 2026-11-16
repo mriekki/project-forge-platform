@@ -22,24 +22,35 @@ The service account authorizes its **own** GitHub CLI OAuth session using the br
 
 ## Preferred: one WSL2-to-Production command
 
-Use the existing strict Project Forge Deployment Kit production target profile
-under ~/.project-forge/targets/production.json. No new SSH config or IP entry.
-From an isolated checkout of Platform containing ops/portfolio-sync:
+This source is owned by `mriekki/project-forge-platform` under `ops/portfolio-sync/`, **outside the npm distribution**, and does not touch the active package-release branch. Use the separately configured Project Forge Deployment Kit target profile at `~/.project-forge/targets/production.json` in WSL2; do **not** type an IP or disable SSH host-key verification.
 
-    python3 ops/portfolio-sync/deploy-from-wsl.py --target production --interval 15m
+For a first-time WSL run, use the pinned operator launcher (downloadable from PR #296):
 
-This verifies the target, optionally installs Ubuntu's gh package if missing,
-transfers reviewed source over verified SSH, installs the isolated systemd units,
-runs the one-time GitHub browser/device authorization under the service account,
-checks access in read-only mode, starts an initial sync and verifies timer health.
-Tokens, keys, Production app data and npm release machinery are not transferred.
+```bash
+bash run-from-wsl.sh --target production --interval 15m
+```
 
-Use the same workstation command with --action status to inspect health,
---action set-interval --interval 30m to change cadence, or --action uninstall
-to disable/remove only this service. A new GitHub login is still required once.
+Or, from an isolated checkout of the Platform repository containing this directory:
+
+```bash
+python3 ops/portfolio-sync/deploy-from-wsl.py --target production --interval 15m
+```
+
+The command verifies the configured SSH identity and Production prerequisites, installs `gh` from Ubuntu's apt repositories *only if missing*, transfers this exact reviewed source over strict SSH to an isolated temporary directory, installs/updates the dedicated service, and opens a one-time GitHub device approval for the service account if needed. It then runs a dry-run, performs an initial sync, enables/verifies the timer, shows recent journal output, and cleans the temporary transfer. No copied WSL OAuth tokens, SSH keys, or FMP Feedback App secrets.
+
+Subsequent operations from the same WSL checkout:
+
+```bash
+python3 ops/portfolio-sync/deploy-from-wsl.py --target production --action status
+python3 ops/portfolio-sync/deploy-from-wsl.py --target production --action set-interval --interval 30m
+python3 ops/portfolio-sync/deploy-from-wsl.py --target production --action uninstall
+```
+
+The WSL operator requires the already-approved, trusted Project Forge `production` target profile and its SSH agent key loaded, plus noninteractive `sudo` on the target. If any of those prerequisites fail, the helper stops and reports the blocker, rather than weakening trust or falling back to guessed connection parameters. A one-time GitHub browser/device approval is still required for the dedicated Production identity; this cannot safely be bypassed.
+
+`--action uninstall` affects only these systemd units; it does not revoke credentials or delete Project items. The existing application deployment and npm release are separate.
 
 ## Alternative: manual installation on Production
-
 
 Transfer `project-forge-portfolio-sync.tar.gz` to the Production Linux machine using your already configured and authorized SSH transport (or retrieve it from a trusted local transfer); do not put it under the FMP app-data directory.
 
