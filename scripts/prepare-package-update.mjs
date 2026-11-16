@@ -145,6 +145,7 @@ export function reconcileFeedbackProfiles(profiles) {
     }
     profiles[name] = expected;
   }
+
 }
 
 const REQUIRED_AUTH_RECOVERY_SOURCES = new Map([
@@ -299,6 +300,14 @@ export function preparePackageUpdate(args, root = ROOT) {
       descriptor: 'assets/feedback/distribution.json',
       sourceRoot: 'assets/generated/feedback',
       canonicalDescriptor: 'distributions/greenfield-project.json'
+    };
+    nextComponents.components.core.profileVariants = {
+      'existing-github': {
+        source: 'profiles/existing-github/project-forge-workspace.json',
+        destination: '.github/project-forge-workspace.json',
+        descriptor: 'distributions/adoption-kit-source.json',
+        descriptorDestination: 'profiles/existing-github-issues.json'
+      }
     };
     reconcileFeedbackProfiles(nextComponents.profiles);
   }

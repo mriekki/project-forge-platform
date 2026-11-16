@@ -84,7 +84,7 @@ function componentRevision(component) {
   return revision.toLowerCase();
 }
 
-export function componentEntries(packageData, componentId) {
+export function componentEntries(packageData, componentId, variantName = null) {
   const component = packageData.assets.components[componentId];
   if (!component) throw new Error(`Package does not define component ${componentId}`);
   const descriptor = readJson(resolveUnder(packageData.root, component.descriptor, 'component descriptor'));
@@ -94,6 +94,15 @@ export function componentEntries(packageData, componentId) {
   }
   for (const item of descriptor.mappings ?? []) mappings.push({ source: item.source, path: item.destination });
   if (!mappings.length) throw new Error(`${componentId} distribution has no mappings`);
+  if (variantName) {
+    const variant = component.profileVariants?.[variantName];
+    if (!variant || typeof variant.source !== 'string' || typeof variant.destination !== 'string') {
+      throw new Error(`Unsupported ${componentId} profile variant: ${variantName}`);
+    }
+    const index = mappings.findIndex((entry) => entry.path === variant.destination);
+    if (index < 0) throw new Error(`Profile variant ${variantName} has no matching ${componentId} destination`);
+    mappings[index] = { source: variant.source, path: variant.destination };
+  }
   const seen = new Set();
   return mappings.map((entry) => {
     safeRelative(entry.source, 'source');
@@ -139,7 +148,7 @@ function componentMetadataCurrent(baseline, componentId, component) {
   return Array.isArray(baseline.managedPaths) && baseline.managedPaths.length > 0;
 }
 
-export function planComponent(packageData, componentId, targetRoot, acceptedRetired = new Set()) {
+export function planComponent(packageData, componentId, targetRoot, acceptedRetired = new Set(), variantName = null) {
   const component = packageData.assets.components[componentId];
   if (!component) throw new Error(`Package does not define component ${componentId}`);
   componentRevision(component);
@@ -147,7 +156,7 @@ export function planComponent(packageData, componentId, targetRoot, acceptedReti
   const baseline = loadOptionalJson(resolveUnder(targetRoot, filename, 'component baseline'));
   validateBaselineIdentity(baseline, componentId, component, filename);
 
-  const entries = componentEntries(packageData, componentId);
+  const entries = componentEntries(packageData, componentId, variantName);
   const baseMap = baselineMap(baseline, filename);
   const rows = entries.map((entry) => {
     const dst = resolveUnder(targetRoot, entry.path, 'consumer destination');
@@ -208,10 +217,18 @@ function buildComponentBaseline(plan, consumer, consumerBaseline) {
   };
 }
 
-export function planProfile(packageData, profileName, targetRoot, acceptedRetired = new Map()) {
+export function planProfile(packageData, profileName, targetRoot, acceptedRetired = new Map(), selectedVariants = {}) {
   const profile = packageData.assets.profiles[profileName];
   if (!profile) throw new Error(`Unknown Project Forge profile: ${profileName}`);
-  const plans = profile.components.map((id) => planComponent(packageData, id, targetRoot, acceptedRetired.get(id) ?? new Set()));
+  const variants = { ...(profile.componentVariants ?? {}), ...selectedVariants };
+  if (!variants || typeof variants !== 'object' || Array.isArray(variants) ||
+      Object.keys(variants).some((componentId) =>
+        !profile.components.includes(componentId) || typeof variants[componentId] !== 'string')) {
+    throw new Error(`Invalid component profile variants for ${profileName}`);
+  }
+  const plans = profile.components.map((id) => planComponent(
+    packageData, id, targetRoot, acceptedRetired.get(id) ?? new Set(), variants[id] ?? null
+  ));
   const destinations = new Map();
   for (const plan of plans) {
     for (const row of plan.rows) {
@@ -220,7 +237,16 @@ export function planProfile(packageData, profileName, targetRoot, acceptedRetire
       destinations.set(row.path, plan.componentId);
     }
   }
-  return { profileName, profile, plans, unsafe: plans.flatMap((plan) => plan.unsafe.map((item) => ({ component: plan.componentId, ...item }))) };
+  const effectiveProfile = {
+    ...profile,
+    ...(Object.keys(variants).length ? { componentVariants: variants } : {})
+  };
+  return {
+    profileName,
+    profile: effectiveProfile,
+    plans,
+    unsafe: plans.flatMap((plan) => plan.unsafe.map((item) => ({ component: plan.componentId, ...item })))
+  };
 }
 
 export function applyProfile(packageData, profilePlan, targetRoot, consumer, consumerBaseline) {
@@ -256,6 +282,9 @@ export function applyProfile(packageData, profilePlan, targetRoot, consumer, con
     profile: profilePlan.profileName,
     consumer,
     consumerBaseline,
+    ...(profilePlan.profile.componentVariants
+      ? { componentVariants: profilePlan.profile.componentVariants }
+      : {}),
     components: Object.fromEntries(profilePlan.plans.map((plan) => [plan.componentId, {
       revision: componentRevision(plan.component),
       ...(plan.component.version ? { version: plan.component.version } : {}),
@@ -267,8 +296,9 @@ export function applyProfile(packageData, profilePlan, targetRoot, consumer, con
 }
 
 export function checkProfile(packageData, profileName, targetRoot) {
-  const plan = planProfile(packageData, profileName, targetRoot);
   const projectForgeBaseline = loadProjectForgeBaseline(targetRoot);
+  const selectedVariants = projectForgeBaseline.componentVariants ?? {};
+  const plan = planProfile(packageData, profileName, targetRoot, new Map(), selectedVariants);
   const components = projectForgeBaseline.components;
   const componentsCurrent = components && typeof components === 'object' && !Array.isArray(components) &&
     Object.keys(components).length === plan.plans.length &&
@@ -279,7 +309,13 @@ export function checkProfile(packageData, profileName, targetRoot) {
         recorded.distribution === component.distribution &&
         recorded.version === component.version;
     });
-  const projectForgeCurrent = projectForgeBaseline.schemaVersion === 2 && projectForgeBaseline.package === packageData.pkg.name && projectForgeBaseline.version === packageData.pkg.version && projectForgeBaseline.profile === profileName && Boolean(componentsCurrent);
+  const variantsCurrent = JSON.stringify(projectForgeBaseline.componentVariants ?? {}) ===
+    JSON.stringify(plan.profile.componentVariants ?? {});
+  const projectForgeCurrent = projectForgeBaseline.schemaVersion === 2 &&
+    projectForgeBaseline.package === packageData.pkg.name &&
+    projectForgeBaseline.version === packageData.pkg.version &&
+    projectForgeBaseline.profile === profileName &&
+    variantsCurrent && Boolean(componentsCurrent);
   const componentClean = plan.plans.every((component) => component.metadataCurrent && component.rows.every((row) => row.state === 'SAME') && component.retired.length === 0);
   return { clean: projectForgeCurrent && componentClean, projectForgeCurrent, plan, projectForgeBaseline };
 }

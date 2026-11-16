@@ -37,6 +37,22 @@ export function verifyAssets(packageData = loadPackageData()) {
       }
       count += 1;
     }
+    const variants = component.profileVariants ?? {};
+    const recordedVariants = recorded.profileVariants ?? {};
+    if (JSON.stringify(Object.keys(variants).sort()) !== JSON.stringify(Object.keys(recordedVariants).sort())) {
+      throw new Error(`Generated ${componentId} profile variant set mismatch`);
+    }
+    for (const [variantName, variant] of Object.entries(variants)) {
+      const selectedEntry = componentEntries(packageData, componentId, variantName)
+        .find((entry) => entry.path === variant.destination);
+      const item = recordedVariants[variantName];
+      if (!selectedEntry || selectedEntry.source !== variant.source ||
+          item?.source !== variant.source || item.destination !== variant.destination ||
+          item.sha256 !== sha256File(selectedEntry.bundlePath)) {
+        throw new Error(`Generated ${componentId} profile variant mismatch: ${variantName}`);
+      }
+      count += 1;
+    }
   }
   return count;
 }

@@ -52,6 +52,7 @@ test('release preparation validates and commits ignored generated package assets
   assert.match(scope, /assets\/generated\/ASSEMBLY\.json/);
   assert.match(scope, /const generatedAssets = new Set/);
   assert.match(scope, /entry\.files/);
+  assert.match(scope, /entry\.profileVariants/);
   assert.match(scope, /unexpected package components/);
   assert.match(scope, /unexpected release-preparation paths/);
   assert.match(commit, /git add -f assets\/generated\//);

@@ -131,6 +131,13 @@ Project's authenticated account/session grants, exact repository binding, and
 protected GitHub App secrets; the component does not provision these or enable
 Feedback merely by being installed.
 
+Existing Projects can independently select the managed GitHub Issues work-item
+profile with `project-forge enable work-items github-issues --root <project>`.
+This explicit transition updates only the Core-owned workspace configuration,
+preserves the Project's existing component profile, and is refused when managed
+files have drifted. New and existing Projects retain their previous
+work-item-source default unless this transition is selected.
+
 ## Maintainer system reference
 
 For cross-repository architecture, ownership, lifecycle, provenance, deployment, support-evidence, and governance questions, start with:
