@@ -391,6 +391,14 @@ jobs:
               }
               generatedAssets.add(`assets/generated/${component}/${source}`);
             }
+            for (const variant of Object.values(entry.profileVariants ?? {})) {
+              const source = variant?.source;
+              if (typeof source !== 'string' || !source || source.startsWith('/') ||
+                  source.includes('\\') || source.split('/').includes('..')) {
+                throw new Error(`invalid generated profile variant for ${component}`);
+              }
+              generatedAssets.add(`assets/generated/${component}/${source}`);
+            }
           }
 
           const exact = new Set([

@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { componentRevisionForDisplay, run } from '../src/cli.mjs';
-import { applyProfile, planProfile } from '../src/engine.mjs';
+import { applyProfile, checkProfile, planProfile } from '../src/engine.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLI = path.join(ROOT, 'bin', 'project-forge.mjs');
@@ -64,6 +64,18 @@ function feedbackPackageFixture() {
     }));
     Object.assign(component, { descriptor, sourceRoot });
   }
+  const githubIssuesWorkspace = path.join(
+    packageRoot, 'assets/generated/core/existing-github-workspace.json'
+  );
+  fs.writeFileSync(githubIssuesWorkspace, '{"workItemSource":"github-issues"}\n');
+  components.core.profileVariants = {
+    'existing-github': {
+      source: 'existing-github-workspace.json',
+      destination: 'tools/core.txt',
+      descriptor: 'distributions/adoption-kit-source.json',
+      descriptorDestination: 'profiles/existing-github-issues.json'
+    }
+  };
   const standard = { components: ['core', 'deployment'] };
   const household = { components: ['core', 'deployment', 'authentication'] };
   const packageData = {
@@ -101,6 +113,82 @@ test('CLI explicitly enables Feedback without changing an existing household Aut
     assert.equal(fs.readFileSync(path.join(fixture.targetRoot, 'tools/feedback.txt'), 'utf8'), 'feedback source\n');
     assert.equal(umbrella.consumer, 'consumer');
     assert.equal(umbrella.consumerBaseline, 'approved-baseline');
+  } finally {
+    fs.rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test('CLI explicitly switches only the managed work-item source and preserves it when enabling Feedback', async () => {
+  const fixture = feedbackPackageFixture();
+  try {
+    const initial = planProfile(fixture.packageData, 'greenfield-project', fixture.targetRoot);
+    applyProfile(fixture.packageData, initial, fixture.targetRoot, 'consumer', 'approved-baseline');
+
+    const workItems = await run([
+      'enable', 'work-items', 'github-issues',
+      '--root', fixture.targetRoot, '--apply'
+    ], fixture.packageData);
+    assert.equal(workItems, 0);
+    assert.equal(
+      fs.readFileSync(path.join(fixture.targetRoot, 'tools/core.txt'), 'utf8'),
+      '{"workItemSource":"github-issues"}\n'
+    );
+    let umbrella = JSON.parse(fs.readFileSync(
+      path.join(fixture.targetRoot, 'PROJECT_FORGE_BASELINE.json'), 'utf8'
+    ));
+    assert.equal(umbrella.profile, 'greenfield-project');
+    assert.deepEqual(umbrella.componentVariants, { core: 'existing-github' });
+    assert.equal(checkProfile(fixture.packageData, umbrella.profile, fixture.targetRoot).clean, true);
+
+    const update = await run([
+      'update', '--root', fixture.targetRoot, '--apply'
+    ], fixture.packageData);
+    assert.equal(update, 0);
+    umbrella = JSON.parse(fs.readFileSync(
+      path.join(fixture.targetRoot, 'PROJECT_FORGE_BASELINE.json'), 'utf8'
+    ));
+    assert.deepEqual(umbrella.componentVariants, { core: 'existing-github' });
+    assert.equal(
+      fs.readFileSync(path.join(fixture.targetRoot, 'tools/core.txt'), 'utf8'),
+      '{"workItemSource":"github-issues"}\n'
+    );
+
+    const feedback = await run([
+      'enable', 'feedback', '--root', fixture.targetRoot, '--apply'
+    ], fixture.packageData);
+    assert.equal(feedback, 0);
+    umbrella = JSON.parse(fs.readFileSync(
+      path.join(fixture.targetRoot, 'PROJECT_FORGE_BASELINE.json'), 'utf8'
+    ));
+    assert.equal(umbrella.profile, 'greenfield-feedback-project');
+    assert.deepEqual(umbrella.componentVariants, { core: 'existing-github' });
+    assert.equal(
+      fs.readFileSync(path.join(fixture.targetRoot, 'tools/core.txt'), 'utf8'),
+      '{"workItemSource":"github-issues"}\n'
+    );
+    assert.equal(checkProfile(fixture.packageData, umbrella.profile, fixture.targetRoot).clean, true);
+  } finally {
+    fs.rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test('CLI GitHub Issues work-item opt-in refuses drift without recording the variant', async () => {
+  const fixture = feedbackPackageFixture();
+  try {
+    const initial = planProfile(fixture.packageData, 'greenfield-project', fixture.targetRoot);
+    applyProfile(fixture.packageData, initial, fixture.targetRoot, 'consumer', 'approved-baseline');
+    fs.writeFileSync(path.join(fixture.targetRoot, 'tools/core.txt'), 'local edit\n');
+
+    const status = await run([
+      'enable', 'work-items', 'github-issues',
+      '--root', fixture.targetRoot, '--apply'
+    ], fixture.packageData);
+    assert.equal(status, 2);
+    const umbrella = JSON.parse(fs.readFileSync(
+      path.join(fixture.targetRoot, 'PROJECT_FORGE_BASELINE.json'), 'utf8'
+    ));
+    assert.equal(Object.hasOwn(umbrella, 'componentVariants'), false);
+    assert.equal(fs.readFileSync(path.join(fixture.targetRoot, 'tools/core.txt'), 'utf8'), 'local edit\n');
   } finally {
     fs.rmSync(fixture.root, { recursive: true, force: true });
   }

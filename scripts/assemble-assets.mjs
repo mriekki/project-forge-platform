@@ -91,11 +91,36 @@ export function assembleAssets(packageData, sourceRoots, outputRoot = path.join(
         fs.writeFileSync(destination, gitBlob(sourceRoot, revision, mapping.source));
         files.push({ source: mapping.source, destination: mapping.path, sha256: sha256File(destination) });
       }
+      const profileVariants = {};
+      for (const [variantName, variant] of Object.entries(component.profileVariants ?? {})) {
+        if (componentId !== 'core' || !/^[a-z0-9-]+$/.test(variantName) ||
+            typeof variant?.source !== 'string' || typeof variant?.destination !== 'string' ||
+            typeof variant?.descriptor !== 'string' || typeof variant?.descriptorDestination !== 'string') {
+          throw new Error(`Unsupported ${componentId} profile variant: ${variantName}`);
+        }
+        const source = resolveUnder(sourceRoot, variant.source, `${componentId} profile source`);
+        const variantDescriptor = readJson(resolveUnder(sourceRoot, variant.descriptor, 'profile variant descriptor'));
+        const mapping = variantDescriptor.mappings?.find((item) =>
+          item.source === variant.source && item.destination === variant.descriptorDestination);
+        if (!mapping) throw new Error(`Core profile variant is not in its canonical descriptor: ${variantName}`);
+        if (!fs.existsSync(source) || !fs.statSync(source).isFile() || fs.lstatSync(source).isSymbolicLink()) {
+          throw new Error(`Invalid ${componentId} profile source: ${variant.source}`);
+        }
+        const destination = resolveUnder(tempRoot, `${componentId}/${variant.source}`, 'generated profile asset');
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
+        fs.writeFileSync(destination, gitBlob(sourceRoot, revision, variant.source));
+        profileVariants[variantName] = {
+          source: variant.source,
+          destination: variant.destination,
+          sha256: sha256File(destination)
+        };
+      }
       assembly.components[componentId] = {
         revision,
         ...(component.version ? { version: component.version } : {}),
         distribution: component.distribution,
-        files
+        files,
+        ...(Object.keys(profileVariants).length ? { profileVariants } : {})
       };
     }
 

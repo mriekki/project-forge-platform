@@ -17,13 +17,27 @@ function gitRepo(root) {
   return execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 }
 
-function fixturePackage(temp, coreDescriptor, deploymentDescriptor, coreVersion = '9.9.9') {
+function fixturePackage(temp, coreDescriptor, deploymentDescriptor, coreVersion = '9.9.9', coreProfileVariants = null) {
   const packageRoot = path.join(temp, 'package');
   const coreRoot = path.join(temp, 'core');
   const deploymentRoot = path.join(temp, 'deployment');
   for (const dir of [path.join(packageRoot, 'assets/core'), path.join(packageRoot, 'assets/deployment'), path.join(coreRoot, 'distributions'), path.join(coreRoot, 'core'), path.join(deploymentRoot, 'distributions'), path.join(deploymentRoot, 'src')]) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(coreRoot, 'distributions/greenfield-workspace.json'), JSON.stringify(coreDescriptor));
   fs.writeFileSync(path.join(coreRoot, 'core/a.txt'), 'core\n');
+  if (coreProfileVariants?.['existing-github']) {
+    const variant = coreProfileVariants['existing-github'];
+    const source = path.join(coreRoot, variant.source);
+    fs.mkdirSync(path.dirname(source), { recursive: true });
+    fs.writeFileSync(source, '{"workItemSource":"github-issues"}\n');
+    const descriptor = path.join(coreRoot, variant.descriptor);
+    fs.mkdirSync(path.dirname(descriptor), { recursive: true });
+    fs.writeFileSync(descriptor, JSON.stringify({
+      mappings: [{
+        source: variant.source,
+        destination: variant.descriptorDestination
+      }]
+    }));
+  }
   fs.writeFileSync(path.join(coreRoot, 'COMPATIBILITY.json'), JSON.stringify({ projectForgeCoreVersion: coreVersion }));
   fs.writeFileSync(path.join(deploymentRoot, 'distributions/greenfield-project.json'), JSON.stringify(deploymentDescriptor));
   fs.writeFileSync(path.join(deploymentRoot, 'src/b.txt'), 'deployment\n');
@@ -36,7 +50,7 @@ function fixturePackage(temp, coreDescriptor, deploymentDescriptor, coreVersion 
     schemaVersion: 2,
     package: '@mriekki/project-forge', version: '0.1.0', defaultProfile: 'greenfield-project', profiles: { 'greenfield-project': { components: ['core', 'deployment'] } },
     components: {
-      core: { revision: coreRevision, version: coreVersion, distribution: 'greenfield-workspace', descriptor: 'assets/core/distribution.json', canonicalDescriptor: 'distributions/greenfield-workspace.json', sourceRoot: 'assets/generated/core' },
+      core: { revision: coreRevision, version: coreVersion, distribution: 'greenfield-workspace', descriptor: 'assets/core/distribution.json', canonicalDescriptor: 'distributions/greenfield-workspace.json', sourceRoot: 'assets/generated/core', ...(coreProfileVariants ? { profileVariants: coreProfileVariants } : {}) },
       deployment: { revision: deploymentRevision, distribution: 'greenfield-project', descriptor: 'assets/deployment/distribution.json', canonicalDescriptor: 'distributions/greenfield-project.json', sourceRoot: 'assets/generated/deployment' }
     }
   }));
@@ -57,6 +71,53 @@ test('assembly verifies exact revisions/descriptors and creates a self-contained
   assert.equal(Object.hasOwn(result.components.core, 'commit'), false);
   assert.equal(fs.readFileSync(path.join(packageRoot, 'assets/generated/core/core/a.txt'), 'utf8'), 'core\n');
   assert.equal(verifyAssets(packageData), 2);
+});
+
+test('assembly includes exact canonical Core workspace profile variants', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'project-forge-profile-variant-'));
+  try {
+    const coreDescriptor = {
+      name: 'greenfield-workspace',
+      mappings: [{ source: 'core/a.txt', destination: '.github/a.txt' }]
+    };
+    const deploymentDescriptor = {
+      name: 'greenfield-project',
+      schemaVersion: 1,
+      mappings: [{ source: 'src/b.txt', destination: 'tools/b.txt' }]
+    };
+    const variant = {
+      'existing-github': {
+        source: 'profiles/existing-github/project-forge-workspace.json',
+        destination: '.github/a.txt',
+        descriptor: 'distributions/adoption-kit-source.json',
+        descriptorDestination: 'profiles/existing-github-issues.json'
+      }
+    };
+    const { packageRoot, coreRoot, deploymentRoot, packageData } = fixturePackage(
+      temp, coreDescriptor, deploymentDescriptor, '9.9.9', variant
+    );
+    assembleAssets(packageData, { core: coreRoot, deployment: deploymentRoot });
+    assert.equal(verifyAssets(packageData), 3);
+    assert.equal(
+      fs.readFileSync(
+        path.join(packageRoot, 'assets/generated/core/profiles/existing-github/project-forge-workspace.json'),
+        'utf8'
+      ),
+      '{"workItemSource":"github-issues"}\n'
+    );
+    const assembly = JSON.parse(fs.readFileSync(
+      path.join(packageRoot, 'assets/generated/ASSEMBLY.json'), 'utf8'
+    ));
+    assert.equal(assembly.components.core.profileVariants['existing-github'].source, variant['existing-github'].source);
+
+    fs.writeFileSync(
+      path.join(packageRoot, 'assets/generated/core/profiles/existing-github/project-forge-workspace.json'),
+      '{"workItemSource":"local-docs"}\n'
+    );
+    assert.throws(() => verifyAssets(packageData), /profile variant mismatch/);
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
 });
 
 test('assembly reads canonical Git blob bytes from a clean CRLF checkout', () => {

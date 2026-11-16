@@ -29,9 +29,11 @@ function parseArgs(argv) {
     } else if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`);
     else positional.push(arg);
   }
-  if (positional.length > 2) throw new Error('Unexpected positional arguments');
-  if (positional[0] === 'enable') options.capability = positional[1];
-  else if (positional.length > 1) throw new Error('Unexpected positional arguments');
+  if (positional.length > 3) throw new Error('Unexpected positional arguments');
+  if (positional[0] === 'enable') {
+    options.capability = positional[1];
+    options.target = positional[2];
+  } else if (positional.length > 1) throw new Error('Unexpected positional arguments');
   return { command: positional[0] ?? 'help', options };
 }
 
@@ -84,7 +86,7 @@ function usage(command) {
   const commandUsage = {
     install: 'project-forge install [--root PATH] [--profile NAME] [--apply|--yes] [--consumer NAME] [--consumer-baseline LABEL] [--accept-retired component:path]',
     update: 'project-forge update [--root PATH] [--profile NAME] [--apply|--yes] [--accept-retired component:path]',
-    enable: 'project-forge enable feedback [--root PATH] [--apply|--yes]',
+    enable: 'project-forge enable feedback [--root PATH] [--apply|--yes]\n  project-forge enable work-items github-issues [--root PATH] [--apply|--yes]',
     repair: 'project-forge repair [--root PATH] [--profile NAME] [--apply|--yes]',
     status: 'project-forge status [--root PATH] [--profile NAME]',
     check: 'project-forge check [--root PATH] [--profile NAME]',
@@ -96,7 +98,7 @@ function usage(command) {
     return;
   }
 
-  console.log(`@mriekki/project-forge\n\nCommands:\n  install   Preview/install bundled Project Forge assets\n  update    Preview/update to this package's bundled Project Forge assets\n  enable    Explicitly opt an existing Project into an optional capability\n  repair    Restore missing managed files from exactly this installed package only\n  status    Show installed umbrella/component provenance\n  check     Verify managed files and baselines exactly match this package\n  version   Show package version\n\nCommon options:\n  --root PATH\n  --profile greenfield-project\n  --apply | --yes\n  --consumer NAME\n  --consumer-baseline LABEL\n  --accept-retired core:path\n  -h, --help\n`);
+  console.log(`@mriekki/project-forge\n\nCommands:\n  install   Preview/install bundled Project Forge assets\n  update    Preview/update to this package's bundled Project Forge assets\n  enable    Explicitly opt an existing Project into an optional capability\n  repair    Restore missing managed files from exactly this installed package only\n  status    Show installed umbrella/component provenance\n  check     Verify managed files and baselines exactly match this package\n  version   Show package version\n\nEnable options:\n  feedback\n  work-items github-issues\n\nCommon options:\n  --root PATH\n  --profile greenfield-project\n  --apply | --yes\n  --consumer NAME\n  --consumer-baseline LABEL\n  --accept-retired core:path\n  -h, --help\n`);
 }
 
 export async function run(argv = process.argv.slice(2), packageData = loadPackageData()) {
@@ -114,7 +116,84 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
   const profile = options.profile ?? installed.profile ?? packageData.assets.defaultProfile;
 
   if (command === 'enable') {
-    if (options.capability !== 'feedback') throw new Error('Usage: project-forge enable feedback');
+    if (options.capability === 'work-items') {
+      if (options.target !== 'github-issues') {
+        throw new Error('Usage: project-forge enable work-items github-issues');
+      }
+      if (!Object.keys(installed).length) {
+        throw new Error('No Project Forge baseline; install the Project Forge profile first.');
+      }
+      if (installed.schemaVersion !== 2 ||
+          !packageData.assets.profiles[installed.profile]?.components?.includes('core')) {
+        throw new Error('GitHub Issues work-item opt-in requires an intact schema-v2 Project Forge profile; update or reconcile the Project first.');
+      }
+      if (options.profile && options.profile !== installed.profile) {
+        throw new Error(`Work-item opt-in must retain the installed Project Forge profile: ${installed.profile}`);
+      }
+      const recordedComponents = installed.components;
+      const expectedComponents = packageData.assets.profiles[installed.profile].components;
+      if (!recordedComponents || typeof recordedComponents !== 'object' ||
+          Array.isArray(recordedComponents) ||
+          Object.keys(recordedComponents).sort().join('\0') !== [...expectedComponents].sort().join('\0')) {
+        throw new Error('Installed component set does not match the selected profile; refusing work-item transition.');
+      }
+      for (const componentId of expectedComponents) {
+        const recorded = recordedComponents[componentId];
+        const baselinePath = componentId === 'core' ? 'CORE_BASELINE.json'
+          : componentId === 'deployment' ? 'DEPLOYMENT_BASELINE.json'
+            : componentId === 'authentication' ? 'AUTHENTICATION_BASELINE.json'
+              : componentId === 'feedback' ? 'FEEDBACK_BASELINE.json' : null;
+        if (!baselinePath) throw new Error(`Unsupported component for work-item opt-in: ${componentId}`);
+        const componentBaseline = JSON.parse(fs.readFileSync(
+          resolveUnder(root, baselinePath, 'component baseline'), 'utf8'
+        ));
+        if (!recorded || typeof recorded !== 'object' ||
+            componentBaseline.schemaVersion !== 2 ||
+            componentBaseline.component !== componentId ||
+            componentBaseline.revision !== recorded.revision ||
+            componentBaseline.distribution !== recorded.distribution ||
+            (componentBaseline.version ?? null) !== (recorded.version ?? null)) {
+          throw new Error(`Installed ${componentId} baseline does not match the umbrella provenance; refusing work-item transition.`);
+        }
+      }
+      if (!packageData.assets.components.core.profileVariants?.['existing-github']) {
+        throw new Error('This Project Forge package does not provide the GitHub Issues work-item transition.');
+      }
+      const selectedVariants = { ...(installed.componentVariants ?? {}), core: 'existing-github' };
+      if (installed.componentVariants?.core === 'existing-github') {
+        if (checkProfile(packageData, installed.profile, root).clean) {
+          console.log('Project Forge GitHub Issues work-item source is already enabled; no changes made.');
+          return 0;
+        }
+      }
+
+      const plan = planProfile(
+        packageData, installed.profile, root, options.acceptedRetired, selectedVariants
+      );
+      printPlan(plan);
+      if (plan.unsafe.length) {
+        console.log('\nRefusing work-item opt-in. Resolve managed-file drift/conflicts and preview again. No managed files were changed.');
+        return 2;
+      }
+      if (!await shouldApply(options)) {
+        console.log('\nPreview only. Re-run with --apply, or run interactively and approve the prompt.');
+        return 0;
+      }
+      applyProfile(
+        packageData, plan, root,
+        installed.consumer ?? inferConsumer(root),
+        installed.consumerBaseline ?? `${packageData.pkg.name}@${packageData.pkg.version}`
+      );
+      if (!checkProfile(packageData, installed.profile, root).clean) {
+        throw new Error('GitHub Issues work-item opt-in completed but final managed-file verification is not clean.');
+      }
+      console.log(`\nProject Forge GitHub Issues work-item opt-in: PASS (${packageData.pkg.name}@${packageData.pkg.version})`);
+      return 0;
+    }
+
+    if (options.capability !== 'feedback' || options.target) {
+      throw new Error('Usage: project-forge enable feedback');
+    }
     if (!Object.keys(installed).length) throw new Error('No Project Forge baseline; install the Project Forge profile first.');
     if (installed.schemaVersion !== 2 ||
         !['greenfield-project', 'greenfield-household-project'].includes(installed.profile)) {
@@ -162,7 +241,10 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
     }
 
     const bootstrapMigrations = planBootstrapMigrations(packageData, root);
-    const plan = planProfile(packageData, targetProfile, root, options.acceptedRetired);
+    const plan = planProfile(
+      packageData, targetProfile, root, options.acceptedRetired,
+      installed.componentVariants ?? {}
+    );
     printPlan(plan, bootstrapMigrations);
     if (plan.unsafe.length || bootstrapMigrations.unsafe.length) {
       console.log('\nRefusing opt-in. Resolve managed-file drift/conflicts or the unsupported Bootstrap migration and preview again. No managed files were changed.');
@@ -193,6 +275,9 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
     console.log(`Project Forge package: ${installed.package}@${installed.version}`);
     console.log(`Available package: ${packageData.pkg.name}@${packageData.pkg.version}`);
     console.log(`Profile: ${installed.profile}`);
+    if (installed.componentVariants?.core === 'existing-github') {
+      console.log('Work-item source: GitHub Issues');
+    }
     for (const [name, component] of Object.entries(installed.components ?? {})) {
       console.log(`${name}: ${component.version ? component.version + ' @ ' : ''}${componentRevisionForDisplay(component)}`);
     }
@@ -248,7 +333,10 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
   if (installed.profile && installed.profile !== profile) throw new Error(`Installed Project Forge profile is ${installed.profile}; refusing implicit profile change to ${profile}`);
 
   const bootstrapMigrations = planBootstrapMigrations(packageData, root);
-  const plan = planProfile(packageData, profile, root, options.acceptedRetired);
+  const plan = planProfile(
+    packageData, profile, root, options.acceptedRetired,
+    installed.componentVariants ?? {}
+  );
   printPlan(plan, bootstrapMigrations);
   if (plan.unsafe.length || bootstrapMigrations.unsafe.length) {
     console.log('\nRefusing apply. Resolve drift/conflicts or the unsupported Bootstrap migration and preview again. No managed files were changed.');
