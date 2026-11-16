@@ -232,9 +232,10 @@ jobs:
           const ids = Object.keys(data.components ?? {}).sort();
           const supported = ['core', 'deployment'];
           if (ids.includes('authentication')) supported.push('authentication');
+          if (ids.includes('feedback')) supported.push('feedback');
           supported.sort();
           if (JSON.stringify(ids) !== JSON.stringify(supported)) {
-            throw new Error('Publication supports only complete Core + Deployment and optional Authentication components.');
+            throw new Error('Publication supports only complete Core + Deployment and optional Authentication and Feedback components.');
           }
           for (const id of ids) {
             const revision = data.components?.[id]?.revision;
@@ -252,25 +253,30 @@ jobs:
           CORE_SOURCE_REPOSITORY: ${{ secrets.CORE_SOURCE_REPOSITORY }}
           DEPLOYMENT_SOURCE_REPOSITORY: ${{ secrets.DEPLOYMENT_SOURCE_REPOSITORY }}
           AUTHENTICATION_SOURCE_REPOSITORY: ${{ secrets.AUTHENTICATION_SOURCE_REPOSITORY }}
+          FEEDBACK_SOURCE_REPOSITORY: ${{ secrets.FEEDBACK_SOURCE_REPOSITORY }}
           AUTHENTICATION_REVISION: ${{ steps.pins.outputs.authentication }}
+          FEEDBACK_REVISION: ${{ steps.pins.outputs.feedback }}
         run: |
           set -euo pipefail
-          required=(CORE_SOURCE_REPOSITORY DEPLOYMENT_SOURCE_REPOSITORY)
-          if [[ -n "$AUTHENTICATION_REVISION" ]]; then
-            required+=(AUTHENTICATION_SOURCE_REPOSITORY)
-          fi
-          for name in "${required[@]}"; do
-            value="${!name:-}"
+          check_mapping() {
+            local name="$1" value="$2"
             if [[ ! "$value" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
               echo "Missing or invalid protected source repository mapping: $name" >&2
               exit 1
             fi
             echo "::add-mask::$value"
-          done
+          }
+          check_mapping CORE_SOURCE_REPOSITORY "$CORE_SOURCE_REPOSITORY"
+          check_mapping DEPLOYMENT_SOURCE_REPOSITORY "$DEPLOYMENT_SOURCE_REPOSITORY"
           echo "core=$CORE_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
           echo "deployment=$DEPLOYMENT_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
           if [[ -n "$AUTHENTICATION_REVISION" ]]; then
+            check_mapping AUTHENTICATION_SOURCE_REPOSITORY "$AUTHENTICATION_SOURCE_REPOSITORY"
             echo "authentication=$AUTHENTICATION_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ -n "$FEEDBACK_REVISION" ]]; then
+            check_mapping FEEDBACK_SOURCE_REPOSITORY "$FEEDBACK_SOURCE_REPOSITORY"
+            echo "feedback=$FEEDBACK_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout exact Core source
@@ -301,12 +307,23 @@ jobs:
           token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
           persist-credentials: false
 
+      - name: Checkout exact Feedback source only when advertised
+        if: steps.pins.outputs.feedback != ''
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.sources.outputs.feedback }}
+          ref: ${{ steps.pins.outputs.feedback }}
+          path: .release-sources/feedback
+          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          persist-credentials: false
+
       - name: Verify exact private source checkouts
         shell: bash
         env:
           CORE_REVISION: ${{ steps.pins.outputs.core }}
           DEPLOYMENT_REVISION: ${{ steps.pins.outputs.deployment }}
           AUTHENTICATION_REVISION: ${{ steps.pins.outputs.authentication }}
+          FEEDBACK_REVISION: ${{ steps.pins.outputs.feedback }}
         run: |
           set -euo pipefail
           verify_checkout() {
@@ -320,16 +337,23 @@ jobs:
           if [[ -n "$AUTHENTICATION_REVISION" ]]; then
             verify_checkout .release-sources/authentication "$AUTHENTICATION_REVISION"
           fi
+          if [[ -n "$FEEDBACK_REVISION" ]]; then
+            verify_checkout .release-sources/feedback "$FEEDBACK_REVISION"
+          fi
 
       - name: Prepare reproducible release candidate
         shell: bash
         env:
           AUTHENTICATION_REVISION: ${{ steps.pins.outputs.authentication }}
+          FEEDBACK_REVISION: ${{ steps.pins.outputs.feedback }}
         run: |
           set -euo pipefail
           args=(--core-root .release-sources/core --deployment-root .release-sources/deployment)
           if [[ -n "$AUTHENTICATION_REVISION" ]]; then
             args+=(--authentication-root .release-sources/authentication)
+          fi
+          if [[ -n "$FEEDBACK_REVISION" ]]; then
+            args+=(--feedback-root .release-sources/feedback)
           fi
           node scripts/prepare-release.mjs "${args[@]}"
 
@@ -558,6 +582,9 @@ jobs:
               },
               ...(components.components.authentication
                 ? { authentication: { revision: components.components.authentication.revision } }
+                : {}),
+              ...(components.components.feedback
+                ? { feedback: { revision: components.components.feedback.revision } }
                 : {}),
             },
             artifact: {

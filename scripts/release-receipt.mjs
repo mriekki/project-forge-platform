@@ -62,10 +62,12 @@ export function validateReleaseReceipt(receipt, expectedVersion = null) {
   const componentIds = Object.keys(components).sort();
   const acceptedIds = ['core', 'deployment'];
   const hasAuthentication = Object.hasOwn(components, 'authentication');
+  const hasFeedback = Object.hasOwn(components, 'feedback');
   if (hasAuthentication) acceptedIds.push('authentication');
+  if (hasFeedback) acceptedIds.push('feedback');
   acceptedIds.sort();
   if (JSON.stringify(componentIds) !== JSON.stringify(acceptedIds)) {
-    throw new Error('Release receipt must contain exactly Core, Deployment and optional Authentication.');
+    throw new Error('Release receipt must contain exactly Core, Deployment and optional Authentication and Feedback.');
   }
   const authentication = hasAuthentication
     ? requireObject(components.authentication, 'components.authentication')
@@ -73,8 +75,12 @@ export function validateReleaseReceipt(receipt, expectedVersion = null) {
   if (authentication) {
     requireMatch(authentication.revision, SHA40, 'components.authentication.revision');
   }
+  const feedback = hasFeedback ? requireObject(components.feedback, 'components.feedback') : null;
+  if (feedback) {
+    requireMatch(feedback.revision, SHA40, 'components.feedback.revision');
+  }
 
-  for (const component of [core, deployment, ...(authentication ? [authentication] : [])]) {
+  for (const component of [core, deployment, ...(authentication ? [authentication] : []), ...(feedback ? [feedback] : [])]) {
     for (const forbidden of ['repository', 'sourceRepository', 'sourceRepositoryUrl', 'privateRepository']) {
       if (Object.hasOwn(component, forbidden)) {
         throw new Error(`release receipt exposes forbidden component source field ${forbidden}`);
@@ -107,6 +113,11 @@ export function validateReleaseReceipt(receipt, expectedVersion = null) {
     requireCiEvidence(ci.authenticationMain, 'ci.authenticationMain');
   } else if (Object.hasOwn(ci, 'authenticationMain')) {
     throw new Error('Non-Auth release receipt cannot claim Authentication CI.');
+  }
+  if (feedback) {
+    requireCiEvidence(ci.feedbackMain, 'ci.feedbackMain');
+  } else if (Object.hasOwn(ci, 'feedbackMain')) {
+    throw new Error('Non-Feedback release receipt cannot claim Feedback CI.');
   }
 
   return value;

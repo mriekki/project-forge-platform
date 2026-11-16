@@ -54,7 +54,7 @@ test('publication optionally includes exact Auth Kit only when the package decla
 
   assert.match(workflow, /secrets\.AUTHENTICATION_SOURCE_REPOSITORY/);
   assert.match(workflow, /steps\.pins\.outputs\.authentication/);
-  assert.match(sources, /required\+=\(AUTHENTICATION_SOURCE_REPOSITORY\)/);
+  assert.match(sources, /check_mapping AUTHENTICATION_SOURCE_REPOSITORY/);
   assert.match(sources, /authentication=\$AUTHENTICATION_SOURCE_REPOSITORY/);
   assert.match(workflow, /- name: Checkout exact Authentication source only when advertised\n\s+if: steps\.pins\.outputs\.authentication != ''/);
   assert.match(workflow, /ref: \$\{\{ steps\.pins\.outputs\.authentication \}\}/);
@@ -73,4 +73,18 @@ test('publication optionally includes exact Auth Kit only when the package decla
       execFileSync('bash', ['-n'], { input: script, encoding: 'utf8' });
     }
   }
+});
+
+test('publication binds optional Feedback to exact source and protected mapping', () => {
+  const workflow = fs.readFileSync(WORKFLOW, 'utf8');
+  const pins = extractRunBlock(workflow, 'Resolve exact component pins');
+  const sources = extractRunBlock(workflow, 'Resolve protected source repositories');
+  const checkouts = extractRunBlock(workflow, 'Verify exact private source checkouts');
+  const release = extractRunBlock(workflow, 'Prepare reproducible release candidate');
+  assert.match(pins, /ids\.includes\('feedback'\)/);
+  assert.match(sources, /check_mapping FEEDBACK_SOURCE_REPOSITORY/);
+  assert.match(workflow, /secrets\.FEEDBACK_SOURCE_REPOSITORY/);
+  assert.match(workflow, /steps\.pins\.outputs\.feedback/);
+  assert.match(checkouts, /verify_checkout \.release-sources\/feedback "\$FEEDBACK_REVISION"/);
+  assert.match(release, /args\+=\(--feedback-root \.release-sources\/feedback\)/);
 });
