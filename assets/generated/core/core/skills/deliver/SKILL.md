@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 # Deliver
 
+Native Codex invocation is `$deliver` from `.agents/skills/deliver/SKILL.md`; Copilot uses `/deliver`. This is the same Core contract, not a new permission source. Verify real local `git` / `gh` capabilities and require human meaningful-diff acceptance and the single merge/finalize gate regardless of editor/agent. Use a textual fallback when a Copilot-only UI/agent tool is missing; do not claim it ran. See `docs/project-forge/CODEX_EXECUTION_SURFACE.md`.
+
 `/deliver` is the clear handoff after:
 
 ```text

@@ -45,6 +45,19 @@ After opening/reloading the intended editor workspace:
 
 The work-item Explorer decoration is an evidence-derived editor view, not a workflow authority. Its installation/readiness is reported separately from application runtime/build readiness.
 
+## Native Codex in VS Code (optional)
+
+When the Builder uses the native OpenAI Codex extension:
+
+- [ ] `AGENTS.md` is loaded as the repository instruction source.
+- [ ] `/skills` or `$brainstorm` can discover repository skills under `.agents/skills/`, including `start-work`, `deliver`, and `reviewer`.
+- [ ] A read-only skill test correctly identifies the configured work-item authority and explicitly makes no GitHub or file changes.
+- [ ] Skill-based Reviewer can load the canonical `.github/agents/reviewer.agent.md` standard, and the Builder can inspect the actual proposed diff before approval.
+- [ ] Local environment, `git` / `gh` permissions and review surfaces are tested before depending on them for delivery; Windows/WSL2 host selection is correct.
+- [ ] The existing Copilot `.github/skills/` discovery still works.
+
+Codex is optional: if it is not installed, these checks are **not applicable**, not workspace failure. Static file presence is not evidence of real Codex extension qualification. See `docs/project-forge/CODEX_EXECUTION_SURFACE.md`.
+
 ## Copilot CLI + VS Code discovery
 
 When GitHub Copilot CLI is an intended execution surface:

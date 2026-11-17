@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 # Start Work
 
+Native Codex invocation is `$start-work` through `.agents/skills/start-work/SKILL.md`; GitHub Copilot uses `/start-work`. Both use this same Core contract. If native plan surfaces or `vscode_askQuestions` are unavailable, show the full proposed plan and explicit human approval gate in conversation; **never** treat Codex invocation itself as plan or implementation approval. See `docs/project-forge/CODEX_EXECUTION_SURFACE.md`.
+
 ## 0. Invocation and implementation boundary
 
 `/start-work` is the orchestration entry point for preparing a work item to be implemented. Its invocation authorizes read-only context resolution, requirement-readiness assessment, risk classification, and implementation planning.

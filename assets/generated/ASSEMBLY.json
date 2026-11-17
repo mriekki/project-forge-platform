@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.29.0",
+  "version": "4.30.0",
   "components": {
     "core": {
-      "revision": "c69026c71b28eb023db1ff5eb3129bc971a56430",
-      "version": "4.4.0",
+      "revision": "053d27ee4c4a5a1b2640d233ce4e094e068fb1c3",
+      "version": "4.5.0",
       "distribution": "greenfield-workspace",
       "files": [
         {
@@ -51,7 +51,7 @@
         {
           "source": "core/skills/start-work/SKILL.md",
           "destination": ".github/skills/start-work/SKILL.md",
-          "sha256": "72705d7437a66777f8c0389387e43eab67cac7e7ecbb4568a5572d1c01ec7c2a"
+          "sha256": "a0481888ae6687bdf6467621a31cceac341be88e3bd8474eba7452d7790bdf22"
         },
         {
           "source": "core/skills/setup/SKILL.md",
@@ -91,7 +91,7 @@
         {
           "source": "core/skills/deliver/SKILL.md",
           "destination": ".github/skills/deliver/SKILL.md",
-          "sha256": "3e50cf967dbeac057d10402d11dfb72bcdd22daaf2b9c604bf55d034da02f3d3"
+          "sha256": "6308a30b486b362fbbc74b77325e0582102ce57d436eb3fc87697f317d106ada"
         },
         {
           "source": "core/skills/work-item-status/SKILL.md",
@@ -226,7 +226,7 @@
         {
           "source": "core/process/SETUP_ACCEPTANCE_CHECKLIST.md",
           "destination": "docs/process/SETUP_ACCEPTANCE_CHECKLIST.md",
-          "sha256": "8bf7936d8ae33b1656532669a278b3c73aaf4d47f87e641d48bfb38ecd8c56b5"
+          "sha256": "7fbac52f0810230763af48c01679bf81586ca9f8619ac1dd5cf990bd4b943f79"
         },
         {
           "source": "core/process/OPERATION_JOURNAL.md",
@@ -386,7 +386,7 @@
         {
           "source": "core/skills/brainstorm/SKILL.md",
           "destination": ".github/skills/brainstorm/SKILL.md",
-          "sha256": "dce310b2d0e03755feb2359575a30f31cb61cbfecb95cc3308271783964abfa6"
+          "sha256": "9f499333a1fc0d2188d4568e7668631e4afeca58756c30839c0bda917c1a4557"
         },
         {
           "source": "core/instructions/project-forge-web-guidance.instructions.md",
@@ -402,6 +402,336 @@
           "source": "core/process/WORKSTATION_MAINTENANCE.md",
           "destination": "docs/process/WORKSTATION_MAINTENANCE.md",
           "sha256": "beff0c78e9ef139f6e611176f02ee5b188387be1ee876d67401c5212566c36cb"
+        },
+        {
+          "source": "core/skills/define-feature/SKILL.md",
+          "destination": ".agents/skills/define-feature/SKILL.md",
+          "sha256": "c9f85d76a701b3d1af5c70cd74b19ce119b5735cf3537e2618159d58394ffd02"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/define-feature/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/grill-me/SKILL.md",
+          "destination": ".agents/skills/grill-me/SKILL.md",
+          "sha256": "a71c2dcf63d7d88beb9112fcfe0cf19dbc233934f30bbe95727f58b29e845ffb"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/grill-me/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/refine-requirements/SKILL.md",
+          "destination": ".agents/skills/refine-requirements/SKILL.md",
+          "sha256": "ece04f0576c42e4330df03125d624a9d2e38b62a0ce407d852b92e9e69bb7d27"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/refine-requirements/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/start-work/SKILL.md",
+          "destination": ".agents/skills/start-work/SKILL.md",
+          "sha256": "a0481888ae6687bdf6467621a31cceac341be88e3bd8474eba7452d7790bdf22"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/start-work/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/setup/SKILL.md",
+          "destination": ".agents/skills/setup/SKILL.md",
+          "sha256": "30a9dbfbd132f7c333ca515736a7957494bbe2fd4b5860dfff90ba3437bc135d"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/setup/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/build/SKILL.md",
+          "destination": ".agents/skills/build/SKILL.md",
+          "sha256": "e7ba7663a99603f1212930045bec420c71774e56cad963e38867242605afdad4"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/build/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/run/SKILL.md",
+          "destination": ".agents/skills/run/SKILL.md",
+          "sha256": "3dfc25cff7b03eafe0b8d64cc2102584c7b90793f434313f62c9e61c1b587c9e"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/run/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/export-requirements/SKILL.md",
+          "destination": ".agents/skills/export-requirements/SKILL.md",
+          "sha256": "05d2ce830b2924f3508641f6bfa056f577862f27d236526f5a217a790d1ad490"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/export-requirements/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/replatform/SKILL.md",
+          "destination": ".agents/skills/replatform/SKILL.md",
+          "sha256": "c43896b2b8ec92467769c32bf39de1e9d4f1090cef42005e22126cb2df88af59"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/replatform/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/progress/SKILL.md",
+          "destination": ".agents/skills/progress/SKILL.md",
+          "sha256": "6e78fff8d5e378bd755a119f9102d7649493c3ef8c1852dc6af8affebfcecbe2"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/progress/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/next-step/SKILL.md",
+          "destination": ".agents/skills/next-step/SKILL.md",
+          "sha256": "7c24a15b9069dcc5218319ab7fb72231e48efd2ebd325d8ff250e142cb3aa813"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/next-step/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/deliver/SKILL.md",
+          "destination": ".agents/skills/deliver/SKILL.md",
+          "sha256": "6308a30b486b362fbbc74b77325e0582102ce57d436eb3fc87697f317d106ada"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/deliver/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/work-item-status/SKILL.md",
+          "destination": ".agents/skills/work-item-status/SKILL.md",
+          "sha256": "b09fc1b9666a81f5c5a85dc691a6db9869097fe560d45fc14dec71256eabdc52"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/work-item-status/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/cleanup-branches/SKILL.md",
+          "destination": ".agents/skills/cleanup-branches/SKILL.md",
+          "sha256": "b44af82b8e21693fcc600cb9628c50f49a117c7cfb7840af0f2ccedad2f96dc7"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/cleanup-branches/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/pull-latest/SKILL.md",
+          "destination": ".agents/skills/pull-latest/SKILL.md",
+          "sha256": "709471b55c41ec72fe0ca4eb87af0740ab9a947ef0b31c36f8cf51afc58d3ccb"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/pull-latest/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/project-forge-update/SKILL.md",
+          "destination": ".agents/skills/project-forge-update/SKILL.md",
+          "sha256": "510d60fab8d91e54abbc49dbc963a93b132ac5cdfd97ec87f64128ca138d2b1a"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/project-forge-update/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/upstream-fix/SKILL.md",
+          "destination": ".agents/skills/upstream-fix/SKILL.md",
+          "sha256": "cec11a112840b37a5ff61e28281d26eb9490e9d7b05df99ae5fa152231316798"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/upstream-fix/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/wait-what/SKILL.md",
+          "destination": ".agents/skills/wait-what/SKILL.md",
+          "sha256": "dba3aa4f042b813de960b60c47ae4c8a3dccb72fdc89c597fe04b720b27f5316"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/wait-what/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/deployment-readiness/SKILL.md",
+          "destination": ".agents/skills/deployment-readiness/SKILL.md",
+          "sha256": "8b83d06056cbc10c0a9df69d1bb76db62753b52f5d4be9858488e400cd4b836d"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/deployment-readiness/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/deploy/SKILL.md",
+          "destination": ".agents/skills/deploy/SKILL.md",
+          "sha256": "3ac67207c9cb6870c56313b2c4ce02d15c0756cb092937013f66512d2ec9576a"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/deploy/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/tear-down/SKILL.md",
+          "destination": ".agents/skills/tear-down/SKILL.md",
+          "sha256": "468314030c6033885c46aba50f54410928cbe44c74d73b998b88338fe495f3d9"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/tear-down/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/coach/SKILL.md",
+          "destination": ".agents/skills/coach/SKILL.md",
+          "sha256": "68c28d5b9a55eedbf4261d12f1cd06f86b905e973b7ed7973fa4c49cf5338091"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/coach/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/db-lab/SKILL.md",
+          "destination": ".agents/skills/db-lab/SKILL.md",
+          "sha256": "340af48955f6413df249fb3123fb3006d9a0ed2e0a7b3cc0ab1a8b767b89b545"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/db-lab/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/system-lab/SKILL.md",
+          "destination": ".agents/skills/system-lab/SKILL.md",
+          "sha256": "a2f408105eec47a547c64315a22f21bd6d4a86457667fb5f9a2f91a4fa2b4489"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/system-lab/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/docs/SKILL.md",
+          "destination": ".agents/skills/docs/SKILL.md",
+          "sha256": "25016d90af1a6f94b72f46b41dbb59bb7179d7c4c01348ea897efae5b571a85c"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/docs/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/code-walkthrough/SKILL.md",
+          "destination": ".agents/skills/code-walkthrough/SKILL.md",
+          "sha256": "34cb60680a3effc6af3a5ec22fe0c20d4b9b8064b8b808afed673be988b0f210"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/code-walkthrough/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/learning-review/SKILL.md",
+          "destination": ".agents/skills/learning-review/SKILL.md",
+          "sha256": "b77ccbbd85fbe6c8d77d42bfea4b0d474e320c182f7d1f72010ff2301d869e66"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/learning-review/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/web-guidance/SKILL.md",
+          "destination": ".agents/skills/web-guidance/SKILL.md",
+          "sha256": "b2064b1fea2ae7249685278e291cda6b4739a7601f8c2dc43a797f324c9fbda1"
+        },
+        {
+          "source": "core/skills/ux-review/SKILL.md",
+          "destination": ".agents/skills/ux-review/SKILL.md",
+          "sha256": "2d0031a7041b8174ef056cf35015d5a9faadbc960313b3d1117bf55b8cb44486"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/ux-review/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/review-user-feedback/SKILL.md",
+          "destination": ".agents/skills/review-user-feedback/SKILL.md",
+          "sha256": "e9e3812acece33a466ea2d6812b00d30c0c9aa3468cfac7d0172f37797319906"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/review-user-feedback/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/manage-backlog/SKILL.md",
+          "destination": ".agents/skills/manage-backlog/SKILL.md",
+          "sha256": "9713817cc95c7ef18317830c1f80d83eaf41a2045bba6693388285fc0ee61832"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/manage-backlog/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/skills/brainstorm/SKILL.md",
+          "destination": ".agents/skills/brainstorm/SKILL.md",
+          "sha256": "9f499333a1fc0d2188d4568e7668631e4afeca58756c30839c0bda917c1a4557"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/brainstorm/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/codex/reviewer/SKILL.md",
+          "destination": ".agents/skills/reviewer/SKILL.md",
+          "sha256": "d3ecb74a57f27bfb89d6aef486a27295f78d15b2a0298ee80b7593f84c73a27c"
+        },
+        {
+          "source": "core/codex/explicit-only.openai.yaml",
+          "destination": ".agents/skills/reviewer/agents/openai.yaml",
+          "sha256": "a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
+        },
+        {
+          "source": "core/process/CODEX_EXECUTION_SURFACE.md",
+          "destination": "docs/project-forge/CODEX_EXECUTION_SURFACE.md",
+          "sha256": "857c097dd38bc359f297c76254be043ed258f510ac1595fa3d774c152e6ef6b7"
         }
       ],
       "profileVariants": {
