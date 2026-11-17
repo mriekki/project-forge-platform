@@ -73,6 +73,41 @@ test('assembly verifies exact revisions/descriptors and creates a self-contained
   assert.equal(verifyAssets(packageData), 2);
 });
 
+test('assembly allows the same canonical source at distinct Codex and Copilot destinations', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'project-forge-codex-mirror-'));
+  try {
+    const coreDescriptor = {
+      name: 'greenfield-workspace',
+      mappings: [
+        { source: 'core/a.txt', destination: '.github/skills/example/SKILL.md' },
+        { source: 'core/a.txt', destination: '.agents/skills/example/SKILL.md' }
+      ]
+    };
+    const deploymentDescriptor = {
+      name: 'greenfield-project',
+      schemaVersion: 1,
+      mappings: [{ source: 'src/b.txt', destination: 'tools/b.txt' }]
+    };
+    const { packageRoot, coreRoot, deploymentRoot, packageData } = fixturePackage(temp, coreDescriptor, deploymentDescriptor);
+    const assembled = assembleAssets(packageData, { core: coreRoot, deployment: deploymentRoot });
+    assert.equal(assembled.components.core.files.length, 2);
+    assert.deepEqual(assembled.components.core.files.map(f => f.source), ['core/a.txt', 'core/a.txt']);
+    assert.deepEqual(assembled.components.core.files.map(f => f.destination),
+      ['.github/skills/example/SKILL.md', '.agents/skills/example/SKILL.md']);
+    assert.equal(assembled.components.core.files[0].sha256, assembled.components.core.files[1].sha256);
+    assert.equal(verifyAssets(packageData), 3);
+
+    // Same destination would overwrite another managed path and must remain rejected.
+    const receiptPath = path.join(packageRoot, 'assets/generated/ASSEMBLY.json');
+    const broken = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+    broken.components.core.files[1].destination = broken.components.core.files[0].destination;
+    fs.writeFileSync(receiptPath, JSON.stringify(broken));
+    assert.throws(() => verifyAssets(packageData), /asset set mismatch/);
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
+});
+
 test('assembly includes exact canonical Core workspace profile variants', () => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'project-forge-profile-variant-'));
   try {
