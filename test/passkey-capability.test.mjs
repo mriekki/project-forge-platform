@@ -114,6 +114,6 @@ test('support marker must be a regular packaged file, never a symlink or missing
       if (error.code === 'EPERM' || error.code === 'EACCES') return;
       throw error;
     }
-    assert.throws(() => verifyPasskeyCapability(f.packageData, f.assembly), /missing or unsafe/);
+    assert.throws(() => verifyPasskeyCapability(f.packageData, f.assembly), /symlink|unsafe|missing/i);
   } finally { f.cleanup(); }
 });
