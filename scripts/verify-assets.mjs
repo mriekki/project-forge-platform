@@ -21,7 +21,9 @@ export function verifyAssets(packageData = loadPackageData()) {
     // in ASSEMBLY.json is not proof that the current consumer receives it.
     const expectedEntries = [...componentEntries(packageData, componentId)];
     const recordedList = Array.isArray(recorded.files) ? recorded.files : [];
-    const recordedFiles = new Map(recordedList.map((item) => [item.source, item]));
+    // A single immutable Core source may be installed at two agent-specific destinations.
+    // Destination remains the managed-path identity; identical source hashes are intentional.
+    const recordedFiles = new Map(recordedList.map((item) => [item.destination, item]));
     const destinations = new Set(recordedList.map((item) => item.destination));
     if (
       recordedList.length !== expectedEntries.length ||
@@ -31,8 +33,8 @@ export function verifyAssets(packageData = loadPackageData()) {
       throw new Error(`Generated ${componentId} asset set mismatch: non-exact or duplicate mapping`);
     }
     for (const entry of expectedEntries) {
-      const item = recordedFiles.get(entry.source);
-      if (!item || item.destination !== entry.path || item.sha256 !== sha256File(entry.bundlePath)) {
+      const item = recordedFiles.get(entry.path);
+      if (!item || item.source !== entry.source || item.sha256 !== sha256File(entry.bundlePath)) {
         throw new Error(`Generated ${componentId} asset mismatch: ${entry.source}`);
       }
       count += 1;

@@ -96,6 +96,12 @@ Project Forge supports independent workspace instances on multiple developer com
 
 On Windows, Project Forge defaults compatible development to **WSL2 with Ubuntu**: keep repositories in the WSL Linux filesystem (normally `~/projects`), run shells/toolchains from WSL, keep desktop UI applications on Windows, and use Docker Desktop with its WSL2 backend/integration rather than installing a second Docker Engine inside the distro. Native Windows remains valid for Projects with a real Windows-specific requirement. Existing Windows checkouts can be migrated non-destructively with [`tools/windows/project-forge-wsl2.ps1`](tools/windows/project-forge-wsl2.ps1); see [`docs/WINDOWS_WSL2.md`](docs/WINDOWS_WSL2.md).
 
+## Codex and Copilot in VS Code
+
+Project Forge uses **one canonical Core skill source** for both AI coding assistants. GitHub Copilot discovers installed skills under `.github/skills/`, invoked with `/brainstorm`, `/start-work`, or `/deliver`. Native OpenAI Codex discovers the corresponding `.agents/skills/` copies, invoked via `/skills` or `$brainstorm`, `$start-work`, and `$deliver`. Both read the repository's `AGENTS.md` and preserve the same authoritative work-item system and meaningful human approvals. Codex remains optional; the exact package/profile must include the Codex files before use, and file checks do not prove the extension actually ran.
+
+ChatGPT is particularly suited to brainstorming and cross-repository Issue coordination; Codex and Copilot are alternative code execution surfaces where their real tool access permits. GitHub Issues, plans, PRs and CI are the durable handoff. A native Codex `$reviewer` skill fallback can read the existing Reviewer policy without implying a native subagent. Follow `docs/project-forge/CODEX_EXECUTION_SURFACE.md` when present. Plus/Codex limits depend on account, model, task complexity and current usage policy; no unlimited usage is implied.
+
 ## Public ChatGPT contract
 
 Project Forge's public ChatGPT bootstrap entrypoint is [`chatgpt/START_HERE.md`](chatgpt/START_HERE.md).
