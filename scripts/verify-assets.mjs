@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { componentEntries, sha256File } from '../src/engine.mjs';
+import { verifyPasskeyCapability } from '../src/passkey-capability.mjs';
 import { loadPackageData, readJson } from '../src/package-data.mjs';
 
 export function verifyAssets(packageData = loadPackageData()) {
@@ -56,6 +57,9 @@ export function verifyAssets(packageData = loadPackageData()) {
       count += 1;
     }
   }
+  // Package support is separate from source availability. A candidate-only
+  // marker is valid packaged data but never implies selectable passkeys.
+  verifyPasskeyCapability(packageData, assembly);
   return count;
 }
 
