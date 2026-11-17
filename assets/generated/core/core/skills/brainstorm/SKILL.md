@@ -20,6 +20,8 @@ This skill **orchestrates** the existing `/define-feature`, `/grill-me`, `/refin
 4. Respect existing Jira/local authority unless the Builder explicitly authorizes a change. For a Project configured with GitHub Issues as work-item authority, Issues are canonical. A GitHub Projects board, if later configured, is only a derived view.
 5. For a multi-repo effort, verify the actual reusable capability owner and every code-owning repository before assigning work; do not assume a consumer app owns the shared design.
 
+6. For a Project already configured with GitHub Issues, resolve the exact Issue and any existing stable `docs/work-items/<ID>-...` folder via explicit Issue/document links. Previously approved briefs/requirements remain supplemental and must not be copied into a new Issue or reset. Never guess an Issue number from a legacy ID; do not turn a Feedback intake Issue into a new engineering Feature by assumption. If missing/ambiguous, reconcile mapping first.
+
 ## 2. Explore without writes
 
 Begin conversationally and proportionally: intended user outcome, problem, affected Projects, alternatives, tradeoffs, security/operational implications, constraints and non-goals. Use `/grill-me` for meaningful uncertainty, `/define-feature` for feature shape, and `/refine-requirements` when testable precision matters.
@@ -28,7 +30,7 @@ Distinguish **Builder-confirmed decisions**, **recommendations**, and **open que
 
 ## 3. Scope and plan
 
-For a substantial initiative, prepare one readable Markdown design/implementation plan, normally under the **natural owning repository** at `docs/initiatives/<topic>/IMPLEMENTATION_PLAN.md` or the repository's established docs convention. A small idea can remain a short Issue without a plan.
+For a substantial initiative, prepare one readable Markdown design/implementation plan, normally under the **natural owning repository** at `docs/initiatives/<topic>/IMPLEMENTATION_PLAN.md` or the repository's established docs convention. If an Issue already owns an existing `docs/work-items/<ID>-.../implementation-plan.md` or approved requirements path, use that established document rather than creating a second plan; link Issue and document reciprocally. A small idea can remain a short Issue without a plan.
 
 A substantial plan includes: outcome; current verified baseline and source links; decisions and non-goals; architecture and boundaries; repo/owner matrix; risk, data/identity/security and API concerns; cross-repo dependencies; phases and release gates; test/acceptance matrix; deletion/migration treatment; open decisions; and how to resume.
 

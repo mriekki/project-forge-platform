@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.28.0",
+  "version": "4.29.0",
   "components": {
     "core": {
-      "revision": "44fb888353ee479cd16749720ffbad270df89087",
-      "version": "4.3.1",
+      "revision": "c69026c71b28eb023db1ff5eb3129bc971a56430",
+      "version": "4.4.0",
       "distribution": "greenfield-workspace",
       "files": [
         {
@@ -46,12 +46,12 @@
         {
           "source": "core/skills/refine-requirements/SKILL.md",
           "destination": ".github/skills/refine-requirements/SKILL.md",
-          "sha256": "5787cd7f70231355b951d58f792665a79da336d6f17ea9f4d6634928ab452623"
+          "sha256": "ece04f0576c42e4330df03125d624a9d2e38b62a0ce407d852b92e9e69bb7d27"
         },
         {
           "source": "core/skills/start-work/SKILL.md",
           "destination": ".github/skills/start-work/SKILL.md",
-          "sha256": "8a1213e59c5452feb5c8820530f6131115f88419299e42462ee5d32361d62fb6"
+          "sha256": "72705d7437a66777f8c0389387e43eab67cac7e7ecbb4568a5572d1c01ec7c2a"
         },
         {
           "source": "core/skills/setup/SKILL.md",
@@ -81,7 +81,7 @@
         {
           "source": "core/skills/progress/SKILL.md",
           "destination": ".github/skills/progress/SKILL.md",
-          "sha256": "9b0ba914529e6bd91ad5fd7a30f666884c1687b35b847bfe77ed745c50f0fd12"
+          "sha256": "6e78fff8d5e378bd755a119f9102d7649493c3ef8c1852dc6af8affebfcecbe2"
         },
         {
           "source": "core/skills/next-step/SKILL.md",
@@ -91,7 +91,7 @@
         {
           "source": "core/skills/deliver/SKILL.md",
           "destination": ".github/skills/deliver/SKILL.md",
-          "sha256": "5e4d64d91e429b636e0fda4094a84dd2f0b09aa7c1f281cbba7d630b67820076"
+          "sha256": "3e50cf967dbeac057d10402d11dfb72bcdd22daaf2b9c604bf55d034da02f3d3"
         },
         {
           "source": "core/skills/work-item-status/SKILL.md",
@@ -376,17 +376,17 @@
         {
           "source": "core/process/ENGINEERING_BACKLOG.md",
           "destination": "docs/process/ENGINEERING_BACKLOG.md",
-          "sha256": "d6e7531bbc5e03c55d90e0cba760f3a9e8fee0239ea4fa4dbcdbba347469f9a5"
+          "sha256": "ebbd85087a1281becd389be42d14a621967676eee9ca8c1eb60cca2026ef34e3"
         },
         {
           "source": "core/skills/manage-backlog/SKILL.md",
           "destination": ".github/skills/manage-backlog/SKILL.md",
-          "sha256": "a2f282fa378603cb0221746efcbd7c102f1e53ab846bbdaa2ad828b45f116146"
+          "sha256": "9713817cc95c7ef18317830c1f80d83eaf41a2045bba6693388285fc0ee61832"
         },
         {
           "source": "core/skills/brainstorm/SKILL.md",
           "destination": ".github/skills/brainstorm/SKILL.md",
-          "sha256": "75e29a1547a1063013ced4f96135a031b17e50de184bb443c20cd8c27aa6bc0b"
+          "sha256": "dce310b2d0e03755feb2359575a30f31cb61cbfecb95cc3308271783964abfa6"
         },
         {
           "source": "core/instructions/project-forge-web-guidance.instructions.md",
@@ -408,7 +408,7 @@
         "existing-github": {
           "source": "profiles/existing-github/project-forge-workspace.json",
           "destination": ".github/project-forge-workspace.json",
-          "sha256": "3834aa7e0414f7f679fb03142428390347b67f253f368b41a526cb78dd66ca90"
+          "sha256": "78716dfa656b77510739bacc4764a5d70c76a71f4191847a2dee12b4a73552f4"
         }
       }
     },

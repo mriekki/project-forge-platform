@@ -39,6 +39,10 @@ Do **not** ask separate `Create branch?`, `Stage?`, `Commit?`, `Push?`, `Create 
 
 Invocation does **not** authorize merge, production deployment, force push, unrelated branch deletion, scope expansion, code fixes, or destructive/history-rewriting Git operations.
 
+### Linked GitHub Issue and local-document traceability
+
+When the configured source is `github-issues`, resolve the **exact canonical Issue** first and include its verified URL in the PR/work-item traceability. A prior stable `FB-...`/`EN-...` ID is not a GitHub Issue number; use only verified Issue/document mapping. Preserve any existing version-controlled approved `docs/work-items/` requirements and plan links. Do not paste a duplicate Issue body into local Markdown, reset approved requirements, silently change acceptance scope, or close a work item solely because code merged. Distinguish engineering delivery from verified Production release. Missing Issue access or conflicting mappings block Issue-state updates and must be reported without altering the human review and merge gates.
+
 ## 2. Phases
 
 ```text

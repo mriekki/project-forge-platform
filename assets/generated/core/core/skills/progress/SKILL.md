@@ -30,6 +30,10 @@ Never invent completion because a prior step normally happens. Prefer `UNKNOWN`/
 
 Do not mutate setup, Git, GitHub, target, deployment, or project state.
 
+### GitHub-Issues tracking with local Markdown context
+
+When `workItemSource: github-issues`, load the exact canonical GitHub Issue and actual PR/CI/default-branch evidence for current work-item tracking. Resolve any existing stable-ID `docs/work-items/` directory only through unambiguous Issue/document links and use it for approved requirement context, not current Issue status. Local `Status: APPROVED` is requirements maturity; a merged PR is not independently verified Production deployment. If the Issue cannot be fetched or uniquely mapped, show `NOT EVIDENCED` rather than inventing a local fallback authority. GitHub Projects is a derived planning view only.
+
 ## 2. Use a small status vocabulary
 
 ```text

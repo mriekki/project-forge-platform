@@ -40,6 +40,14 @@ Do not require local briefs when the repository uses Jira/Issues. Do not invent 
 
 When the host can open repository review surfaces, foreground the PRIMARY authoritative requirement/work-item artifact when human review is needed. Treat additional briefs/ADRs/design documents as CONTEXT or TRACEABILITY unless they are themselves the approval subject.
 
+### GitHub Issues with existing local Markdown
+
+When `workItemSource` is `github-issues`, fetch the **exact canonical Issue** in the code-owning repository, including relevant comments, dependencies, PRs and actual state. If the Developer supplies a stable local `FB-...`, `EN-...` or another work-item ID, resolve its unique GitHub Issue from verified explicit mapping/links before work. A legacy ID is not an Issue number. Missing or conflicting mapping requires reconciliation; do not select a similarly named Issue speculatively.
+
+If that Issue links an existing `docs/work-items/<ID>-.../` folder, load only its matching Product/Feature/Enabler brief, previously approved `requirements.md`, implementation plan and ADR context. GitHub Issue is **PRIMARY for engineering tracking**; repository Markdown is the approved **SUPPLEMENTAL specification**. Preserve previous human approval without automatic reapproval, reset, deletion, copied Issue body or reinterpretation of `Status: APPROVED` as delivered. If Issue acceptance contradicts an approved detailed requirement, require reviewed reconciliation through `/refine-requirements` before implementation.
+
+A LIGHT bug does not need local `docs/work-items/` files if its Issue and code/tests suffice. STANDARD/ELEVATED work may reuse an existing exact work-item-specific plan path when durable planning is useful; otherwise use the editor's native plan surface or the established Project docs convention. Include the real Issue URL and exact plan path in the implementation-approval review surface, without skipping normal Reviewer/human gates.
+
 ## 2. Check requirement readiness before planning
 
 Assess:
