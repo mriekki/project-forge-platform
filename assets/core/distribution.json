@@ -314,6 +314,270 @@
     {
       "source": "core/process/WORKSTATION_MAINTENANCE.md",
       "destination": "docs/process/WORKSTATION_MAINTENANCE.md"
+    },
+    {
+      "source": "core/skills/define-feature/SKILL.md",
+      "destination": ".agents/skills/define-feature/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/define-feature/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/grill-me/SKILL.md",
+      "destination": ".agents/skills/grill-me/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/grill-me/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/refine-requirements/SKILL.md",
+      "destination": ".agents/skills/refine-requirements/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/refine-requirements/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/start-work/SKILL.md",
+      "destination": ".agents/skills/start-work/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/start-work/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/setup/SKILL.md",
+      "destination": ".agents/skills/setup/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/setup/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/build/SKILL.md",
+      "destination": ".agents/skills/build/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/build/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/run/SKILL.md",
+      "destination": ".agents/skills/run/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/run/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/export-requirements/SKILL.md",
+      "destination": ".agents/skills/export-requirements/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/export-requirements/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/replatform/SKILL.md",
+      "destination": ".agents/skills/replatform/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/replatform/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/progress/SKILL.md",
+      "destination": ".agents/skills/progress/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/progress/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/next-step/SKILL.md",
+      "destination": ".agents/skills/next-step/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/next-step/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/deliver/SKILL.md",
+      "destination": ".agents/skills/deliver/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/deliver/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/work-item-status/SKILL.md",
+      "destination": ".agents/skills/work-item-status/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/work-item-status/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/cleanup-branches/SKILL.md",
+      "destination": ".agents/skills/cleanup-branches/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/cleanup-branches/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/pull-latest/SKILL.md",
+      "destination": ".agents/skills/pull-latest/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/pull-latest/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/project-forge-update/SKILL.md",
+      "destination": ".agents/skills/project-forge-update/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/project-forge-update/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/upstream-fix/SKILL.md",
+      "destination": ".agents/skills/upstream-fix/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/upstream-fix/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/wait-what/SKILL.md",
+      "destination": ".agents/skills/wait-what/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/wait-what/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/deployment-readiness/SKILL.md",
+      "destination": ".agents/skills/deployment-readiness/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/deployment-readiness/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/deploy/SKILL.md",
+      "destination": ".agents/skills/deploy/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/deploy/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/tear-down/SKILL.md",
+      "destination": ".agents/skills/tear-down/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/tear-down/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/coach/SKILL.md",
+      "destination": ".agents/skills/coach/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/coach/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/db-lab/SKILL.md",
+      "destination": ".agents/skills/db-lab/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/db-lab/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/system-lab/SKILL.md",
+      "destination": ".agents/skills/system-lab/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/system-lab/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/docs/SKILL.md",
+      "destination": ".agents/skills/docs/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/docs/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/code-walkthrough/SKILL.md",
+      "destination": ".agents/skills/code-walkthrough/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/code-walkthrough/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/learning-review/SKILL.md",
+      "destination": ".agents/skills/learning-review/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/learning-review/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/web-guidance/SKILL.md",
+      "destination": ".agents/skills/web-guidance/SKILL.md"
+    },
+    {
+      "source": "core/skills/ux-review/SKILL.md",
+      "destination": ".agents/skills/ux-review/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/ux-review/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/review-user-feedback/SKILL.md",
+      "destination": ".agents/skills/review-user-feedback/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/review-user-feedback/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/manage-backlog/SKILL.md",
+      "destination": ".agents/skills/manage-backlog/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/manage-backlog/agents/openai.yaml"
+    },
+    {
+      "source": "core/skills/brainstorm/SKILL.md",
+      "destination": ".agents/skills/brainstorm/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/brainstorm/agents/openai.yaml"
+    },
+    {
+      "source": "core/codex/reviewer/SKILL.md",
+      "destination": ".agents/skills/reviewer/SKILL.md"
+    },
+    {
+      "source": "core/codex/explicit-only.openai.yaml",
+      "destination": ".agents/skills/reviewer/agents/openai.yaml"
+    },
+    {
+      "source": "core/process/CODEX_EXECUTION_SURFACE.md",
+      "destination": "docs/project-forge/CODEX_EXECUTION_SURFACE.md"
     }
   ]
 }

@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 # Brainstorm and Plan a Project Forge Initiative
 
+In native Codex use `$brainstorm` or `/skills` and the repository skill under `.agents/skills/brainstorm/SKILL.md`. In Copilot use `/brainstorm` from `.github/skills/brainstorm/SKILL.md`. These are two distributed copies of the **same canonical Core source**, with identical GitHub authority and approval boundaries. Codex uses `AGENTS.md` and may lack Copilot-only UI/tools; present safe textual gates rather than claiming unavailable actions. See `docs/project-forge/CODEX_EXECUTION_SURFACE.md`.
+
 Accept natural language ("let's brainstorm...", "turn this plan into Issues", "continue initiative owner/repo#123") as well as `/brainstorm`. **ChatGPT and VS Code are alternative execution surfaces for one workflow.** The durable handoff is the current repository's Issue/plan/PR/CI, never a prior chat transcript.
 
 This skill **orchestrates** the existing `/define-feature`, `/grill-me`, `/refine-requirements`, `/manage-backlog`, `/start-work`, and `/deliver` contracts; it does not replace their authority, review gates, or implementation rules. Project Forge Core owns this shared behavior. Follow the current public immutable Project Forge contract in ChatGPT and the installed repository rules in VS Code.
