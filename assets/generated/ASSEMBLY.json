@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.30.0",
+  "version": "4.31.0",
   "components": {
     "core": {
-      "revision": "053d27ee4c4a5a1b2640d233ce4e094e068fb1c3",
-      "version": "4.5.0",
+      "revision": "7e0090e5d163c90c6aae60969a20b522e4981f21",
+      "version": "4.5.1",
       "distribution": "greenfield-workspace",
       "files": [
         {
@@ -91,7 +91,7 @@
         {
           "source": "core/skills/deliver/SKILL.md",
           "destination": ".github/skills/deliver/SKILL.md",
-          "sha256": "6308a30b486b362fbbc74b77325e0582102ce57d436eb3fc87697f317d106ada"
+          "sha256": "5517ba71d36f8f6e642519b42d65a3b7d50f556cce71a4ce93f7d4c07a2725de"
         },
         {
           "source": "core/skills/work-item-status/SKILL.md",
@@ -176,7 +176,7 @@
         {
           "source": "core/process/PR_WORKFLOW.md",
           "destination": "docs/process/PR_WORKFLOW.md",
-          "sha256": "a98338d7883b25136d8b5c7768c796ed88e19686a8972109cd284ed7d10a03f2"
+          "sha256": "4ead361fd07894190f5c2438134d1924714e86c63a57bab6fa52fc7f3808454d"
         },
         {
           "source": "core/process/DEPLOYMENT_ENABLEMENT.md",
@@ -516,7 +516,7 @@
         {
           "source": "core/skills/deliver/SKILL.md",
           "destination": ".agents/skills/deliver/SKILL.md",
-          "sha256": "6308a30b486b362fbbc74b77325e0582102ce57d436eb3fc87697f317d106ada"
+          "sha256": "5517ba71d36f8f6e642519b42d65a3b7d50f556cce71a4ce93f7d4c07a2725de"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -732,6 +732,11 @@
           "source": "core/process/CODEX_EXECUTION_SURFACE.md",
           "destination": "docs/project-forge/CODEX_EXECUTION_SURFACE.md",
           "sha256": "857c097dd38bc359f297c76254be043ed258f510ac1595fa3d774c152e6ef6b7"
+        },
+        {
+          "source": "core/process/CHANGE_AWARE_CI_GUIDANCE.md",
+          "destination": "docs/process/CHANGE_AWARE_CI_GUIDANCE.md",
+          "sha256": "24f8c2b85795c4f30da9154bc5203a8585ed1274535e1f739e6393f0810768b0"
         }
       ],
       "profileVariants": {

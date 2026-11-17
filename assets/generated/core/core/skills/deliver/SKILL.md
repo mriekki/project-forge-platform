@@ -183,6 +183,14 @@ Inspect the configured/observable PR CI and checks without asking permission for
 
 ### Pending
 
+When the host provides a live, cancelable terminal or GitHub watch facility, prefer **one bounded CI watch** after creating/updating the PR over asking the Builder to invoke /deliver again. The watch is an observation, not a GitHub Actions re-run or workflow_dispatch:
+
+- Capture the exact PR URL/number, head SHA, required check names and current statuses. Use a supported command such as `gh pr checks <PR> --watch --interval 20` in the correct repository, with an actual host-enforced timeout/cancellation (recommended upper bound **8 minutes**) and user-visible progress. For Codex, VS Code Copilot or ChatGPT, use only real available tool capabilities; never promise a background follow-up.
+- If the watch turns green while the **same interactive session** is active, re-fetch the PR head SHA, diff/mergeability and observed policy evidence and immediately show the **single** section 8 Merge and finalize delivery gate. Do **not** ask the Builder to rerun /deliver first.
+- If the observed PR head changes, a check fails, a check disappears or branch rules are unclear, stop with a precise explanation and no merge. Do not auto-fix code, auto-merge, rerun expensive CI, or reset the approval gate.
+- If the host cannot safely wait, the session is interrupted, a watch times out, or no CI status is accessible, stop with an exact **DELIVERY RESUME** checkpoint: PR URL/number, head SHA, current CI run/check URL and state, last accepted implementation/diff identity, and the next gate. The next /deliver invocation must revalidate live evidence and continue from there without duplicate commits/PRs or approval requests.
+- If CI is already green on the first check, skip watching entirely and advance to section 8. Use a single watch per unchanged CI phase; do not spam GitHub API or restart failed workflows.
+
 Use bounded read-only polling/rechecks when practical. If CI is still running beyond the practical interaction/tool window, report:
 
 ```text
@@ -257,6 +265,8 @@ Stop before merge if checks regress, new commits appear, conflicts arise, or pol
 ## 9. Post-merge default-branch CI
 
 After authorized merge, inspect the actual configured default branch/workflows and any observable enforced checks automatically.
+
+When the same session remains active and a bounded observable post-merge CI watch is available, continue to completion without a second /deliver invocation. Post-merge CI is **another GitHub Actions event** from PR CI; it does not indicate a second /deliver invocation, and /deliver must not dispatch a duplicate run. Recheck exact merged/default-branch SHA and CI. If the host cannot continue, emit an exact MERGED — DEFAULT-BRANCH CI PENDING resumption checkpoint (merge SHA, run URL, next safe cleanup step) and stop; never claim successful post-merge checks before they complete.
 
 If configured post-merge default-branch CI is pending, use bounded read-only rechecks when practical. If still pending beyond the practical interaction/tool window, report:
 
