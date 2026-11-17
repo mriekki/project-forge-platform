@@ -83,6 +83,12 @@ If Jira/Issue/another external system is primary and local detailed requirements
 - maintain concise proposed external-work-item updates during the session,
 - do not create `requirements.md` merely as a dumping ground.
 
+### GitHub-Issues authority with existing approved local requirements
+
+For a Project with `workItemSource: github-issues`, resolve the exact current Issue and any uniquely linked existing `docs/work-items/<stable-ID>-.../requirements.md`. The Issue owns the current engineering work item; an already-approved local requirements document remains an accepted **supplemental technical/domain specification**, even though it is no longer a second engineering backlog. Do not reset its `APPROVED` status or demand reapproval merely because a managed work-item transition occurred.
+
+If material behavior changes, propose a reviewed local requirements diff under normal human approval and reconcile the Issue's concise acceptance/link. A conflict between current Issue acceptance and approved local requirements is a **blocking review decision**; never choose either silently. Small bugs do not require a new Markdown requirements hierarchy. If Issue access fails, do not replace it with guessed external state from the local file.
+
 ## 4. Initial behavior is read-only
 
 Report an evidence-backed coverage assessment first:

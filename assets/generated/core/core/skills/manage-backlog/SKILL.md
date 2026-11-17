@@ -59,6 +59,17 @@ writes, data migration or release-scope expansion.
   board-link step as **pending**. Do not claim board membership.
 - Return its exact canonical link and any missing board step.
 
+## Existing local-docs → GitHub Issues migration
+
+An explicitly approved **bulk work-item migration** is different from normal one-item capture. Follow `ENGINEERING_BACKLOG.md`:
+
+1. Inventory stable IDs in `docs/work-items/` and search **open and closed** Issues and PRs in the owning repository. Propose a complete `REUSE`, `CREATE`, `CONFLICT / REVIEW` mapping before writes. Do not infer Issue numbers from local IDs.
+2. Distinguish original application Feedback intake Issues from the desired engineering Feature/Enabler Issues; preserve originals and link cross-cutting work rather than copying or reclassifying them without review.
+3. After one bounded Builder approval, create only genuinely missing canonical Issues, read back results, and add reciprocal Issue/document links with a normal reviewed Project PR. Preserve approved `requirements.md`, existing brief IDs/paths, dependency and implementation history.
+4. Use the **managed** `enable work-items github-issues` transition only after Issue mapping is reconciled. Do not hand-edit Project Forge baselines or claim that the CLI imports Issues. Verify package integrity and work-item workflows afterward.
+5. GitHub Issues owns current engineering backlog and status. Local approved Markdown is a supplemental version-controlled specification; its `Status: APPROVED` is requirements maturity, not engineering completion. Report any Issue/approved-document conflicts and resolve through reviewed requirements/Issue reconciliation.
+6. Keep app Feedback runtime, Production, GitHub Projects and unrelated Jira/local-docs Projects unchanged. Never create a parallel local issue/status database.
+
 ## 3. Review and select work
 
 - Read live authoritative tickets and board evidence, not prior chat status.
