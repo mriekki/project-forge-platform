@@ -29,7 +29,11 @@ Normal delivery is intentionally streamlined:
 → delivery complete
 ```
 
-Invoking `/deliver` is the bounded authorization for the routine mechanics through PR creation/update and PR-CI inspection. Do not add separate branch/commit/push/PR/CI permission prompts when the work remains inside the already-reviewed delivery scope.
+Invoking `/deliver` is the bounded authorization for the routine mechanics through PR creation/update and PR-CI inspection.
+
+In a live capable host, **one bounded check watch** (for example, `gh pr checks <PR> --watch --interval 20`, subject to real host timeout/cancellation) should continue straight to the existing single Merge and finalize gate as soon as checks succeed. There is no need to invoke /deliver a second time when the same interactive session and exact evidence remain available. Never auto-merge or wait invisibly in the background. When a watch cannot complete, preserve the exact PR/head SHA/run ID and offer an accurate resume checkpoint; resume /deliver without redoing commits, PRs, approval or CI dispatches. After authorized merge, observe post-merge CI similarly, and distinguish the separate PR and main CI **events** from /deliver invocations.
+
+Cost guidance: optionally use Project-owned strict change-aware CI for package-managed-only changes; see CHANGE_AWARE_CI_GUIDANCE.md. The baseline/integrity gate always runs and unknown, mixed app/deployment/auth and manually dispatched changes run full validation. Do not path-filter an entire required CI workflow. Do not add separate branch/commit/push/PR/CI permission prompts when the work remains inside the already-reviewed delivery scope.
 
 Key rules:
 - existing repository branch/PR/CI/merge policy outranks Project Forge defaults,

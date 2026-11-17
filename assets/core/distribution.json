@@ -578,6 +578,10 @@
     {
       "source": "core/process/CODEX_EXECUTION_SURFACE.md",
       "destination": "docs/project-forge/CODEX_EXECUTION_SURFACE.md"
+    },
+    {
+      "source": "core/process/CHANGE_AWARE_CI_GUIDANCE.md",
+      "destination": "docs/process/CHANGE_AWARE_CI_GUIDANCE.md"
     }
   ]
 }
