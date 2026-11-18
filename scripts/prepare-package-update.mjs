@@ -283,7 +283,7 @@ export function preparePackageUpdate(args, root = ROOT) {
   let authentication = null;
   if (args.authenticationRoot) {
     const approvedSource = process.env.PROJECT_FORGE_AUTH_SOURCE_REPOSITORY;
-    if (!new RegExp('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+
+    if (!new RegExp('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$').test(approvedSource ?? '')) {
       throw new Error('Protected Authentication Kit source repository mapping is missing');
     }
     authentication = assertExactAcceptedMain(args.authenticationRoot, 'Project Forge Authentication source');
@@ -307,7 +307,7 @@ export function preparePackageUpdate(args, root = ROOT) {
   let releaseNotes = null;
   if (args.releaseNotesRoot) {
     const approvedSource = process.env.PROJECT_FORGE_RELEASE_NOTES_SOURCE_REPOSITORY;
-    if (!/^[A-Za-z0-9_.-]+\\/[A-Za-z0-9_.-]+$/.test(approvedSource ?? '')) {
+    if (!new RegExp('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$').test(approvedSource ?? '')) {
       throw new Error('Protected Release Notes Kit source repository mapping is missing');
     }
     releaseNotes = assertExactAcceptedMain(args.releaseNotesRoot, 'Project Forge Release Notes source');
