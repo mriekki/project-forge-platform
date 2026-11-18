@@ -30,6 +30,20 @@ Never claim a browser/device/assistive technology or audit was run unless actual
 
 Do not force fads, extra libraries, unrequested redesigns, or newly invented product requirements.
 
+## Passkey sign-in review (when the Project actually enables WebAuthn)
+
+For a Project whose **repository configuration and verified runtime** explicitly select passkeys, also examine its passkey user journey. This is a conditional review dimension, **not a claim that Project Forge or the app currently ships passkeys**. Check:
+
+- The person first establishes an approved Project account through its configured admission method (for the initial Auth Kit household model, verified Google OIDC plus invitation/admin approval). "Add a passkey" must not silently create or link an account using email.
+- The primary sign-in action communicates **passkey** rather than promising Face ID specifically. Browsers/devices may offer Face ID, Touch ID, Windows Hello, Android biometrics, a security key or a device PIN.
+- Google remains clearly available for fallback and lost-device recovery. Cancel, unsupported browser, unavailable authenticator, expired challenge, missing credential and transient network errors offer a safe retry or recovery path without revealing whether another account exists.
+- A valid existing Project session should not produce unnecessary biometric prompts. **Passkey sign-in after session expiry** is distinct from **requiring an app unlock each time a PWA is opened**, and offline app unlock is not implied.
+- Account security settings let an authorized user intentionally register, identify, manage and revoke the user's own credentials; important changes require the currently reviewed step-up/recovery policy. Never claim a synced passkey equals one physical device.
+- Server and deployment evidence must establish HTTPS, the exact Project RP ID/origin and strict trusted-proxy behavior. UI review is not WebAuthn cryptographic validation. Expose missing account isolation, CSRF, single-use challenge, counter/backup/replay, recovery or restored-state proof to security review rather than passing UX solely on a successful screenshot.
+- For the intended browser/device matrix, check Safari and installed iOS PWA separately where practical, plus accessible keyboard/focus and visible Google fallback. State **NOT VERIFIED** for devices that have not actually been tested. Fresh sign-in requires a network connection even if other PWA features work offline.
+
+Follow the canonical [cross-repository passkey initiative](https://github.com/mriekki/project-forge-auth-kit/issues/26) only when relevant, and record any application-specific results in that Project's normal Issue/PR/review evidence. Do not create a separate passkey-specific UX command, replace `/start-work` or turn this optional review into an automatic release gate.
+
 ## Findings
 
 State review scope, inspected evidence and not-verified surfaces. List actionable findings with location/flow, impact, supporting evidence, and smallest plausible remedy. Classify `HIGH` (essential-task/accessibility blocker), `MEDIUM` (significant friction), `LOW` (polish), and `EVIDENCE GAP` (not tested). Include strengths only when evidenced.

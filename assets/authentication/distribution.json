@@ -27,6 +27,26 @@
       "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthStore.cs"
     },
     {
+      "source": "src/ProjectForge.Auth.Runtime/PasskeyVisibility.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/PasskeyVisibility.cs"
+    },
+    {
+      "source": "src/ProjectForge.Auth.Runtime/ProjectForgePasskeyEndpoints.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForgePasskeyEndpoints.cs"
+    },
+    {
+      "source": "src/ProjectForge.Auth.Runtime/ProjectPasskeyWebAuthn.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectPasskeyWebAuthn.cs"
+    },
+    {
+      "source": "src/ProjectForge.Auth.Runtime/ProjectAuthStore.PasskeyPolicy.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthStore.PasskeyPolicy.cs"
+    },
+    {
+      "source": "src/ProjectForge.Auth.Runtime/ProjectAuthStore.Passkeys.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthStore.Passkeys.cs"
+    },
+    {
       "source": "src/ProjectForge.Auth.Runtime/ProjectForge.Auth.Runtime.csproj",
       "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForge.Auth.Runtime.csproj"
     },
@@ -71,6 +91,10 @@
       "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/wwwroot/auth.js"
     },
     {
+      "source": "samples/ProjectForgeAuth.Api/wwwroot/passkeys.js",
+      "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/wwwroot/passkeys.js"
+    },
+    {
       "source": "src/ProjectForge.Auth.Runtime/ResendProjectInvitationDelivery.cs",
       "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ResendProjectInvitationDelivery.cs"
     },
@@ -85,6 +109,10 @@
     {
       "source": "docs/AUTH_RECOVERY_RETENTION.md",
       "destination": "tools/project-forge-auth-kit/docs/AUTH_RECOVERY_RETENTION.md"
+    },
+    {
+      "source": "docs/PASSKEY_SUPPORT.json",
+      "destination": "tools/project-forge-auth-kit/docs/PASSKEY_SUPPORT.json"
     }
   ]
 }

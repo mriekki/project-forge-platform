@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.31.0",
+  "version": "4.32.0",
   "defaultProfile": "greenfield-project",
   "profiles": {
     "greenfield-project": {
@@ -35,7 +35,7 @@
   },
   "components": {
     "core": {
-      "revision": "7e0090e5d163c90c6aae60969a20b522e4981f21",
+      "revision": "2a35476ff743c5c49be7725864f87a021714ff20",
       "version": "4.5.1",
       "distribution": "greenfield-workspace",
       "descriptor": "assets/core/distribution.json",
@@ -58,7 +58,7 @@
       "canonicalDescriptor": "distributions/greenfield-project.json"
     },
     "authentication": {
-      "revision": "99808353289cffabd591d47a71684b45b0b5c0a8",
+      "revision": "ed3db4fa0144c22800bb53e186109503cfeda661",
       "distribution": "greenfield-project",
       "descriptor": "assets/authentication/distribution.json",
       "sourceRoot": "assets/generated/authentication",
