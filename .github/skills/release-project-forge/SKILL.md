@@ -60,6 +60,8 @@ A dirty or non-`origin/main` local component checkout may block deterministic re
 
 Never pin an unmerged branch, dirty checkout, guessed revision, or changed component revision with failing/pending default-branch CI.
 
+**Release Notes Kit (conditional, default-off):** Its canonical source is independently owned. Do not include a `releaseNotesRevision` in a package candidate until the Kit source is merged, its exact current `main` CI is green, and the FMP reference pilot plus trusted Production activation/rollback have been qualified. Do not equate a successful shared Kit CI smoke with a deployable What's New feature. The source is packaged as a logical optional `release-notes` component in the **existing** `@mriekki/project-forge` npm package, not an independent npm publication. A package version bump or Kit profile opt-in never deploys an application.
+
 ## 3. Determine release need and version
 
 Default invocation is `/release-project-forge` with no version argument.
@@ -105,6 +107,8 @@ with only:
 }
 ```
 
+For a release that explicitly includes an already-qualified optional Kit, the release request may additionally supply its exact accepted main revision as `authenticationRevision`, `feedbackRevision`, and/or `releaseNotesRevision`; only include keys whose component source is actually selected. `releaseNotesRevision` requires successful live Kit `main` CI and completed FMP qualification evidence as described above. This evidence is verified by the GitHub-connected cloud agent **before** issuing the preparation request, not by giving private Actions API permissions to the checkout token.
+
 After the cloud workflow pushes the branch, create the normal PR and observe ordinary PR CI.
 
 ### Local preparation
@@ -113,7 +117,7 @@ When local preparation is selected:
 
 1. require clean Platform and component tracked state at exact accepted revisions;
 2. create/switch to `release/project-forge-<version>`;
-3. run `scripts/prepare-package-update.mjs --version <version> --core-root <core> --deployment-root <deployment>`;
+3. run `scripts/prepare-package-update.mjs --version <version> --core-root <core> --deployment-root <deployment>` plus the exact optional accepted source checkouts where already qualified (`--authentication-root`, `--feedback-root`, `--release-notes-root`);
 4. run package tests, asset verification, `git diff --check`, and meaningful diff review;
 5. commit/push, create the normal release PR, and observe PR CI.
 
@@ -135,6 +139,9 @@ Cloud preparation and publication resolve private source repositories only from 
 ```text
 CORE_SOURCE_REPOSITORY
 DEPLOYMENT_SOURCE_REPOSITORY
+AUTHENTICATION_SOURCE_REPOSITORY (when selected)
+FEEDBACK_SOURCE_REPOSITORY (when selected)
+RELEASE_NOTES_SOURCE_REPOSITORY (when selected)
 ```
 
 Normal publication uses `mriekki/project-forge-platform/.github/workflows/npm-publish.yml` with npm Trusted Publishing (OIDC) and direct `npm publish`; no long-lived npm publish token or duplicate GitHub Environment reviewer is required.
@@ -237,7 +244,7 @@ Do not use `npm stage publish`, `npm stage approve`, or a long-lived npm publish
 
 After successful publication, inspect live `chatgpt/current.json` and compare `generation.package` / `generation.packageVersion` plus the accepted Bootstrap revision/compatibility. Never point stable at an unpublished package.
 
-For every newly published package, require `release/receipts/<version>.json` and validate it with `node scripts/release-receipt.mjs --version <version> --json`. The receipt is privacy-safe historical evidence and must contain no private repository identities or credentials.
+For every newly published package, require `release/receipts/<version>.json` and validate it with `node scripts/release-receipt.mjs --version <version> --json`. The receipt is privacy-safe historical evidence and must contain no private repository identities or credentials. When a Release Notes Kit source is selected, the receipt must contain `components['release-notes'].revision` and `ci.releaseNotesMain` for the exact accepted Git `main` run; absent that source, neither field may be claimed.
 
 If the receipt is missing, create it in the smallest alignment PR that advances the stable package/revision pointers. If a receipt exists but conflicts with verified publication facts, stop and resolve the conflict explicitly.
 
