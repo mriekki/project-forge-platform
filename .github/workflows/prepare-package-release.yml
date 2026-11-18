@@ -27,6 +27,10 @@ on:
         description: Optional exact reviewed Feedback Kit main revision
         required: false
         type: string
+      release_notes_revision:
+        description: Optional accepted Release Notes Kit main revision (default-off)
+        required: false
+        type: string
   issues:
     types: [opened]
 
@@ -69,6 +73,7 @@ jobs:
           DISPATCH_DEPLOYMENT_REVISION: ${{ inputs.deployment_revision }}
           DISPATCH_AUTHENTICATION_REVISION: ${{ inputs.authentication_revision }}
           DISPATCH_FEEDBACK_REVISION: ${{ inputs.feedback_revision }}
+          DISPATCH_RELEASE_NOTES_REVISION: ${{ inputs.release_notes_revision }}
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
@@ -81,7 +86,8 @@ jobs:
                 coreRevision: process.env.DISPATCH_CORE_REVISION,
                 deploymentRevision: process.env.DISPATCH_DEPLOYMENT_REVISION,
                 authenticationRevision: process.env.DISPATCH_AUTHENTICATION_REVISION,
-                feedbackRevision: process.env.DISPATCH_FEEDBACK_REVISION
+                feedbackRevision: process.env.DISPATCH_FEEDBACK_REVISION,
+                releaseNotesRevision: process.env.DISPATCH_RELEASE_NOTES_REVISION
               }
             : JSON.parse(event.issue?.body ?? '');
 
@@ -101,10 +107,14 @@ jobs:
           if (request.feedbackRevision && !/^[0-9a-f]{40}$/.test(request.feedbackRevision)) {
             throw new Error('Feedback Kit revision must be an exact accepted lowercase commit SHA');
           }
+          if (request.releaseNotesRevision && !/^[0-9a-f]{40}$/.test(request.releaseNotesRevision)) {
+            throw new Error('Release Notes Kit revision must be an exact accepted lowercase commit SHA');
+          }
 
           for (const [key, value] of Object.entries({
             authentication_revision: request.authenticationRevision ?? '',
             feedback_revision: request.feedbackRevision ?? '',
+            release_notes_revision: request.releaseNotesRevision ?? '',
             version: request.version,
             source_commit: request.sourceCommit,
             core_revision: request.coreRevision,
@@ -161,8 +171,10 @@ jobs:
           DEPLOYMENT_SOURCE_REPOSITORY: ${{ secrets.DEPLOYMENT_SOURCE_REPOSITORY }}
           AUTHENTICATION_SOURCE_REPOSITORY: ${{ secrets.AUTHENTICATION_SOURCE_REPOSITORY }}
           FEEDBACK_SOURCE_REPOSITORY: ${{ secrets.FEEDBACK_SOURCE_REPOSITORY }}
+          RELEASE_NOTES_SOURCE_REPOSITORY: ${{ secrets.RELEASE_NOTES_SOURCE_REPOSITORY }}
           AUTH_REVISION: ${{ steps.request.outputs.authentication_revision }}
           FEEDBACK_REVISION: ${{ steps.request.outputs.feedback_revision }}
+          RELEASE_NOTES_REVISION: ${{ steps.request.outputs.release_notes_revision }}
         run: |
           set -euo pipefail
           check_mapping() {
@@ -184,6 +196,10 @@ jobs:
           if [[ -n "$FEEDBACK_REVISION" ]]; then
             check_mapping FEEDBACK_SOURCE_REPOSITORY "$FEEDBACK_SOURCE_REPOSITORY"
             echo "feedback=$FEEDBACK_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ -n "$RELEASE_NOTES_REVISION" ]]; then
+            check_mapping RELEASE_NOTES_SOURCE_REPOSITORY "$RELEASE_NOTES_SOURCE_REPOSITORY"
+            echo "release_notes=$RELEASE_NOTES_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout accepted Core main
@@ -228,6 +244,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Checkout accepted Release Notes Kit main
+        if: ${{ steps.request.outputs.release_notes_revision != '' }}
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.sources.outputs.release_notes }}
+          ref: main
+          path: .release-sources/release-notes
+          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
+
       - name: Verify exact component main revisions
         shell: bash
         env:
@@ -235,6 +262,7 @@ jobs:
           DEPLOYMENT_REVISION: ${{ steps.request.outputs.deployment_revision }}
           AUTHENTICATION_REVISION: ${{ steps.request.outputs.authentication_revision }}
           FEEDBACK_REVISION: ${{ steps.request.outputs.feedback_revision }}
+          RELEASE_NOTES_REVISION: ${{ steps.request.outputs.release_notes_revision }}
         run: |
           set -euo pipefail
 
@@ -258,6 +286,9 @@ jobs:
           fi
           if [[ -n "$FEEDBACK_REVISION" ]]; then
             verify_checkout .release-sources/feedback "$FEEDBACK_REVISION"
+          fi
+          if [[ -n "$RELEASE_NOTES_REVISION" ]]; then
+            verify_checkout .release-sources/release-notes "$RELEASE_NOTES_REVISION"
           fi
 
       - name: Setup Python for canonical and assembled recovery safety tests
@@ -297,6 +328,8 @@ jobs:
           PROJECT_FORGE_AUTH_SOURCE_REPOSITORY: ${{ steps.sources.outputs.authentication }}
           FEEDBACK_REVISION: ${{ steps.request.outputs.feedback_revision }}
           PROJECT_FORGE_FEEDBACK_SOURCE_REPOSITORY: ${{ steps.sources.outputs.feedback }}
+          RELEASE_NOTES_REVISION: ${{ steps.request.outputs.release_notes_revision }}
+          PROJECT_FORGE_RELEASE_NOTES_SOURCE_REPOSITORY: ${{ steps.sources.outputs.release_notes }}
         run: |
           set -euo pipefail
           args=(--version "$VERSION"
@@ -308,6 +341,9 @@ jobs:
           if [[ -n "$FEEDBACK_REVISION" ]]; then
             args+=(--feedback-root .release-sources/feedback)
           fi
+          if [[ -n "$RELEASE_NOTES_REVISION" ]]; then
+            args+=(--release-notes-root .release-sources/release-notes)
+          fi
           node scripts/prepare-package-update.mjs "${args[@]}"
 
       - name: Assemble and verify exact package assets
@@ -316,6 +352,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: '1'
           AUTHENTICATION_REVISION: ${{ steps.request.outputs.authentication_revision }}
           FEEDBACK_REVISION: ${{ steps.request.outputs.feedback_revision }}
+          RELEASE_NOTES_REVISION: ${{ steps.request.outputs.release_notes_revision }}
         run: |
           set -euo pipefail
           args=(--core-root .release-sources/core --deployment-root .release-sources/deployment)
@@ -324,6 +361,9 @@ jobs:
           fi
           if [[ -n "$FEEDBACK_REVISION" ]]; then
             args+=(--feedback-root .release-sources/feedback)
+          fi
+          if [[ -n "$RELEASE_NOTES_REVISION" ]]; then
+            args+=(--release-notes-root .release-sources/release-notes)
           fi
           node scripts/assemble-assets.mjs "${args[@]}"
           node scripts/verify-assets.mjs
@@ -356,6 +396,9 @@ jobs:
           if [ -f assets/feedback/distribution.json ]; then
             git add -N assets/feedback/distribution.json
           fi
+          if [ -f assets/release-notes/distribution.json ]; then
+            git add -N assets/release-notes/distribution.json
+          fi
           node --input-type=module <<'NODE'
           import { execFileSync } from 'node:child_process';
           import fs from 'node:fs';
@@ -368,7 +411,7 @@ jobs:
           const components = JSON.parse(fs.readFileSync('assets/components.json', 'utf8')).components;
           const assembly = JSON.parse(fs.readFileSync('assets/generated/ASSEMBLY.json', 'utf8'));
           const assemblyComponents = assembly.components;
-          const supportedComponents = new Set(['core', 'deployment', 'authentication', 'feedback']);
+          const supportedComponents = new Set(['core', 'deployment', 'authentication', 'feedback', 'release-notes']);
           const unsupported = Object.keys(components).filter((component) => !supportedComponents.has(component));
           if (unsupported.length) {
             throw new Error(`unexpected package components: ${unsupported.join(', ')}`);
@@ -408,7 +451,8 @@ jobs:
             'assets/core/distribution.json',
             'assets/deployment/distribution.json',
             'assets/authentication/distribution.json',
-            'assets/feedback/distribution.json'
+            'assets/feedback/distribution.json',
+            'assets/release-notes/distribution.json'
           ]);
           const unexpected = changed.filter((file) => !exact.has(file) && !generatedAssets.has(file));
           if (unexpected.length) {
@@ -431,6 +475,9 @@ jobs:
           fi
           if [ -f assets/feedback/distribution.json ]; then
             git add assets/feedback/distribution.json
+          fi
+          if [ -f assets/release-notes/distribution.json ]; then
+            git add assets/release-notes/distribution.json
           fi
           git add -f assets/generated/
           git commit -m "Prepare Project Forge ${VERSION}"
