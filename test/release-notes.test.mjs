@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { run } from '../src/cli.mjs';
 import { applyProfile, checkProfile, planProfile } from '../src/engine.mjs';
@@ -143,4 +144,37 @@ test('new Project default installation does not install optional Release Notes f
     const baseline = JSON.parse(fs.readFileSync(path.join(f.consumer, 'PROJECT_FORGE_BASELINE.json')));
     assert.deepEqual(Object.keys(baseline.components), ['core', 'deployment']);
   } finally { fs.rmSync(f.root, { recursive: true, force: true }); }
+});
+
+
+test('Release Notes preparation and publication verify accepted exact private source', () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const prepare = fs.readFileSync(path.join(root, '.github/workflows/prepare-package-release.yml'), 'utf8');
+  const publish = fs.readFileSync(path.join(root, '.github/workflows/npm-publish.yml'), 'utf8');
+  const tarball = fs.readFileSync(path.join(root, 'scripts/prepare-release.mjs'), 'utf8');
+  const assembly = fs.readFileSync(path.join(root, 'scripts/assemble-assets.mjs'), 'utf8');
+
+  assert.match(prepare, /release_notes_revision:/);
+  assert.match(prepare, /RELEASE_NOTES_SOURCE_REPOSITORY/);
+  assert.match(prepare, /PROJECT_FORGE_RELEASE_NOTES_SOURCE_REPOSITORY/);
+  assert.match(prepare, /verify_checkout \.release-sources\/release-notes "\$RELEASE_NOTES_REVISION"/);
+  assert.match(prepare, /--release-notes-root \.release-sources\/release-notes/);
+  assert.match(prepare, /'assets\/release-notes\/distribution.json'/);
+  assert.match(prepare, /git add assets\/release-notes\/distribution.json/);
+
+  assert.match(publish, /ids\.includes\('release-notes'\)/);
+  assert.match(publish, /RELEASE_NOTES_SOURCE_REPOSITORY/);
+  assert.match(publish, /steps\.pins\.outputs\.release_notes/);
+  assert.match(publish, /ref: \$\{\{ steps\.pins\.outputs\.release_notes \}\}/);
+  assert.match(publish, /verify_checkout \.release-sources\/release-notes "\$RELEASE_NOTES_REVISION"/);
+  assert.match(publish, /--release-notes-root \.release-sources\/release-notes/);
+  assert.match(publish, /'release-notes': \{ revision: components\.components\['release-notes'\]\.revision \}/);
+  assert.match(tarball, /--release-notes-root/);
+  assert.match(assembly, /--release-notes-root/);
+
+  // Source checkout and exact commit checks precede package preparation.
+  assert.ok(prepare.indexOf('Verify exact component main revisions') <
+    prepare.indexOf('Prepare deterministic package metadata and descriptors'));
+  assert.ok(publish.indexOf('Verify exact private source checkouts') <
+    publish.indexOf('Prepare reproducible release candidate'));
 });
