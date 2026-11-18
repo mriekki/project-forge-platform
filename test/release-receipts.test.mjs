@@ -94,3 +94,32 @@ test('Feedback release receipts require exact revision and successful component 
   delete receipt.ci.feedbackMain;
   assert.throws(() => validateReleaseReceipt(receipt), /ci.feedbackMain/);
 });
+
+
+test('Release Notes npm receipts require exact source revision and successful Kit main CI', () => {
+  const baseline = JSON.parse(fs.readFileSync(path.join(RECEIPTS, '4.26.1.json'), 'utf8'));
+  const notes = structuredClone(baseline);
+  notes.components['release-notes'] = { revision: 'd'.repeat(40) };
+  notes.ci.releaseNotesMain = { result: 'success', workflowRunId: 713131 };
+  assert.equal(validateReleaseReceipt(notes).components['release-notes'].revision, 'd'.repeat(40));
+
+  const missing = structuredClone(notes);
+  delete missing.ci.releaseNotesMain;
+  assert.throws(() => validateReleaseReceipt(missing), /ci.releaseNotesMain/);
+
+  const broken = structuredClone(notes);
+  broken.components['release-notes'].revision = 'main';
+  assert.throws(() => validateReleaseReceipt(broken), /components.release-notes.revision/);
+
+  const rejected = structuredClone(notes);
+  rejected.ci.releaseNotesMain.result = 'unknown';
+  assert.throws(() => validateReleaseReceipt(rejected), /ci.releaseNotesMain.result/);
+
+  const privateSource = structuredClone(notes);
+  privateSource.components['release-notes'].sourceRepository = 'private/release-notes-kit';
+  assert.throws(() => validateReleaseReceipt(privateSource), /forbidden component source field/);
+
+  const noKit = structuredClone(baseline);
+  noKit.ci.releaseNotesMain = { result: 'success', workflowRunId: 713131 };
+  assert.throws(() => validateReleaseReceipt(noKit), /Non-Release Notes receipt/);
+});

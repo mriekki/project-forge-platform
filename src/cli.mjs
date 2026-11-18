@@ -86,7 +86,7 @@ function usage(command) {
   const commandUsage = {
     install: 'project-forge install [--root PATH] [--profile NAME] [--apply|--yes] [--consumer NAME] [--consumer-baseline LABEL] [--accept-retired component:path]',
     update: 'project-forge update [--root PATH] [--profile NAME] [--apply|--yes] [--accept-retired component:path]',
-    enable: 'project-forge enable feedback [--root PATH] [--apply|--yes]\n  project-forge enable work-items github-issues [--root PATH] [--apply|--yes]',
+    enable: 'project-forge enable feedback [--root PATH] [--apply|--yes]\n  project-forge enable release-notes [--root PATH] [--apply|--yes]\n  project-forge enable work-items github-issues [--root PATH] [--apply|--yes]',
     repair: 'project-forge repair [--root PATH] [--profile NAME] [--apply|--yes]',
     status: 'project-forge status [--root PATH] [--profile NAME]',
     check: 'project-forge check [--root PATH] [--profile NAME]',
@@ -98,7 +98,7 @@ function usage(command) {
     return;
   }
 
-  console.log(`@mriekki/project-forge\n\nCommands:\n  install   Preview/install bundled Project Forge assets\n  update    Preview/update to this package's bundled Project Forge assets\n  enable    Explicitly opt an existing Project into an optional capability\n  repair    Restore missing managed files from exactly this installed package only\n  status    Show installed umbrella/component provenance\n  check     Verify managed files and baselines exactly match this package\n  version   Show package version\n\nEnable options:\n  feedback\n  work-items github-issues\n\nCommon options:\n  --root PATH\n  --profile greenfield-project\n  --apply | --yes\n  --consumer NAME\n  --consumer-baseline LABEL\n  --accept-retired core:path\n  -h, --help\n`);
+  console.log(`@mriekki/project-forge\n\nCommands:\n  install   Preview/install bundled Project Forge assets\n  update    Preview/update to this package's bundled Project Forge assets\n  enable    Explicitly opt an existing Project into an optional capability\n  repair    Restore missing managed files from exactly this installed package only\n  status    Show installed umbrella/component provenance\n  check     Verify managed files and baselines exactly match this package\n  version   Show package version\n\nEnable options:\n  feedback\n  release-notes\n  work-items github-issues\n\nCommon options:\n  --root PATH\n  --profile greenfield-project\n  --apply | --yes\n  --consumer NAME\n  --consumer-baseline LABEL\n  --accept-retired core:path\n  -h, --help\n`);
 }
 
 export async function run(argv = process.argv.slice(2), packageData = loadPackageData()) {
@@ -142,7 +142,8 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
         const baselinePath = componentId === 'core' ? 'CORE_BASELINE.json'
           : componentId === 'deployment' ? 'DEPLOYMENT_BASELINE.json'
             : componentId === 'authentication' ? 'AUTHENTICATION_BASELINE.json'
-              : componentId === 'feedback' ? 'FEEDBACK_BASELINE.json' : null;
+              : componentId === 'feedback' ? 'FEEDBACK_BASELINE.json'
+                : componentId === 'release-notes' ? 'RELEASE_NOTES_BASELINE.json' : null;
         if (!baselinePath) throw new Error(`Unsupported component for work-item opt-in: ${componentId}`);
         const componentBaseline = JSON.parse(fs.readFileSync(
           resolveUnder(root, baselinePath, 'component baseline'), 'utf8'
@@ -191,12 +192,98 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
       return 0;
     }
 
+    if (options.capability === 'release-notes') {
+      if (options.target) throw new Error('Usage: project-forge enable release-notes');
+      if (!Object.keys(installed).length) {
+        throw new Error('No Project Forge baseline; install the Project Forge profile first.');
+      }
+      if (installed.schemaVersion !== 2) {
+        throw new Error('Release Notes opt-in requires an intact schema-v2 Project Forge profile.');
+      }
+      const targetProfiles = {
+        'greenfield-project': 'greenfield-release-notes-project',
+        'greenfield-household-project': 'greenfield-household-release-notes-project',
+        'greenfield-feedback-project': 'greenfield-feedback-release-notes-project',
+        'greenfield-household-feedback-project': 'greenfield-household-feedback-release-notes-project'
+      };
+      const targetProfile = targetProfiles[installed.profile];
+      if (!targetProfile) {
+        throw new Error('Release Notes opt-in requires an intact standard, household Auth, Feedback or combined profile without Release Notes.');
+      }
+      if (!packageData.assets.components['release-notes'] ||
+          !packageData.assets.profiles[targetProfile]) {
+        throw new Error('This package does not provide qualified Release Notes opt-in assets.');
+      }
+      if (options.profile && options.profile !== targetProfile) {
+        throw new Error('Release Notes opt-in refuses a different requested profile.');
+      }
+      const base = packageData.assets.profiles[installed.profile];
+      const recorded = installed.components;
+      if (!base || !Array.isArray(base.components) || !recorded ||
+          typeof recorded !== 'object' || Array.isArray(recorded) ||
+          Object.keys(recorded).sort().join('\0') !== [...base.components].sort().join('\0')) {
+        throw new Error('Installed component set differs from the approved Release Notes base profile.');
+      }
+      for (const componentId of base.components) {
+        const baselinePath = {
+          core: 'CORE_BASELINE.json',
+          deployment: 'DEPLOYMENT_BASELINE.json',
+          authentication: 'AUTHENTICATION_BASELINE.json',
+          feedback: 'FEEDBACK_BASELINE.json'
+        }[componentId];
+        if (!baselinePath) throw new Error('Unknown Release Notes base component.');
+        const componentBaseline = JSON.parse(fs.readFileSync(
+          resolveUnder(root, baselinePath, 'component baseline'), 'utf8'
+        ));
+        const previous = recorded[componentId];
+        if (!previous || componentBaseline.schemaVersion !== 2 ||
+            componentBaseline.component !== componentId ||
+            componentBaseline.revision !== previous.revision ||
+            componentBaseline.distribution !== previous.distribution ||
+            (componentBaseline.version ?? null) !== (previous.version ?? null)) {
+          throw new Error('Installed Release Notes base component baseline is stale or mismatched.');
+        }
+      }
+      const target = packageData.assets.profiles[targetProfile];
+      if (JSON.stringify(target.components) !==
+          JSON.stringify([...base.components, 'release-notes'])) {
+        throw new Error('Release Notes target profile must add exactly the optional Kit.');
+      }
+      const bootstrapMigrations = planBootstrapMigrations(packageData, root);
+      const plan = planProfile(
+        packageData, targetProfile, root, options.acceptedRetired,
+        installed.componentVariants ?? {}
+      );
+      printPlan(plan, bootstrapMigrations);
+      if (plan.unsafe.length || bootstrapMigrations.unsafe.length) {
+        console.log('\nRefusing Release Notes opt-in: managed drift, conflicts or unsupported Bootstrap migration.');
+        return 2;
+      }
+      if (!await shouldApply(options)) {
+        console.log('\nPreview only. Use --apply after reviewing the managed file changes.');
+        return 0;
+      }
+      applyBootstrapMigrations(packageData, bootstrapMigrations, root);
+      applyProfile(
+        packageData, plan, root,
+        installed.consumer ?? inferConsumer(root),
+        installed.consumerBaseline ?? (packageData.pkg.name + '@' + packageData.pkg.version)
+      );
+      if (!checkProfile(packageData, targetProfile, root).clean) {
+        throw new Error('Release Notes opt-in did not pass exact managed-file verification.');
+      }
+      console.log('\nProject Forge Release Notes opt-in: PASS (' +
+        packageData.pkg.name + '@' + packageData.pkg.version + ')');
+      return 0;
+    }
+
     if (options.capability !== 'feedback' || options.target) {
       throw new Error('Usage: project-forge enable feedback');
     }
     if (!Object.keys(installed).length) throw new Error('No Project Forge baseline; install the Project Forge profile first.');
     if (installed.schemaVersion !== 2 ||
-        !['greenfield-project', 'greenfield-household-project'].includes(installed.profile)) {
+        !['greenfield-project', 'greenfield-household-project',
+          'greenfield-release-notes-project', 'greenfield-household-release-notes-project'].includes(installed.profile)) {
       throw new Error('Feedback opt-in requires an intact schema-v2 standard or household Auth profile; update or reconcile the Project first.');
     }
 
@@ -214,7 +301,8 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
       const recorded = recordedComponents[componentId];
       const baselinePath = componentId === 'core' ? 'CORE_BASELINE.json'
         : componentId === 'deployment' ? 'DEPLOYMENT_BASELINE.json'
-          : componentId === 'authentication' ? 'AUTHENTICATION_BASELINE.json' : null;
+          : componentId === 'authentication' ? 'AUTHENTICATION_BASELINE.json'
+            : componentId === 'release-notes' ? 'RELEASE_NOTES_BASELINE.json' : null;
       if (!baselinePath) throw new Error(`Unsupported base component for Feedback opt-in: ${componentId}`);
       const componentBaseline = JSON.parse(fs.readFileSync(resolveUnder(root, baselinePath, 'component baseline'), 'utf8'));
       if (!recorded || typeof recorded !== 'object' ||
@@ -227,9 +315,13 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
       }
     }
 
-    const targetProfile = installed.profile === 'greenfield-household-project'
-      ? 'greenfield-household-feedback-project'
-      : 'greenfield-feedback-project';
+    const feedbackTargets = {
+      'greenfield-project': 'greenfield-feedback-project',
+      'greenfield-household-project': 'greenfield-household-feedback-project',
+      'greenfield-release-notes-project': 'greenfield-feedback-release-notes-project',
+      'greenfield-household-release-notes-project': 'greenfield-household-feedback-release-notes-project'
+    };
+    const targetProfile = feedbackTargets[installed.profile];
     if (options.profile && options.profile !== targetProfile) {
       throw new Error(`Feedback opt-in selects ${targetProfile}; refusing a different requested profile.`);
     }

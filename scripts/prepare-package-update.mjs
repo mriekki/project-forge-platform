@@ -148,6 +148,38 @@ export function reconcileFeedbackProfiles(profiles) {
 
 }
 
+/** Reconcile only explicit opt-in profiles; keep every existing/default profile unchanged. */
+export function reconcileReleaseNotesProfiles(profiles) {
+  const variants = [
+    ['greenfield-project', 'greenfield-release-notes-project', ['core', 'deployment']],
+    ['greenfield-household-project', 'greenfield-household-release-notes-project', ['core', 'deployment', 'authentication']],
+    ['greenfield-feedback-project', 'greenfield-feedback-release-notes-project', ['core', 'deployment', 'feedback']],
+    ['greenfield-household-feedback-project', 'greenfield-household-feedback-release-notes-project',
+      ['core', 'deployment', 'authentication', 'feedback']]
+  ];
+  for (const [baseName, targetName, expectedComponents] of variants) {
+    const base = profiles[baseName];
+    if (!base) continue;
+    if (!Array.isArray(base.components) ||
+        JSON.stringify(base.components) !== JSON.stringify(expectedComponents) ||
+        new Set(base.components).size !== base.components.length) {
+      throw new Error(`Release Notes opt-in base profile ${baseName} has unexpected components`);
+    }
+    const expected = {
+      ...structuredClone(base),
+      components: [...base.components, 'release-notes']
+    };
+    if (profiles[targetName] &&
+        JSON.stringify(profiles[targetName]) !== JSON.stringify(expected)) {
+      throw new Error(`Existing ${targetName} profile differs from its approved base`);
+    }
+    profiles[targetName] = expected;
+  }
+  if (!profiles['greenfield-release-notes-project']) {
+    throw new Error('Release Notes opt-in requires an intact standard Project Forge profile');
+  }
+}
+
 const REQUIRED_AUTH_RECOVERY_SOURCES = new Map([
   ['tools/project_auth_recovery.py', 'tools/project-forge-auth-kit/project_auth_recovery.py'],
   ['docs/AUTH_RECOVERY_RETENTION.md', 'tools/project-forge-auth-kit/docs/AUTH_RECOVERY_RETENTION.md']
@@ -213,6 +245,7 @@ export function parseArgs(argv) {
     else if (arg === '--deployment-root') values.deploymentRoot = argv[++i];
     else if (arg === '--authentication-root') values.authenticationRoot = argv[++i];
     else if (arg === '--feedback-root') values.feedbackRoot = argv[++i];
+    else if (arg === '--release-notes-root') values.releaseNotesRoot = argv[++i];
     else throw new Error(`Unknown argument: ${arg}`);
   }
   if (!values.version || !values.coreRoot || !values.deploymentRoot) {
@@ -250,7 +283,7 @@ export function preparePackageUpdate(args, root = ROOT) {
   let authentication = null;
   if (args.authenticationRoot) {
     const approvedSource = process.env.PROJECT_FORGE_AUTH_SOURCE_REPOSITORY;
-    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(approvedSource ?? '')) {
+    if (!new RegExp('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$').test(approvedSource ?? '')) {
       throw new Error('Protected Authentication Kit source repository mapping is missing');
     }
     authentication = assertExactAcceptedMain(args.authenticationRoot, 'Project Forge Authentication source');
@@ -269,6 +302,18 @@ export function preparePackageUpdate(args, root = ROOT) {
     assertExpectedOrigin(feedback.root, [approvedSource], 'Project Forge Feedback source');
   } else if (components.components.feedback) {
     throw new Error('An existing Feedback Kit component cannot be released without its exact accepted source');
+  }
+
+  let releaseNotes = null;
+  if (args.releaseNotesRoot) {
+    const approvedSource = process.env.PROJECT_FORGE_RELEASE_NOTES_SOURCE_REPOSITORY;
+    if (!new RegExp('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$').test(approvedSource ?? '')) {
+      throw new Error('Protected Release Notes Kit source repository mapping is missing');
+    }
+    releaseNotes = assertExactAcceptedMain(args.releaseNotesRoot, 'Project Forge Release Notes source');
+    assertExpectedOrigin(releaseNotes.root, [approvedSource], 'Project Forge Release Notes source');
+  } else if (components.components['release-notes']) {
+    throw new Error('An existing Release Notes component cannot be released without its exact accepted source');
   }
 
   const coreCompatibility = readJson(path.join(core.root, 'COMPATIBILITY.json'));
@@ -311,6 +356,16 @@ export function preparePackageUpdate(args, root = ROOT) {
     };
     reconcileFeedbackProfiles(nextComponents.profiles);
   }
+  if (releaseNotes) {
+    nextComponents.components['release-notes'] = {
+      revision: releaseNotes.revision,
+      distribution: 'greenfield-project',
+      descriptor: 'assets/release-notes/distribution.json',
+      sourceRoot: 'assets/generated/release-notes',
+      canonicalDescriptor: 'distributions/greenfield-project.json'
+    };
+    reconcileReleaseNotesProfiles(nextComponents.profiles);
+  }
   for (const component of Object.values(nextComponents.components)) {
     delete component.repository;
     delete component.commit;
@@ -327,7 +382,8 @@ export function preparePackageUpdate(args, root = ROOT) {
   // a missing descriptor cannot leave a partially prepared release branch.
   const descriptorUpdates = [];
   for (const [componentId, checkout] of Object.entries({
-    core, deployment, ...(authentication ? { authentication } : {}), ...(feedback ? { feedback } : {})
+    core, deployment, ...(authentication ? { authentication } : {}), ...(feedback ? { feedback } : {}),
+    ...(releaseNotes ? { 'release-notes': releaseNotes } : {})
   })) {
     const component = nextComponents.components[componentId];
     const canonical = path.join(checkout.root, component.canonicalDescriptor);
@@ -355,7 +411,8 @@ export function preparePackageUpdate(args, root = ROOT) {
     core: { revision: core.revision, version: coreVersion },
     deployment: { revision: deployment.revision },
     ...(authentication ? { authentication: { revision: authentication.revision } } : {}),
-    ...(feedback ? { feedback: { revision: feedback.revision } } : {})
+    ...(feedback ? { feedback: { revision: feedback.revision } } : {}),
+    ...(releaseNotes ? { releaseNotes: { revision: releaseNotes.revision } } : {})
   };
 }
 
@@ -367,6 +424,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.log(`Deployment: ${result.deployment.revision}`);
     if (result.authentication) console.log(`Authentication: ${result.authentication.revision}`);
     if (result.feedback) console.log(`Feedback: ${result.feedback.revision}`);
+    if (result.releaseNotes) console.log(`Release Notes: ${result.releaseNotes.revision}`);
   } catch (error) {
     console.error(`Package update preparation failed: ${error.message}`);
     process.exitCode = 2;

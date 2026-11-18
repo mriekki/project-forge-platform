@@ -54,6 +54,7 @@ function baselineFile(componentId) {
   if (componentId === 'deployment') return 'DEPLOYMENT_BASELINE.json';
   if (componentId === 'authentication') return 'AUTHENTICATION_BASELINE.json';
   if (componentId === 'feedback') return 'FEEDBACK_BASELINE.json';
+  if (componentId === 'release-notes') return 'RELEASE_NOTES_BASELINE.json';
   throw new Error(`Unsupported component: ${componentId}`);
 }
 

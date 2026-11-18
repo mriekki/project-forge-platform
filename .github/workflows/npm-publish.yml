@@ -233,16 +233,18 @@ jobs:
           const supported = ['core', 'deployment'];
           if (ids.includes('authentication')) supported.push('authentication');
           if (ids.includes('feedback')) supported.push('feedback');
+          if (ids.includes('release-notes')) supported.push('release-notes');
           supported.sort();
           if (JSON.stringify(ids) !== JSON.stringify(supported)) {
-            throw new Error('Publication supports only complete Core + Deployment and optional Authentication and Feedback components.');
+            throw new Error('Publication supports only complete Core + Deployment and optional Authentication, Feedback and Release Notes components.');
           }
           for (const id of ids) {
             const revision = data.components?.[id]?.revision;
             if (typeof revision !== 'string' || !/^[0-9a-f]{40}$/.test(revision)) {
               throw new Error(`invalid ${id} revision`);
             }
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, `${id}=${revision}\n`);
+            const outputKey = id === 'release-notes' ? 'release_notes' : id;
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `${outputKey}=${revision}\n`);
           }
           NODE
 
@@ -254,8 +256,10 @@ jobs:
           DEPLOYMENT_SOURCE_REPOSITORY: ${{ secrets.DEPLOYMENT_SOURCE_REPOSITORY }}
           AUTHENTICATION_SOURCE_REPOSITORY: ${{ secrets.AUTHENTICATION_SOURCE_REPOSITORY }}
           FEEDBACK_SOURCE_REPOSITORY: ${{ secrets.FEEDBACK_SOURCE_REPOSITORY }}
+          RELEASE_NOTES_SOURCE_REPOSITORY: ${{ secrets.RELEASE_NOTES_SOURCE_REPOSITORY }}
           AUTHENTICATION_REVISION: ${{ steps.pins.outputs.authentication }}
           FEEDBACK_REVISION: ${{ steps.pins.outputs.feedback }}
+          RELEASE_NOTES_REVISION: ${{ steps.pins.outputs.release_notes }}
         run: |
           set -euo pipefail
           check_mapping() {
@@ -277,6 +281,10 @@ jobs:
           if [[ -n "$FEEDBACK_REVISION" ]]; then
             check_mapping FEEDBACK_SOURCE_REPOSITORY "$FEEDBACK_SOURCE_REPOSITORY"
             echo "feedback=$FEEDBACK_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ -n "$RELEASE_NOTES_REVISION" ]]; then
+            check_mapping RELEASE_NOTES_SOURCE_REPOSITORY "$RELEASE_NOTES_SOURCE_REPOSITORY"
+            echo "release_notes=$RELEASE_NOTES_SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout exact Core source
@@ -317,6 +325,16 @@ jobs:
           token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
           persist-credentials: false
 
+      - name: Checkout exact Release Notes Kit source only when advertised
+        if: steps.pins.outputs.release_notes != ''
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.sources.outputs.release_notes }}
+          ref: ${{ steps.pins.outputs.release_notes }}
+          path: .release-sources/release-notes
+          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          persist-credentials: false
+
       - name: Verify exact private source checkouts
         shell: bash
         env:
@@ -324,6 +342,7 @@ jobs:
           DEPLOYMENT_REVISION: ${{ steps.pins.outputs.deployment }}
           AUTHENTICATION_REVISION: ${{ steps.pins.outputs.authentication }}
           FEEDBACK_REVISION: ${{ steps.pins.outputs.feedback }}
+          RELEASE_NOTES_REVISION: ${{ steps.pins.outputs.release_notes }}
         run: |
           set -euo pipefail
           verify_checkout() {
@@ -340,12 +359,16 @@ jobs:
           if [[ -n "$FEEDBACK_REVISION" ]]; then
             verify_checkout .release-sources/feedback "$FEEDBACK_REVISION"
           fi
+          if [[ -n "$RELEASE_NOTES_REVISION" ]]; then
+            verify_checkout .release-sources/release-notes "$RELEASE_NOTES_REVISION"
+          fi
 
       - name: Prepare reproducible release candidate
         shell: bash
         env:
           AUTHENTICATION_REVISION: ${{ steps.pins.outputs.authentication }}
           FEEDBACK_REVISION: ${{ steps.pins.outputs.feedback }}
+          RELEASE_NOTES_REVISION: ${{ steps.pins.outputs.release_notes }}
         run: |
           set -euo pipefail
           args=(--core-root .release-sources/core --deployment-root .release-sources/deployment)
@@ -354,6 +377,9 @@ jobs:
           fi
           if [[ -n "$FEEDBACK_REVISION" ]]; then
             args+=(--feedback-root .release-sources/feedback)
+          fi
+          if [[ -n "$RELEASE_NOTES_REVISION" ]]; then
+            args+=(--release-notes-root .release-sources/release-notes)
           fi
           node scripts/prepare-release.mjs "${args[@]}"
 
@@ -585,6 +611,9 @@ jobs:
                 : {}),
               ...(components.components.feedback
                 ? { feedback: { revision: components.components.feedback.revision } }
+                : {}),
+              ...(components.components['release-notes']
+                ? { 'release-notes': { revision: components.components['release-notes'].revision } }
                 : {}),
             },
             artifact: {

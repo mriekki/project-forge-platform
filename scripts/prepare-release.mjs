@@ -103,6 +103,7 @@ export function parseArgs(argv) {
     else if (arg === '--deployment-root') values.deployment = argv[++i];
     else if (arg === '--authentication-root') values.authentication = argv[++i];
     else if (arg === '--feedback-root') values.feedback = argv[++i];
+    else if (arg === '--release-notes-root') values['release-notes'] = argv[++i];
     else if (arg === '--output') values.output = argv[++i];
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -117,7 +118,8 @@ export function prepareRelease(args, packageData = loadPackageData()) {
     core: args.core,
     deployment: args.deployment,
     authentication: args.authentication,
-    feedback: args.feedback
+    feedback: args.feedback,
+    'release-notes': args['release-notes']
   });
   const assetCount = verifyAssets(packageData);
 
