@@ -20,6 +20,10 @@ small{color:#667d8c}
 <h1>Project authentication</h1>
 <p>Sign in using this Project's own Google identity and invitation approval. Household Registry membership does not automatically grant access.</p>
 <p id="status" role="status" aria-live="polite">Checking account status…</p>
+<div id="passkey-login" hidden>
+<button id="signin-passkey" type="button">Sign in with a passkey</button>
+<p><small>Face ID, Touch ID, Windows Hello, or another supported device verification method.</small></p>
+</div>
 <div id="login" hidden><a class="action" href="/api/auth/google">Sign in with Google</a></div>
 <section id="join" hidden>
 <h2>Accept your Project invitation</h2>
@@ -33,6 +37,15 @@ small{color:#667d8c}
 <p>You're approved for this Project. Your account identity belongs to this Project, not the Household Registry.</p>
 <button id="logout" type="button">Sign out</button>
 </section>
+<section id="passkey-management" hidden>
+<h2>Passkey security</h2>
+<p>Sign in without a Google redirect on supported devices. Google remains your recovery option.</p>
+<button id="add-passkey" type="button">Add a passkey</button>
+<p><small>To add or remove a passkey, you must have signed in with Google recently.</small></p>
+<ul id="passkey-list" aria-label="Registered passkeys"></ul>
+<p id="passkey-result" aria-live="polite"></p>
+<a href="/api/auth/google">Sign in with Google again to manage passkeys</a>
+</section>
 <section id="admin" hidden>
 <h2>Invite another Project user</h2>
 <form id="create-invite">
@@ -41,4 +54,4 @@ small{color:#667d8c}
 <button>Create invitation</button></form>
 <p id="invite-result" aria-live="polite"></p>
 </section>
-</main><script src="/auth.js" defer></script></body></html>
+</main><script src="/auth.js" defer></script><script src="/passkeys.js" defer></script></body></html>

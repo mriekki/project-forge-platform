@@ -234,6 +234,42 @@ Mount only project-owned local persistence as required. Verify the declared heal
 
 Only after applicable prerequisites, persistence, build/tests, runtime, and health checks pass should local readiness be recorded as ready.
 
+### Optional passkey-ready Project setup (only when repository-selected and package-qualified)
+
+For an Auth Kit Project with `generation.householdAuth.passkeys.signIn=passkey-first`
+or a matching approved `HOUSEHOLD_AUTH_SETUP.json`, add an **independent**
+readiness dimension, not an automatic authentication migration:
+
+- Inspect the Project-owned configuration and the **exact pinned** managed
+  Authentication Kit component, its `docs/PASSKEY_SUPPORT.json`, package
+  verification and `AUTHENTICATION_BASELINE.json`. Only
+  `supportState=qualified` in a provenance-verified published package is a
+  selectable capability; a `candidate` marker or copied JS file is **not**
+  support. A Google-only or non-Auth Project is `NOT APPLICABLE`.
+- Check the declared HTTPS `applicationOrigin`, derive the RP ID from its
+  **exact hostname**, and compare against the reviewed, Project-owned
+  `ProjectForge:Authentication:Passkeys:RelyingPartyId`. Never use the
+  Household Registry hostname or widen RP ID to a shared parent domain.
+- Check that the existing approved Google OIDC enrollment/recovery remains
+  functional, Auth Kit persistent SQLite and Data Protection keys have
+  application-owned backup/restore coverage, and the strict Caddy/Cloudflare
+  origin/physical-peer requirements remain in effect.
+- Keep `ProjectForge:Authentication:Passkeys:Enabled` **false** by default.
+  Neither `/setup` nor a managed-file update activates passkeys, creates a
+  credential, resets accounts, changes providers or deploys Production.
+- Local compile/unit/HTTP or a software-authenticator signature test may
+  establish `BACKEND VERIFIED`; it does **not** establish Apple Face ID,
+  iPhone Safari, installed-PWA, device recovery or Production readiness.
+  Mark each untested dimension `NOT VERIFIED`, not `READY`.
+- An actual live sign-in/recovery, security-policy, schema-compatible restore
+  and named-environment activation require the normal reviewed deployment
+  gates and appropriate operator/device participation. Failure of this
+  optional dimension does not erase unrelated local runtime readiness.
+
+This is part of the existing `/setup` flow, not a new command or a hidden
+platform feature toggle. Use the canonical [passkey initiative](https://github.com/mriekki/project-forge-auth-kit/issues/26)
+only when the repository actually selects or tests passkeys.
+
 ## 5. Establish/sync the personal Project Forge profile
 
 When installed Deployment Kit exposes personal-profile operations, `/setup` should establish the authenticated developer's portable non-secret profile as routine setup state. This repo is per developer, not per Project or workstation.

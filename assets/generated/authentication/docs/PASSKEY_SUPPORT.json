@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "supportState": "candidate",
+  "mode": "passkey-first",
+  "relyingPartyId": "exact-application-origin-host",
+  "userVerification": "required",
+  "googleRecovery": true,
+  "enabledByDefault": false
+}

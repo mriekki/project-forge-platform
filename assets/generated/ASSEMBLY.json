@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.31.0",
+  "version": "4.32.0",
   "components": {
     "core": {
-      "revision": "7e0090e5d163c90c6aae60969a20b522e4981f21",
+      "revision": "2a35476ff743c5c49be7725864f87a021714ff20",
       "version": "4.5.1",
       "distribution": "greenfield-workspace",
       "files": [
@@ -56,7 +56,7 @@
         {
           "source": "core/skills/setup/SKILL.md",
           "destination": ".github/skills/setup/SKILL.md",
-          "sha256": "30a9dbfbd132f7c333ca515736a7957494bbe2fd4b5860dfff90ba3437bc135d"
+          "sha256": "13c78aa8f83b841ca11c438c528eab7666560e9b218633c2166a5745b61f84dd"
         },
         {
           "source": "core/skills/build/SKILL.md",
@@ -111,7 +111,7 @@
         {
           "source": "core/skills/project-forge-update/SKILL.md",
           "destination": ".github/skills/project-forge-update/SKILL.md",
-          "sha256": "510d60fab8d91e54abbc49dbc963a93b132ac5cdfd97ec87f64128ca138d2b1a"
+          "sha256": "ff7fb94ea2308dee51e6b46799bf8fb1e846774d3398d26a4fa0f465dc0fe859"
         },
         {
           "source": "core/skills/upstream-fix/SKILL.md",
@@ -366,7 +366,7 @@
         {
           "source": "core/skills/ux-review/SKILL.md",
           "destination": ".github/skills/ux-review/SKILL.md",
-          "sha256": "2d0031a7041b8174ef056cf35015d5a9faadbc960313b3d1117bf55b8cb44486"
+          "sha256": "6d836a584d7fd72bd1d48f2f477f7eb773814af8506e086fb69bfeebd77dfceb"
         },
         {
           "source": "core/skills/review-user-feedback/SKILL.md",
@@ -446,7 +446,7 @@
         {
           "source": "core/skills/setup/SKILL.md",
           "destination": ".agents/skills/setup/SKILL.md",
-          "sha256": "30a9dbfbd132f7c333ca515736a7957494bbe2fd4b5860dfff90ba3437bc135d"
+          "sha256": "13c78aa8f83b841ca11c438c528eab7666560e9b218633c2166a5745b61f84dd"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -556,7 +556,7 @@
         {
           "source": "core/skills/project-forge-update/SKILL.md",
           "destination": ".agents/skills/project-forge-update/SKILL.md",
-          "sha256": "510d60fab8d91e54abbc49dbc963a93b132ac5cdfd97ec87f64128ca138d2b1a"
+          "sha256": "ff7fb94ea2308dee51e6b46799bf8fb1e846774d3398d26a4fa0f465dc0fe859"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -681,7 +681,7 @@
         {
           "source": "core/skills/ux-review/SKILL.md",
           "destination": ".agents/skills/ux-review/SKILL.md",
-          "sha256": "2d0031a7041b8174ef056cf35015d5a9faadbc960313b3d1117bf55b8cb44486"
+          "sha256": "6d836a584d7fd72bd1d48f2f477f7eb773814af8506e086fb69bfeebd77dfceb"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -1124,7 +1124,7 @@
       ]
     },
     "authentication": {
-      "revision": "99808353289cffabd591d47a71684b45b0b5c0a8",
+      "revision": "ed3db4fa0144c22800bb53e186109503cfeda661",
       "distribution": "greenfield-project",
       "files": [
         {
@@ -1150,17 +1150,42 @@
         {
           "source": "src/ProjectForge.Auth.Runtime/ProjectAuthStore.cs",
           "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthStore.cs",
-          "sha256": "e8255f660c6834803effc5659ca8c7d8517f34c195d371c811b77dee3ecd9c23"
+          "sha256": "2615e8a2335b98ecf1ffe0f42308a1315f55e469a036b6f52c1616858f7bc1a8"
+        },
+        {
+          "source": "src/ProjectForge.Auth.Runtime/PasskeyVisibility.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/PasskeyVisibility.cs",
+          "sha256": "fb150d3030433454ab08e371fb8a545bd6e473b4b44de609c40d99fc42d1d62b"
+        },
+        {
+          "source": "src/ProjectForge.Auth.Runtime/ProjectForgePasskeyEndpoints.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForgePasskeyEndpoints.cs",
+          "sha256": "6bd20f3e755b7891ec3dbf4745609daf30d37c3525efd15115f99c524b483458"
+        },
+        {
+          "source": "src/ProjectForge.Auth.Runtime/ProjectPasskeyWebAuthn.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectPasskeyWebAuthn.cs",
+          "sha256": "b769f9d43e301b4b207f8ae9f84faa8712e5ef369ddf7ebaa696a77244323534"
+        },
+        {
+          "source": "src/ProjectForge.Auth.Runtime/ProjectAuthStore.PasskeyPolicy.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthStore.PasskeyPolicy.cs",
+          "sha256": "b5381748e2d18a2ab95ad15f78ca66e3d55de61236a10f71372ae84935dc931c"
+        },
+        {
+          "source": "src/ProjectForge.Auth.Runtime/ProjectAuthStore.Passkeys.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthStore.Passkeys.cs",
+          "sha256": "9bb1dfeeb9320dd113011e0cd4c40aa96bbd26e6ffe18489e3604b766da7da83"
         },
         {
           "source": "src/ProjectForge.Auth.Runtime/ProjectForge.Auth.Runtime.csproj",
           "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForge.Auth.Runtime.csproj",
-          "sha256": "ae704a37487250b5198cc5c61bfcb600fe03b877d6b818c9700b8768d14365bc"
+          "sha256": "04d236895682427c2ebae1f5832f167989bdf6732b635b42c5e153f3d57a55ec"
         },
         {
           "source": "src/ProjectForge.Auth.Runtime/ProjectForgeAuthRuntimeExtensions.cs",
           "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForgeAuthRuntimeExtensions.cs",
-          "sha256": "73a73a3aca995030c3e2db90b8670e2998df348266bff196b3686751ce0325f9"
+          "sha256": "79a5e20e26fc3d47e086c124332cb75167a0eb76b7a22946379463f41e0bb383"
         },
         {
           "source": "tools/household_connect.py",
@@ -1200,12 +1225,17 @@
         {
           "source": "samples/ProjectForgeAuth.Api/wwwroot/index.html",
           "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/wwwroot/index.html",
-          "sha256": "97f28fd0a4269ecbff7cc2ac94d12fdcad236b0f5bd07c538e7d241f4796dfb0"
+          "sha256": "310567eb200b9d2142f4b8a8050700a6c5d7c757b2cf34446111573c48d59ead"
         },
         {
           "source": "samples/ProjectForgeAuth.Api/wwwroot/auth.js",
           "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/wwwroot/auth.js",
           "sha256": "cfb0d94c2c4b9bb2093dc9e322c226a8e4eead0a8cef31f194ddbac5d3420823"
+        },
+        {
+          "source": "samples/ProjectForgeAuth.Api/wwwroot/passkeys.js",
+          "destination": "tools/project-forge-auth-kit/samples/ProjectForgeAuth.Api/wwwroot/passkeys.js",
+          "sha256": "0960cea9587ce773cbf591e8a07631effba38178b94c382e947329ba51f5843c"
         },
         {
           "source": "src/ProjectForge.Auth.Runtime/ResendProjectInvitationDelivery.cs",
@@ -1226,6 +1256,11 @@
           "source": "docs/AUTH_RECOVERY_RETENTION.md",
           "destination": "tools/project-forge-auth-kit/docs/AUTH_RECOVERY_RETENTION.md",
           "sha256": "bc75171c05fdc3f454c67dcc3e2b7e226946ac32b5d02de62c9fc3b0b3bef0cf"
+        },
+        {
+          "source": "docs/PASSKEY_SUPPORT.json",
+          "destination": "tools/project-forge-auth-kit/docs/PASSKEY_SUPPORT.json",
+          "sha256": "1c47dd85978b2a4df2bda98ca3496414a0481548b72861ababe2b7d41f80f457"
         }
       ]
     },

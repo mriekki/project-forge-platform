@@ -24,7 +24,7 @@ public sealed record ProjectAuthResult(
 /// Does not read Household Registry during login or copy application users.
 /// No email-only account linking, no implicit admin bootstrap, no tokens in DB.
 /// </summary>
-public sealed class ProjectAuthStore
+public sealed partial class ProjectAuthStore
 {
     private readonly string _connString;
     private const string GoogleIssuer = "https://accounts.google.com";

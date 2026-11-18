@@ -122,6 +122,39 @@ For a Bootstrap-generated consumer, also preview the companion generated-consume
 - a recognized older Bootstrap-generated verification block may be migrated only when its embedded old package/version/integrity exactly match the currently approved manifest metadata;
 - an unrecognized or locally modified generated verification surface is a stop condition, not permission to reconstruct Bootstrap output by hand.
 
+### Optional Auth Kit passkey capability and upgrade checks
+
+For an Auth-enabled consumer, compare both installed and target **exact**
+package authentication profiles before applying changes:
+
+- A packaged `docs/PASSKEY_SUPPORT.json` marker in `candidate` state, or
+  source files without that marker, does **not** mean passkeys can be enabled.
+  Qualified support additionally requires the verified exact managed-source
+  set, original per-Project Google recovery, RP ID/UV policy and approved
+  release receipt. A normal Google-only Project remains Google-only.
+- Preserve any existing `generation.householdAuth.passkeys` intent and
+  consumer-owned Auth configuration **without changing the account authority,
+  `applicationOrigin`, RP ID, Google issuer/subject links or credentials**.
+  The update changes the pinned package and managed baselines only; it is not
+  a passkey enrollment, Provider setup, auth DB migration, feature enablement,
+  or Production deployment.
+- Compare `AUTHENTICATION_BASELINE.json` and the umbrella baseline as
+  applicable. All additional/retired managed WebAuthn files must follow the
+  same exact-managed-set/drift and retirement rules as the other components;
+  never silently replace Project-owned React UI or persistence.
+- Where a new package introduces a versioned Auth DB schema, plan an
+  **independently approved** backup, disposable restore, old Google login and
+  rollback compatibility test before changing runtime config. Do not
+  downgrade the database or delete credential material to simplify an update.
+- After applying, verify `project-forge check`, profile/manifest integrity,
+  Google recovery, and that `Passkeys:Enabled` is still off unless a
+  separately approved Project deployment intentionally selected activation.
+  An iPhone Safari/installed-PWA run is separate from CI and must be marked
+  `NOT VERIFIED` until actually observed.
+
+This is a conditional part of `/project-forge-update`, not a separate
+passkey update command or authorization to publish a Kit/package.
+
 ## 5. Present one bounded update choice
 
 When the exact target package plan and any generated-consumer companion plan are safe, show the reviewed evidence:

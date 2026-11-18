@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -140,6 +141,16 @@ public static class ProjectForgeAuthRuntimeExtensions
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy("project-passkey-ceremonies", http =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 12,
+                        Window = TimeSpan.FromMinutes(5),
+                        AutoReplenishment = true,
+                        QueueLimit = 0
+                    }));
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
                 http => RateLimitPartition.GetFixedWindowLimiter(
                     http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -253,6 +264,12 @@ public static class ProjectForgeAuthRuntimeExtensions
                             context.Response.Redirect("/?auth=unavailable");
                             return Task.CompletedTask;
                         }
+                        // Only the verified Google OIDC callback can create
+                        // recent-Google evidence for passkey enrollment/revocation.
+                        // Passkey sign-in never creates this step-up authorization.
+                        if (context.HttpContext.RequestServices
+                            .GetService<ProjectPasskeyWebAuthn>() is not null)
+                            store.RecordRecentGoogleSignIn(result.Session.Token, time);
                         context.Response.Cookies.Append(
                             CookieName, result.Session.Token,
                             new CookieOptions
@@ -283,6 +300,21 @@ public static class ProjectForgeAuthRuntimeExtensions
                 };
             });
 
+        // Passkeys are a separate, explicit capability. Neither Google-only
+        // Projects nor existing Production deployments auto-enable this path.
+        if (configuration.GetValue<bool>("ProjectForge:Authentication:Passkeys:Enabled"))
+        {
+            var configuredRpId = configuration["ProjectForge:Authentication:Passkeys:RelyingPartyId"];
+            if (!string.Equals(configuredRpId, origin.IdnHost, StringComparison.Ordinal))
+                throw new InvalidOperationException("Passkeys require the exact Project HTTPS host as RP ID.");
+            var name = configuration["ProjectForge:Authentication:Passkeys:DisplayName"];
+            var verifier = new ProjectPasskeyWebAuthn(
+                origin.GetLeftPart(UriPartial.Authority),
+                string.IsNullOrWhiteSpace(name) ? "Project Forge application" : name);
+            store.InitializePasskeySchema();
+            store.InitializePasskeyStepUpSchema();
+            services.AddSingleton(verifier);
+        }
         services.AddAuthorization();
         return services;
     }
@@ -307,6 +339,25 @@ public static class ProjectForgeAuthRuntimeExtensions
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return;
+            }
+            // WebAuthn JSON envelopes contain bounded keys and authenticator
+            // data, never file uploads. Kestrel's general 30 MiB body limit
+            // would allow expensive malformed credential payloads to reach
+            // model binding. Restrict *only* passkey POSTs, before reading
+            // request bodies; keep other Project API limits unchanged.
+            const long passkeyMaxRequestBody = 64 * 1024;
+            if (HttpMethods.IsPost(context.Request.Method) &&
+                context.Request.Path.StartsWithSegments("/api/auth/passkeys",
+                    StringComparison.Ordinal))
+            {
+                if (context.Request.ContentLength > passkeyMaxRequestBody)
+                {
+                    context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                    return;
+                }
+                var sizeFeature = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+                if (sizeFeature is { IsReadOnly: false })
+                    sizeFeature.MaxRequestBodySize = passkeyMaxRequestBody;
             }
             context.Response.Headers.CacheControl = "no-store";
             context.Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -438,6 +489,8 @@ public static class ProjectForgeAuthRuntimeExtensions
                     return Results.StatusCode(StatusCodes.Status403Forbidden);
                 }
             });
+        if (endpoints.ServiceProvider.GetService<ProjectPasskeyWebAuthn>() is not null)
+            endpoints.MapProjectForgePasskeys();
         return endpoints;
     }
 
@@ -454,12 +507,12 @@ public static class ProjectForgeAuthRuntimeExtensions
         string.Equals(http.Request.Host.Host, origin.Host, StringComparison.OrdinalIgnoreCase) &&
         http.Request.Host.Port == (origin.IsDefaultPort ? null : origin.Port);
 
-    private static ProjectAccount? AuthenticatedAccount(HttpContext http, ProjectAuthStore db)
+    internal static ProjectAccount? AuthenticatedAccount(HttpContext http, ProjectAuthStore db)
     {
         var token = http.Request.Cookies[CookieName];
         return token is null ? null : db.GetSession(token, DateTimeOffset.UtcNow);
     }
-    private static async Task<bool> CsrfOk(HttpContext http, IAntiforgery antiforgery)
+    internal static async Task<bool> CsrfOk(HttpContext http, IAntiforgery antiforgery)
     {
         try
         {
