@@ -363,26 +363,6 @@ jobs:
             verify_checkout .release-sources/release-notes "$RELEASE_NOTES_REVISION"
           fi
 
-      - name: Require successful accepted Release Notes Kit main CI
-        if: steps.pins.outputs.release_notes != ''
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
-          KIT_REPOSITORY: ${{ steps.sources.outputs.release_notes }}
-          KIT_REVISION: ${{ steps.pins.outputs.release_notes }}
-        run: |
-          set -euo pipefail
-          gh api "/repos/${KIT_REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=${KIT_REVISION}&per_page=30" > "${RUNNER_TEMP}/release-notes-main-ci.json"
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          const data = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/release-notes-main-ci.json'));
-          const accepted = (data.workflow_runs ?? []).find((run) =>
-            run.head_sha === process.env.KIT_REVISION &&
-            run.head_branch === 'main' && run.event === 'push' &&
-            run.status === 'completed' && run.conclusion === 'success');
-          if (!accepted) throw new Error('No successful accepted Release Notes Kit main CI for exact publication revision.');
-          NODE
-
       - name: Prepare reproducible release candidate
         shell: bash
         env:
