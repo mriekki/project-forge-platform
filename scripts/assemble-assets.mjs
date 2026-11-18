@@ -142,6 +142,7 @@ function parse(argv) {
     else if (arg === '--deployment-root') values.deployment = argv[++i];
     else if (arg === '--authentication-root') values.authentication = argv[++i];
     else if (arg === '--feedback-root') values.feedback = argv[++i];
+    else if (arg === '--release-notes-root') values['release-notes'] = argv[++i];
     else if (arg === '--output') values.output = argv[++i];
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -152,7 +153,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     const args = parse(process.argv.slice(2));
     const packageData = loadPackageData();
-    const result = assembleAssets(packageData, { core: args.core, deployment: args.deployment, authentication: args.authentication, feedback: args.feedback }, args.output ? path.resolve(args.output) : undefined);
+    const result = assembleAssets(packageData, { core: args.core, deployment: args.deployment, authentication: args.authentication, feedback: args.feedback, 'release-notes': args['release-notes'] }, args.output ? path.resolve(args.output) : undefined);
     console.log(`Assembled ${Object.values(result.components).reduce((sum, component) => sum + component.files.length, 0)} Project Forge asset files.`);
   } catch (error) {
     console.error(`Asset assembly failed: ${error.message}`);
