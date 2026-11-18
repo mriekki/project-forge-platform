@@ -236,7 +236,7 @@ jobs:
           if (ids.includes('release-notes')) supported.push('release-notes');
           supported.sort();
           if (JSON.stringify(ids) !== JSON.stringify(supported)) {
-            throw new Error('Publication supports only complete Core + Deployment and approved optional Authentication, Feedback and Release Notes components.');
+            throw new Error('Publication supports only complete Core + Deployment and optional Authentication, Feedback and Release Notes components.');
           }
           for (const id of ids) {
             const revision = data.components?.[id]?.revision;
