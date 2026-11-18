@@ -158,9 +158,9 @@ test('Release Notes preparation and publication verify accepted exact private so
   assert.match(prepare, /RELEASE_NOTES_SOURCE_REPOSITORY/);
   assert.match(prepare, /PROJECT_FORGE_RELEASE_NOTES_SOURCE_REPOSITORY/);
   assert.match(prepare, /verify_checkout \.release-sources\/release-notes "\$RELEASE_NOTES_REVISION"/);
+  assert.doesNotMatch(prepare, /GH_TOKEN:\s*\$\{\{ secrets\.PROJECT_FORGE_SOURCE_TOKEN \}\}/);
+  assert.doesNotMatch(prepare, /actions\/runs\?head_sha=/);
   assert.match(prepare, /--release-notes-root \.release-sources\/release-notes/);
-  assert.match(prepare, /No successful accepted Release Notes Kit main CI for exact revision/);
-  assert.match(prepare, /run\.status === 'completed' && run\.conclusion === 'success'/);
   assert.match(prepare, /'assets\/release-notes\/distribution.json'/);
   assert.match(prepare, /git add assets\/release-notes\/distribution.json/);
 
@@ -170,7 +170,6 @@ test('Release Notes preparation and publication verify accepted exact private so
   assert.match(publish, /ref: \$\{\{ steps\.pins\.outputs\.release_notes \}\}/);
   assert.match(publish, /verify_checkout \.release-sources\/release-notes "\$RELEASE_NOTES_REVISION"/);
   assert.match(publish, /--release-notes-root \.release-sources\/release-notes/);
-  assert.match(publish, /No successful accepted Release Notes Kit main CI for exact publication revision/);
   assert.match(publish, /steps\.pins\.outputs\.release_notes/);
   assert.match(publish, /'release-notes': \{ revision: components\.components\['release-notes'\]\.revision \}/);
   assert.match(tarball, /--release-notes-root/);
