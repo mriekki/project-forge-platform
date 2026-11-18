@@ -142,7 +142,8 @@ export async function run(argv = process.argv.slice(2), packageData = loadPackag
         const baselinePath = componentId === 'core' ? 'CORE_BASELINE.json'
           : componentId === 'deployment' ? 'DEPLOYMENT_BASELINE.json'
             : componentId === 'authentication' ? 'AUTHENTICATION_BASELINE.json'
-              : componentId === 'feedback' ? 'FEEDBACK_BASELINE.json' : null;
+              : componentId === 'feedback' ? 'FEEDBACK_BASELINE.json'
+                : componentId === 'release-notes' ? 'RELEASE_NOTES_BASELINE.json' : null;
         if (!baselinePath) throw new Error(`Unsupported component for work-item opt-in: ${componentId}`);
         const componentBaseline = JSON.parse(fs.readFileSync(
           resolveUnder(root, baselinePath, 'component baseline'), 'utf8'
