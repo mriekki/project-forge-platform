@@ -63,11 +63,13 @@ export function validateReleaseReceipt(receipt, expectedVersion = null) {
   const acceptedIds = ['core', 'deployment'];
   const hasAuthentication = Object.hasOwn(components, 'authentication');
   const hasFeedback = Object.hasOwn(components, 'feedback');
+  const hasReleaseNotes = Object.hasOwn(components, 'release-notes');
   if (hasAuthentication) acceptedIds.push('authentication');
   if (hasFeedback) acceptedIds.push('feedback');
+  if (hasReleaseNotes) acceptedIds.push('release-notes');
   acceptedIds.sort();
   if (JSON.stringify(componentIds) !== JSON.stringify(acceptedIds)) {
-    throw new Error('Release receipt must contain exactly Core, Deployment and optional Authentication and Feedback.');
+    throw new Error('Release receipt must contain exactly Core, Deployment and optional Authentication, Feedback and Release Notes.');
   }
   const authentication = hasAuthentication
     ? requireObject(components.authentication, 'components.authentication')
@@ -80,7 +82,16 @@ export function validateReleaseReceipt(receipt, expectedVersion = null) {
     requireMatch(feedback.revision, SHA40, 'components.feedback.revision');
   }
 
-  for (const component of [core, deployment, ...(authentication ? [authentication] : []), ...(feedback ? [feedback] : [])]) {
+  const releaseNotes = hasReleaseNotes
+    ? requireObject(components['release-notes'], 'components.release-notes')
+    : null;
+  if (releaseNotes) {
+    requireMatch(releaseNotes.revision, SHA40, 'components.release-notes.revision');
+  }
+  for (const component of [core, deployment,
+    ...(authentication ? [authentication] : []),
+    ...(feedback ? [feedback] : []),
+    ...(releaseNotes ? [releaseNotes] : [])]) {
     for (const forbidden of ['repository', 'sourceRepository', 'sourceRepositoryUrl', 'privateRepository']) {
       if (Object.hasOwn(component, forbidden)) {
         throw new Error(`release receipt exposes forbidden component source field ${forbidden}`);
@@ -118,6 +129,11 @@ export function validateReleaseReceipt(receipt, expectedVersion = null) {
     requireCiEvidence(ci.feedbackMain, 'ci.feedbackMain');
   } else if (Object.hasOwn(ci, 'feedbackMain')) {
     throw new Error('Non-Feedback release receipt cannot claim Feedback CI.');
+  }
+  if (releaseNotes) {
+    requireCiEvidence(ci.releaseNotesMain, 'ci.releaseNotesMain');
+  } else if (Object.hasOwn(ci, 'releaseNotesMain')) {
+    throw new Error('Non-Release Notes receipt cannot claim Release Notes CI.');
   }
 
   return value;
