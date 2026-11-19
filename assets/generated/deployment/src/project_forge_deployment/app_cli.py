@@ -101,6 +101,7 @@ def _add_runtime_contract(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--health-path", required=True)
     parser.add_argument("--run-as", required=True)
     parser.add_argument("--data-container-path")
+    parser.add_argument("--authentication-epoch-store", action="store_true", help="Opt in to external single-host authentication epoch SQLite storage")
     parser.add_argument(
         "--read-only-material",
         action="append",
@@ -203,6 +204,7 @@ def main(argv: list[str] | None = None) -> int:
             data_container_path=args.data_container_path,
             environment_variables=_parse_env(args.env),
             read_only_materials=_parse_materials(args.read_only_material),
+            authentication_epoch_store=args.authentication_epoch_store,
         )
         assert_app_spec_matches_persistence(args.name, spec)
 

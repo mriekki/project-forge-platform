@@ -9,6 +9,9 @@ DEPLOY_USER="${3:-}"
 HELD_LOCK_FD="${4:-}"
 APP_ROOT="__APP_ROOT__"
 MATERIAL_ROOT="__MATERIAL_ROOT__"
+AUTH_EPOCH_ROOT="__AUTH_EPOCH_ROOT__"
+AUTH_EPOCH_TARGET="__AUTH_EPOCH_TARGET__"
+AUTH_EPOCH_ENV_KEY="__AUTH_EPOCH_ENV_KEY__"
 APP_SCHEMA_VERSION="__APP_SCHEMA_VERSION__"
 NETWORK_NAME="__NETWORK_NAME__"
 CADDY_CONTAINER="__CADDY_CONTAINER__"
@@ -25,6 +28,7 @@ D_RUN_AS_B64="__D_RUN_AS_B64__"
 D_PERSISTENCE="__D_PERSISTENCE__"
 D_DATA_TARGET_B64="__D_DATA_TARGET_B64__"
 D_SPEC_SHA="__D_SPEC_SHA__"
+D_AUTH_EPOCH="__D_AUTH_EPOCH__"
 D_ENV_KEYS=(__D_ENV_KEYS__)
 D_ENV_VALUES=(__D_ENV_VALUES__)
 D_MATERIAL_NAMES=(__D_MATERIAL_NAMES__)
@@ -181,6 +185,77 @@ material_probe() {
     done
 }
 
+
+epoch_source() { printf '%s/%s/%s' "$AUTH_EPOCH_ROOT" "$D_APP" "$D_ENV"; }
+epoch_identity() {
+    local source marker uid gid parent mode identity unsafe
+    source="$(epoch_source)"; marker="$source.owner"
+    uid="${D_RUN_AS%%:*}"; gid="$uid"
+    [[ "$D_RUN_AS" != *:* ]] || gid="${D_RUN_AS#*:}"
+    for parent in /var /var/lib "$AUTH_EPOCH_ROOT" "$AUTH_EPOCH_ROOT/$D_APP"; do
+        [[ -d "$parent" && ! -L "$parent" && "$(stat -c '%u' "$parent")" == 0 ]] || return 1
+        mode="$(stat -c '%a' "$parent")"
+        (( (8#$mode & 022) == 0 )) || return 1
+    done
+    [[ -d "$source" && ! -L "$source" && -f "$marker" && ! -L "$marker" ]] || return 1
+    [[ "$(stat -c '%u:%g:%a' "$source")" == "$uid:$gid:700" ]] || return 1
+    [[ "$(stat -c '%u:%g:%a' "$marker")" == "0:0:600" ]] || return 1
+    [[ "$(meta_value "$marker" OWNER_REPO)" == "$D_OWNER" &&
+       "$(meta_value "$marker" APP_SLUG)" == "$D_APP" &&
+       "$(meta_value "$marker" ENVIRONMENT)" == "$D_ENV" &&
+       "$(meta_value "$marker" RUN_AS)" == "$D_RUN_AS" ]] || return 1
+    identity="$(stat -c '%d:%i' "$source")" || return 1
+    [[ "$(meta_value "$marker" SOURCE_ID)" == "$identity" ]] || return 1
+    unsafe="$(find -P "$source" -mindepth 1 \( -type l -o ! -uid "$uid" -o ! -gid "$gid" -o -perm /022 -o \( ! -type f -a ! -type d \) \) -print -quit)" || return 1
+    [[ -z "$unsafe" ]] || return 1
+    printf '%s' "$identity"
+}
+epoch_provision() {
+    [[ "$D_AUTH_EPOCH" == true ]] || return 0
+    local source marker uid gid identity parent
+    source="$(epoch_source)"; marker="$source.owner"
+    uid="${D_RUN_AS%%:*}"; gid="$uid"
+    [[ "$D_RUN_AS" != *:* ]] || gid="${D_RUN_AS#*:}"
+    if [[ -e "$source" || -L "$source" || -e "$marker" || -L "$marker" ]]; then
+        epoch_identity >/dev/null || { echo "External epoch store identity drift." >&2; return 1; }
+        return 0
+    fi
+    [[ -d /var && ! -L /var && -d /var/lib && ! -L /var/lib ]] || return 1
+    [[ "$(stat -c '%u' /var)" == 0 && "$(stat -c '%u' /var/lib)" == 0 ]] || return 1
+    [[ ! -L "$AUTH_EPOCH_ROOT" && ! -L "$AUTH_EPOCH_ROOT/$D_APP" ]] || return 1
+    if [[ ! -e "$AUTH_EPOCH_ROOT" ]]; then install -d -m 0711 -o 0 -g 0 "$AUTH_EPOCH_ROOT"; fi
+    if [[ ! -e "$AUTH_EPOCH_ROOT/$D_APP" ]]; then install -d -m 0711 -o 0 -g 0 "$AUTH_EPOCH_ROOT/$D_APP"; fi
+    for parent in "$AUTH_EPOCH_ROOT" "$AUTH_EPOCH_ROOT/$D_APP"; do
+        [[ -d "$parent" && ! -L "$parent" && "$(stat -c '%u:%g:%a' "$parent")" == "0:0:711" ]] || return 1
+    done
+    install -d -m 0700 -o "$uid" -g "$gid" "$source" || return 1
+    identity="$(stat -c '%d:%i' "$source")" || return 1
+    (umask 077; printf 'OWNER_REPO=%s\nAPP_SLUG=%s\nENVIRONMENT=%s\nRUN_AS=%s\nSOURCE_ID=%s\n' "$D_OWNER" "$D_APP" "$D_ENV" "$D_RUN_AS" "$identity" > "$marker") || return 1
+    chown 0:0 "$marker" && chmod 0600 "$marker" || return 1
+    epoch_identity >/dev/null || { echo "External epoch provisioning failed." >&2; return 1; }
+}
+epoch_mount_verified() {
+    local release="$1" container="$2" source identity mounts expected number
+    [[ "$(meta_value "$release" AUTH_EPOCH_STORE || true)" == true ]] || return 1
+    identity="$(epoch_identity)" || return 1
+    [[ "$(meta_value "$release" AUTH_EPOCH_ID || true)" == "$identity" ]] || return 1
+    source="$(epoch_source)"
+    mounts="$(docker inspect --format '{{range .Mounts}}{{printf "%s@%s@%t@%s\n" .Source .Destination .RW .Type}}{{end}}' "$container" 2>/dev/null)" || return 1
+    grep -Fxq -- "$source@$AUTH_EPOCH_TARGET@true@bind" <<< "$mounts" || return 1
+    local actual_env data_target
+    actual_env="$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$container" 2>/dev/null)" || return 1
+    grep -Fxq -- "$AUTH_EPOCH_ENV_KEY=$AUTH_EPOCH_TARGET/state.sqlite" <<< "$actual_env" || return 1
+    if [[ "$(meta_value "$release" PERSISTENCE_MODE || true)" == directory ]]; then
+        data_target="$(b64d "$(meta_value "$release" DATA_TARGET_B64 || true)")" || return 1
+        grep -Fxq -- "$APP_ROOT/$D_APP/$D_ENV/data@$data_target@true@bind" <<< "$mounts" || return 1
+    fi
+    number="$(meta_value "$release" MATERIAL_COUNT || true)"
+    expected=1
+    [[ -z "$number" ]] || expected=$((expected + number))
+    [[ "$(meta_value "$release" PERSISTENCE_MODE || true)" != directory ]] || expected=$((expected + 1))
+    [[ "$(grep -c '.' <<< "$mounts" || true)" == "$expected" ]] || return 1
+}
+
 probe_http() {
     local container="$1" port="$2" path="$3"
     docker exec "$CADDY_CONTAINER" \
@@ -227,6 +302,7 @@ material_inventory_state() {
         grep -Fxq -- "$line" <<< "$mounts" || MATERIAL_OK=false
         expected_count="$((number + 1))"
     fi
+    [[ "$(meta_value "$file" AUTH_EPOCH_STORE || true)" != true ]] || expected_count=$((expected_count + 1))
     [[ "$(grep -c '.' <<< "$mounts" || true)" == "$expected_count" ]] || MATERIAL_OK=false
     for ((index=0; index < number; index++)); do
         name="$(b64d "$(meta_value "$file" MATERIAL_NAME_B64_"$index" || true)")"
@@ -293,15 +369,32 @@ inventory() {
                 probe_http "$container" "$port" "$health" && healthy=true || true
             fi
             material_inventory_state "$release_file" "$app" "$env" "$container" "$persistence" || exit 31
+            local epoch_opted=false epoch_ok=false epoch_id=""
+            if [[ "$(meta_value "$release_file" AUTH_EPOCH_STORE || true)" == true ]]; then
+                epoch_opted=true
+                D_OWNER="$owner"; D_APP="$app"; D_ENV="$env"
+                D_RUN_AS="$(meta_value "$release_file" RUN_AS || true)"
+                epoch_id="$(meta_value "$release_file" AUTH_EPOCH_ID || true)"
+                [[ "$epoch_id" =~ ^[0-9]+:[0-9]+$ ]] || { echo "Malformed saved epoch identity." >&2; exit 31; }
+                if [[ -n "$container_id" ]]; then
+                    epoch_mount_verified "$release_file" "$container_id" && epoch_ok=true || true
+                fi
+                [[ "$epoch_ok" == true ]] || healthy=false
+            fi
             if [[ -n "$MATERIAL_ENTRIES" ]]; then
-                printf 'APP\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+                printf 'APP\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' \
                     "$owner" "$env" "$app" "$container" "$image" "$spec_sha" "$port" "$health" "$persistence" \
                     "$current" "$previous" "$running" "$connected" "$healthy" "$MATERIAL_OK" "$MATERIAL_ENTRIES" \
                     "$present" "$image_matches"
             else
-                printf 'APP\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+                printf 'APP\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' \
                     "$owner" "$env" "$app" "$container" "$image" "$spec_sha" "$port" "$health" "$persistence" \
                     "$current" "$previous" "$running" "$connected" "$healthy" "$present" "$image_matches"
+            fi
+            if [[ "$epoch_opted" == true ]]; then
+                printf '\tEPOCH\t%s\t%s\n' "$epoch_ok" "$epoch_id"
+            else
+                printf '\n'
             fi
             count=$((count + 1))
         done < <(find "$APP_ROOT" -mindepth 3 -maxdepth 3 -type f -name deployment.env -print 2>/dev/null | sort)
@@ -359,6 +452,15 @@ decode_desired() {
         exit 33
     }
     valid_run_as "$D_RUN_AS" || { echo "Invalid numeric runAs value." >&2; exit 33; }
+    [[ "$D_AUTH_EPOCH" == true || "$D_AUTH_EPOCH" == false ]] || { echo "Invalid epoch option." >&2; exit 33; }
+    if [[ "$D_AUTH_EPOCH" == true ]]; then
+        for index in "${!D_ENV_KEYS[@]}"; do
+            [[ "$(b64d "${D_ENV_KEYS[$index]}")" != "$AUTH_EPOCH_ENV_KEY" ]] || { echo "Epoch environment override denied." >&2; exit 33; }
+        done
+        [[ -z "$D_DATA_TARGET" || ( "$D_DATA_TARGET" != "$AUTH_EPOCH_TARGET" && "$D_DATA_TARGET" != "$AUTH_EPOCH_TARGET/"* && "$AUTH_EPOCH_TARGET" != "$D_DATA_TARGET/"* ) ]] || {
+            echo "Epoch path overlaps persistence." >&2; exit 33;
+        }
+    fi
     validate_material_entries
     [[ "$D_PERSISTENCE" == "none" || "$D_PERSISTENCE" == "directory" ]] || {
         echo "Invalid persistence mode." >&2
@@ -404,6 +506,10 @@ write_release_metadata() {
         printf 'PERSISTENCE_MODE=%s\n' "$D_PERSISTENCE"
         printf 'DATA_TARGET_B64=%s\n' "$D_DATA_TARGET_B64"
         printf 'SPEC_SHA256=%s\n' "$D_SPEC_SHA"
+        if [[ "$D_AUTH_EPOCH" == true ]]; then
+            printf 'AUTH_EPOCH_STORE=true\n'
+            printf 'AUTH_EPOCH_ID=%s\n' "$(epoch_identity)"
+        fi
         if (( ${#D_MATERIAL_NAMES[@]} > 0 )); then
             printf 'MATERIAL_COUNT=%s\n' "${#D_MATERIAL_NAMES[@]}"
             for index in "${!D_MATERIAL_NAMES[@]}"; do
@@ -427,6 +533,7 @@ write_release_metadata() {
 start_desired_container() {
     local root data
     local uid gid index key value created_id
+    local -a D_MATERIAL_NAMES=("${D_MATERIAL_NAMES[@]}")
     root="$1"
     data="$root/data"
     uid="${D_RUN_AS%%:*}"
@@ -467,6 +574,11 @@ start_desired_container() {
         value="$(b64d "${D_ENV_VALUES[$index]}")"
         docker_args+=(--env "$key=$value")
     done
+    if [[ "${D_AUTH_EPOCH:-false}" == true ]]; then
+        epoch_identity >/dev/null || { echo "Epoch identity drift before container create." >&2; return 1; }
+        docker_args+=(--mount "type=bind,src=$(epoch_source),dst=$AUTH_EPOCH_TARGET")
+        docker_args+=(--env "$AUTH_EPOCH_ENV_KEY=$AUTH_EPOCH_TARGET/state.sqlite")
+    fi
     for index in "${!D_MATERIAL_NAMES[@]}"; do
         local source target name
         name="$(b64d "${D_MATERIAL_NAMES[$index]}")"
@@ -608,6 +720,19 @@ deploy() {
         }
     fi
 
+    if [[ -n "$current_release" && "$(meta_value "$current_file" AUTH_EPOCH_STORE || true)" == true ]]; then
+        [[ "$D_AUTH_EPOCH" == true ]] || { echo "Removing epoch storage requires reconciliation." >&2; exit 35; }
+        epoch_identity >/dev/null || { echo "Existing authentication epoch store cannot be verified." >&2; exit 35; }
+        [[ "$(meta_value "$current_file" AUTH_EPOCH_ID)" =~ ^[0-9]+:[0-9]+$ &&
+           "$(meta_value "$current_file" AUTH_EPOCH_ID)" == "$(epoch_identity)" ]] || { echo "Existing authentication epoch identity drift." >&2; exit 35; }
+        if [[ -n "$current_id" ]]; then
+            epoch_mount_verified "$current_file" "$current_id" || { echo "Existing epoch mount identity changed." >&2; exit 35; }
+        fi
+    fi
+    if [[ "$D_AUTH_EPOCH" == true ]]; then
+        epoch_provision || { echo "Authentication epoch provisioning failed." >&2; exit 35; }
+    fi
+
     # Root-owned Project/environment state is under the existing deployment
     # lock and outside application data/backup volumes. A normal update or
     # rollback must not reuse the earlier generation.
@@ -641,6 +766,14 @@ deploy() {
             echo "Release directory collision with different runtime metadata." >&2
             exit 35
         }
+        if [[ "$D_AUTH_EPOCH" == true ]]; then
+            [[ "$(release_value "$release_file" AUTH_EPOCH_STORE || true)" == true &&
+               "$(release_value "$release_file" AUTH_EPOCH_ID || true)" == "$(epoch_identity)" ]] || {
+                echo "Previously recorded release has different epoch directory identity." >&2; exit 35;
+            }
+        elif [[ "$(release_value "$release_file" AUTH_EPOCH_STORE || true)" == true ]]; then
+            echo "Existing release requires its authentication epoch store." >&2; exit 35;
+        fi
         recorded_image_id="$(release_value "$release_file" RUNTIME_IMAGE_ID || true)"
         [[ -z "$recorded_image_id" || "$recorded_image_id" == "$D_RUNTIME_IMAGE_ID" ]] || {
             echo "Release image ID differs from previously recorded runtime identity." >&2; exit 35;
@@ -667,6 +800,11 @@ deploy() {
     fi
 
     material_probe true || { echo "Read-only material source changed before runtime replacement." >&2; exit 40; }
+    if [[ "$D_AUTH_EPOCH" == true ]]; then
+        [[ "$(epoch_identity)" == "$(release_value "$release_file" AUTH_EPOCH_ID || true)" ]] || {
+            echo "Epoch identity drift before replacement." >&2; exit 40;
+        }
+    fi
 
     if [[ -n "$current_id" ]]; then
         container_image_matches_release "$current_file" "$current_id" "$current_container" || {
@@ -689,6 +827,11 @@ deploy() {
         record_evidence "$root" "failed-readiness" "$release_id" "$current_release"
         echo "Application failed readiness; previous release metadata was retained but runtime rollback was not attempted." >&2
         exit 39
+    fi
+    if [[ "$D_AUTH_EPOCH" == true ]]; then
+        epoch_mount_verified "$release_file" "$STARTED_CONTAINER_ID" || {
+            echo "New runtime epoch mount differs from exact expected identity." >&2; exit 39;
+        }
     fi
     container_image_matches_release "$release_file" "$STARTED_CONTAINER_ID" "$D_CONTAINER" || {
         echo "New container identity changed before readiness was recorded." >&2; exit 39;
@@ -770,6 +913,9 @@ inspect_release_for_attestation() {
         echo "Live runtime is not verified healthy." >&2; exit 41;
     }
     material_inventory_state "$release_file" "$D_APP" "$D_ENV" "$D_CONTAINER" "$D_PERSISTENCE" || exit 41
+    if [[ "$(meta_value "$release_file" AUTH_EPOCH_STORE || true)" == true ]]; then
+        epoch_mount_verified "$release_file" "$CONTAINER_ID" || { echo "Release epoch mount is unverified." >&2; exit 41; }
+    fi
     [[ "$MATERIAL_OK" == true ]] || {
         echo "Approved read-only runtime material mounts are not verified." >&2; exit 41;
     }

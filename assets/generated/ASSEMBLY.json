@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.33.1",
+  "version": "4.34.0",
   "components": {
     "core": {
       "revision": "4cfab0a596d588fbfbb7560d6c56af441099ff0d",
@@ -748,7 +748,7 @@
       }
     },
     "deployment": {
-      "revision": "996f9d423499650defc3fde30d722e799b9a2bd6",
+      "revision": "39dfe4f4303527379744544aa468b8a70a131f93",
       "distribution": "greenfield-project",
       "files": [
         {
@@ -784,7 +784,7 @@
         {
           "source": "src/project_forge_deployment/app_cli.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/app_cli.py",
-          "sha256": "b44ec913fd1080ff66bff6643d2d9fad17262725c0f35557c56f52c86090c060"
+          "sha256": "6a72d8afe40296fa7547b828cbb5a4ec7ca087268c807613d19d80c3ea8d73aa"
         },
         {
           "source": "src/project_forge_deployment/app_deployment.py",
@@ -794,12 +794,12 @@
         {
           "source": "src/project_forge_deployment/app_runtime.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime.py",
-          "sha256": "680a059823d97c8b4d5638d80ce7ea92fcc599728f3e0cad9788501b8efa757c"
+          "sha256": "7796ab008de3002d41b81150de3efdc143c8bd9fdf2c07b05f04398e0aa11ff0"
         },
         {
           "source": "src/project_forge_deployment/app_runtime_remote.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime_remote.py",
-          "sha256": "2aaaffa62e91034438cebab8c4d8db0f92916bde187ff435c520209c1ac3aa0f"
+          "sha256": "da6ac2c591452c3faee8092c0d7bab32c7bbdd069a7fc73fb97ac8a0c6e477ae"
         },
         {
           "source": "src/project_forge_deployment/app_runtime_workstation.py",
