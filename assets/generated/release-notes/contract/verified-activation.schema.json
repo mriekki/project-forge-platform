@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mriekki/project-forge-release-notes-kit/blob/main/contract/verified-activation.schema.json",
+  "title": "Trusted, post-Production verified release projection v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion","projectId","environment","sourceCommit","imageDigest","manifestSha256","releaseVersion","verifiedAtUtc","outcome"],
+  "properties": {
+    "schemaVersion":{"const":1},
+    "projectId":{"type":"string","minLength":3,"maxLength":120},
+    "environment":{"const":"production"},
+    "sourceCommit":{"type":"string","pattern":"^[0-9a-f]{40}$"},
+    "imageDigest":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "manifestSha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "releaseVersion":{"type":"string","pattern":"^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$"},
+    "verifiedAtUtc":{"type":"string","format":"date-time"},
+    "outcome":{"enum":["verified","failed","unknown","rolled-back"]}
+  }
+}
