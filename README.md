@@ -137,6 +137,24 @@ Project's authenticated account/session grants, exact repository binding, and
 protected GitHub App secrets; the component does not provision these or enable
 Feedback merely by being installed.
 
+### Optional components and activation boundaries
+
+The public package can distribute **Authentication**, **GitHub Issues Feedback**, and **Release Notes** as independent, explicitly selected, default-off components. Components are sourced from their own canonical Kit repositories; publishing the umbrella package does not automatically enable a feature, configure its providers, modify existing Projects or deploy Production. Check the exact accepted package's `assets/components.json`, the owning Kit's support marker and Bootstrap's current catalog before presenting a capability as supported for a new Project.
+
+| Component | What package installation provides | What remains Project-owned |
+| --- | --- | --- |
+| Authentication | Reusable account/session/Google OIDC and optional passkey source | Provider trust, admission, credentials, account data, recovery and security/Production acceptance; passkey support may still be a **candidate** |
+| GitHub Issues Feedback | Text-only .NET adapter and integration contract | App authorization, exact GitHub repository/App binding, protected secrets, provider acceptance and explicit runtime enablement |
+| Release Notes | Manifest schema, .NET verifier/selection and React UI | Approved release content, trusted deployed-image attestation, account-scoped storage, UI integration, rollback proof and explicit activation |
+
+For an already clean, compatible package-managed Project, the accepted exact CLI supports an **additive, preview-first** Release Notes opt-in:
+
+```text
+project-forge enable release-notes --root <project>
+```
+
+Use the `--apply` flag or its interactive confirmation only after inspecting the plan and satisfying the managed-baseline checks. This installs inert source/assets; it does not announce a release or make FMP Production changes. As with Feedback, a generated Project should only advertise this capability during discovery when its Bootstrap catalog and reference-consumer proof explicitly qualify it. More detail: [Release Notes Kit](https://github.com/mriekki/project-forge-release-notes-kit), [Authentication Kit](https://github.com/mriekki/project-forge-auth-kit) and [Feedback Kit](https://github.com/mriekki/project-forge-feedback-kit).
+
 Existing Projects can independently select the managed GitHub Issues work-item
 profile with `project-forge enable work-items github-issues --root <project>`.
 This explicit transition updates only the Core-owned workspace configuration,
