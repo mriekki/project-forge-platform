@@ -96,7 +96,7 @@ test('generation aligns the published package with the accepted Bootstrap revisi
   // After publication, the contract-alignment workflow advances it with
   // the verified registry/receipt evidence. Never pre-advertise a candidate.
   const receiptVersions = (await readdir(path.join(root, 'release/receipts')))
-    .map((name) => /^(\d+)\\.(\d+)\\.(\d+)\.json$/.exec(name))
+    .map((name) => /^(\d+)\.(\d+)\.(\d+)\.json$/.exec(name))
     .filter(Boolean)
     .sort((a, b) => Number(a[1]) - Number(b[1])
       || Number(a[2]) - Number(b[2])
@@ -109,7 +109,7 @@ test('generation aligns the published package with the accepted Bootstrap revisi
   assert.equal(value.generation.packageVersion, latestReceiptVersion);
   const pkg = JSON.parse(await text('package.json'));
   const semantic = (version) => {
-    const match = /^(\d+)\\.(\d+)\\.(\d+)$/.exec(version);
+    const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
     assert.ok(match, `invalid package SemVer: ${version}`);
     return match.slice(1).map(Number);
   };
