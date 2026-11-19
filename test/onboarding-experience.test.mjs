@@ -8,7 +8,7 @@ async function text(path) {
 
 test('welcome page leads with the approved static infographic without duplicating the lifecycle Mermaid', async () => {
   const welcome = await text('WELCOME.md');
-  const imageMarkdown = '![Project Forge overview showing the journey from an idea through planning, GitHub repository generation, AI-assisted development, delivery, learning, and controlled deployment.](./docs/images/project-forge-welcome.svg)';
+  const imageMarkdown = '![Project Forge overview showing a choice of starting paths—idea, existing source, or existing repository—followed by guided planning, a GitHub Project, AI-assisted development, delivery, learning and controlled deployment.](./docs/images/project-forge-welcome.svg)';
   const imageIndex = welcome.indexOf(imageMarkdown);
   const mermaidCount = (welcome.match(/```mermaid/g) || []).length;
 
@@ -32,10 +32,13 @@ test('welcome infographic is a self-contained high-resolution SVG', async () => 
   assert.match(svg, /\bheight="1200"/);
   assert.match(svg, /\bviewBox="0 0 1800 1200"/);
   assert.match(svg, />Welcome to Project Forge</);
-  assert.match(svg, />Start with Your Idea</);
+  assert.match(svg, />Choose Your Start</);
+  assert.match(svg, /existing product,/);
+  assert.match(svg, /repository you want to keep/);
+  assert.match(svg, /Optional Kits \(default off\)/);
   assert.match(svg, />Project Forge</);
   assert.match(svg, />Guides the Plan</);
-  assert.match(svg, />A Real GitHub</);
+  assert.match(svg, />Your GitHub</);
   assert.match(svg, />Project Repository</);
   assert.match(svg, />Develop with</);
   assert.match(svg, />AI Assistance</);
