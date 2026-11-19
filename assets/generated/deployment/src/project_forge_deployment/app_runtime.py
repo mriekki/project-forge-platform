@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import posixpath
 import re
 import shlex
 import subprocess
@@ -21,6 +22,9 @@ APP_ROOT = "/srv/project-forge-apps"
 APP_SCHEMA_VERSION = 1
 # Operator-provisioned remote sources: never workstation paths or auto-created directories.
 REMOTE_MATERIAL_ROOT = "/srv/project-forge-material"
+AUTH_EPOCH_ROOT = "/var/lib/project-forge-auth-epochs"
+AUTH_EPOCH_TARGET = "/var/lib/project-forge-auth-epoch"
+AUTH_EPOCH_ENV_KEY = "ProjectForge__Authentication__EpochStorePath"
 APP_DEPLOY_WRITE_PHRASE = "[APP DEPLOY WRITE]"
 PRODUCTION_APP_DEPLOY_WRITE_PHRASE = "[PRODUCTION APP DEPLOY]"
 
@@ -175,6 +179,7 @@ def normalize_app_spec(
     data_container_path: str | None,
     environment_variables: dict[str, str] | Iterable[tuple[str, str]],
     read_only_materials: Iterable[tuple[str, str]] | None = None,
+    authentication_epoch_store: bool = False,
 ) -> dict[str, Any]:
     if persistence_mode not in {"none", "directory"}:
         raise DeploymentKitError("persistenceMode must be 'none' or 'directory'.")
@@ -199,7 +204,25 @@ def normalize_app_spec(
         },
         "environmentVariables": _normalize_environment_variables(environment_variables),
     }
+    if type(authentication_epoch_store) is not bool:
+        raise DeploymentKitError("authenticationEpochStore must be a boolean.")
+    if authentication_epoch_store:
+        canonical_data_path = posixpath.normpath("/" + data_path.lstrip("/")) if data_path else None
+        if canonical_data_path and (canonical_data_path == AUTH_EPOCH_TARGET or
+                                    canonical_data_path.startswith(AUTH_EPOCH_TARGET + "/") or
+                                    AUTH_EPOCH_TARGET.startswith(canonical_data_path.rstrip("/") + "/")):
+            raise DeploymentKitError("Authentication epoch mount overlaps application persistence.")
+        if AUTH_EPOCH_ENV_KEY in spec["environmentVariables"]:
+            raise DeploymentKitError("Authentication epoch environment variable is Kit-owned.")
+        spec["authenticationEpochStore"] = {"containerPath": AUTH_EPOCH_TARGET, "databaseFile": "state.sqlite"}
     materials = _normalize_read_only_materials(read_only_materials, data_path=data_path)
+    if authentication_epoch_store:
+        for item in materials:
+            target = item["containerPath"]
+            if (target == AUTH_EPOCH_TARGET or target.startswith(AUTH_EPOCH_TARGET + "/")
+                    or AUTH_EPOCH_TARGET.startswith(target + "/")):
+                raise DeploymentKitError("Authentication epoch mount overlaps read-only material.")
+
     if materials:
         spec["readOnlyMaterials"] = materials
     spec["specSha256"] = _spec_sha(spec)
@@ -237,6 +260,7 @@ def build_remote_script(
         "persistenceMode": "",
         "dataContainerPath": "",
         "specSha256": "",
+        "authenticationEpochStore": "false",
     }
     if spec is not None:
         desired.update(
@@ -251,6 +275,7 @@ def build_remote_script(
             persistenceMode=spec["persistence"]["mode"],
             dataContainerPath=spec["persistence"]["dataContainerPath"] or "",
             specSha256=spec["specSha256"],
+            authenticationEpochStore="true" if spec.get("authenticationEpochStore") else "false",
         )
         for key, value in spec["environmentVariables"].items():
             env_keys.append(_b64(key))
@@ -263,6 +288,9 @@ def build_remote_script(
     replacements = {
         "__APP_ROOT__": APP_ROOT,
         "__MATERIAL_ROOT__": REMOTE_MATERIAL_ROOT,
+        "__AUTH_EPOCH_ROOT__": AUTH_EPOCH_ROOT,
+        "__AUTH_EPOCH_TARGET__": AUTH_EPOCH_TARGET,
+        "__AUTH_EPOCH_ENV_KEY__": AUTH_EPOCH_ENV_KEY,
         "__APP_SCHEMA_VERSION__": str(APP_SCHEMA_VERSION),
         "__NETWORK_NAME__": NETWORK_NAME,
         "__CADDY_CONTAINER__": CADDY_CONTAINER,
@@ -278,6 +306,7 @@ def build_remote_script(
         "__D_PERSISTENCE__": desired["persistenceMode"],
         "__D_DATA_TARGET_B64__": _b64(desired["dataContainerPath"]),
         "__D_SPEC_SHA__": desired["specSha256"],
+        "__D_AUTH_EPOCH__": desired["authenticationEpochStore"],
         "__D_ENV_KEYS__": " ".join(f"'{item}'" for item in env_keys),
         "__D_ENV_VALUES__": " ".join(f"'{item}'" for item in env_values),
         "__D_MATERIAL_NAMES__": " ".join(shlex.quote(x) for x in material_names),
@@ -287,7 +316,7 @@ def build_remote_script(
     script = REMOTE_SCRIPT
     for placeholder, value in replacements.items():
         script = script.replace(placeholder, value)
-    if "__" in script:
+    if re.search(r"__[A-Z][A-Z0-9_]*__", script):
         raise DeploymentKitError("Internal application-runtime script contains an unresolved placeholder.")
     return script
 
@@ -304,6 +333,10 @@ def _parse_inventory(output: str) -> dict[str, Any]:
                 raise DeploymentKitError("Malformed or duplicate application inventory summary.")
             summary[parts[1]] = parts[2]
             continue
+        epoch_fields = None
+        if len(parts) >= 18 and parts[-3] == "EPOCH":
+            epoch_fields = parts[-2:]
+            parts = parts[:-3]
         if parts[0] != "APP" or len(parts) not in (15, 17, 19):
             raise DeploymentKitError("Malformed application inventory record.")
         try:
@@ -373,6 +406,16 @@ def _parse_inventory(output: str) -> dict[str, Any]:
                 raise DeploymentKitError("Inconsistent live container image evidence.")
             app["containerPresent"] = present
             app["imageMatchesRelease"] = matches
+        if epoch_fields is not None:
+            verified, identity = epoch_fields
+            if verified not in {"true", "false"} or re.fullmatch(r"[0-9]+:[0-9]+", identity) is None:
+                raise DeploymentKitError("Malformed authentication epoch store evidence.")
+            app["authenticationEpochStore"] = {
+                "hostPath": f"{AUTH_EPOCH_ROOT}/{app_slug}/{environment}",
+                "containerPath": AUTH_EPOCH_TARGET,
+                "sourceIdentity": identity,
+            }
+            app["authenticationEpochMountVerified"] = verified == "true"
         apps.append(app)
     if set(summary) != {"appCount"}:
         raise DeploymentKitError("Application inventory omitted appCount.")
@@ -539,6 +582,7 @@ def plan_app_deploy(name: str, spec: dict[str, Any]) -> dict[str, Any]:
         and existing["connectedToSharedNetwork"]
         and existing["httpHealthy"]
         and existing.get("materialMountsVerified", True)
+        and existing.get("authenticationEpochMountVerified", True)
     ):
         raise DeploymentKitError("The exact application runtime spec is already deployed and healthy.")
     plan = {
@@ -566,6 +610,11 @@ def plan_app_deploy(name: str, spec: dict[str, Any]) -> dict[str, Any]:
     }
     if spec.get("readOnlyMaterials"):
         plan["readOnlyMaterialEvidence"] = _material_evidence_for_spec(name, spec)
+    if existing is not None and existing.get("authenticationEpochStore"):
+        if not spec.get("authenticationEpochStore"):
+            raise DeploymentKitError("Disabling an existing authentication epoch store requires operator reconciliation.")
+        if not existing.get("authenticationEpochMountVerified", False):
+            raise DeploymentKitError("Existing authentication epoch mount is unverified.")
     return plan
 
 
@@ -714,6 +763,7 @@ def apply_app_deploy(plan: dict[str, Any]) -> dict[str, Any]:
         and deployed["connectedToSharedNetwork"]
         and deployed["httpHealthy"]
         and deployed.get("materialMountsVerified", True)
+        and deployed.get("authenticationEpochMountVerified", True)
     ):
         raise DeploymentKitError("Application deployment completed but runtime readiness is not healthy.")
     final["mutated"] = True
