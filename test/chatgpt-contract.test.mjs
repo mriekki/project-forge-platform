@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { test } from 'node:test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -91,10 +91,35 @@ test('generation aligns the published package with the accepted Bootstrap revisi
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(value.generation.bootstrap.portableRequirements.bootstrapRevision, value.generation.bootstrap.revision);
   assert.equal(value.generation.package, '@mriekki/project-forge');
-  // Advance the stable descriptor with the verified package, rather than
-  // freezing this contract test to an older published release number.
+  // The public stable descriptor advertises the last *published* npm
+  // package, not an unpublished candidate assembled on a release branch.
+  // After publication, the contract-alignment workflow advances it with
+  // the verified registry/receipt evidence. Never pre-advertise a candidate.
+  const receiptVersions = (await readdir(path.join(root, 'release/receipts')))
+    .map((name) => /^(\\d+)\\.(\\d+)\\.(\\d+)\\.json$/.exec(name))
+    .filter(Boolean)
+    .sort((a, b) => Number(a[1]) - Number(b[1])
+      || Number(a[2]) - Number(b[2])
+      || Number(a[3]) - Number(b[3]));
+  assert.ok(receiptVersions.length > 0, 'expected a verified published package receipt');
+  const latestReceiptVersion = receiptVersions.at(-1)[0].replace(/\\.json$/, '');
+  const latestReceipt = JSON.parse(await text(`release/receipts/${latestReceiptVersion}.json`));
+  assert.equal(latestReceipt.package.name, value.generation.package);
+  assert.equal(latestReceipt.package.version, latestReceiptVersion);
+  assert.equal(value.generation.packageVersion, latestReceiptVersion);
   const pkg = JSON.parse(await text('package.json'));
-  assert.equal(value.generation.packageVersion, pkg.version);
+  const semantic = (version) => {
+    const match = /^(\\d+)\\.(\\d+)\\.(\\d+)$/.exec(version);
+    assert.ok(match, `invalid package SemVer: ${version}`);
+    return match.slice(1).map(Number);
+  };
+  const current = semantic(pkg.version);
+  const published = semantic(value.generation.packageVersion);
+  assert.ok(current[0] > published[0] ||
+    (current[0] === published[0] && current[1] > published[1]) ||
+    (current[0] === published[0] && current[1] === published[1] &&
+      current[2] >= published[2]),
+    'candidate package must not be older than the last verified published receipt');
   assert.equal(value.generation.profile, 'greenfield-project');
   assert.equal(value.generation.bootstrapProtocolVersion, 12);
   assert.equal(value.bootstrapUrl, 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json');
