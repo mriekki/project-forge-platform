@@ -397,7 +397,7 @@ def _run_remote(
     expected_spec_sha: str = "",
     expected_materials: dict[str, str] | None = None,
 ) -> str:
-    if action not in {"inventory", "deploy", "material-inspect"}:
+    if action not in {"inventory", "deploy", "material-inspect", "release-inspect"}:
         raise DeploymentKitError(f"Unsupported application-runtime action: {action}")
     args = [action]
     if action == "deploy":
@@ -431,6 +431,63 @@ def app_inventory(name: str) -> dict[str, Any]:
     inventory["verifiedAddress"] = evidence["address"]
     inventory["mutated"] = False
     return inventory
+
+
+def _parse_verified_release_observation(output: str, spec: dict[str, Any]) -> dict[str, Any]:
+    """Parse one privileged read-only host line, never arbitrary app JSON.
+
+    Only the dedicated SSH + sudo host action may feed this function in a
+    Production emitter. Structural parsing alone grants no release authority.
+    """
+    lines = output.splitlines()
+    if len(lines) != 1:
+        raise DeploymentKitError("Live release observer emitted no unique host record.")
+    fields = lines[0].split("\t")
+    if len(fields) != 12 or fields[0] != "RELEASE_OBSERVATION":
+        raise DeploymentKitError("Live release observer record is malformed.")
+    _, owner, app, environment, image, spec_sha, source, manifest, version, runtime_id, generation, operation = fields
+    if (
+        owner != spec["ownerRepo"] or app != spec["appSlug"]
+        or environment != spec["environment"] or image != spec["image"]
+        or spec_sha != spec["specSha256"]
+        or re.fullmatch(r"[0-9a-f]{40}", source) is None
+        or re.fullmatch(r"[0-9a-f]{64}", manifest) is None
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", runtime_id) is None
+        or re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?", version) is None
+        or re.fullmatch(r"[1-9][0-9]{0,17}", generation) is None
+        or re.fullmatch(r"pfrelease:[0-9a-f]{64}", operation) is None
+    ):
+        raise DeploymentKitError("Observed live release does not match the exact authorized runtime spec.")
+    return {
+        "ownerRepo": owner, "appSlug": app, "environment": environment,
+        "registryImage": image, "specSha256": spec_sha,
+        "sourceCommit": source, "manifestSha256": manifest,
+        "releaseVersion": version, "runtimeImageId": runtime_id,
+        "deploymentGeneration": int(generation),
+        "postApplyOperationId": operation,
+        "containerPresent": True, "imageMatchesRelease": True,
+        "containerRunning": True, "connectedToSharedNetwork": True,
+        "httpHealthy": True, "materialMountsVerified": True,
+    }
+
+
+def observe_verified_app_release(name: str, spec: dict[str, Any]) -> dict[str, Any]:
+    """Read the currently running exact release through the reviewed SSH peer.
+
+    No CLI command, signing key, standalone Production publication or
+    authentication is inferred from this function. It is a callable adapter
+    for a separately authorized Deployment Kit post-apply signer.
+    """
+    if not isinstance(spec, dict) or not {
+        "ownerRepo", "appSlug", "environment", "image", "specSha256"
+    }.issubset(spec):
+        raise DeploymentKitError("Exact authorized application spec missing.")
+    if platform_status(name)["state"] != "ready":
+        raise DeploymentKitError("Shared host platform is not ready for release inspection.")
+    profile = load_profile(name)
+    access = verify_access(profile)
+    output = _run_remote(profile, access["address"], "release-inspect", spec=spec)
+    return _parse_verified_release_observation(output, spec)
 
 
 def _inventory_snapshot(inventory: dict[str, Any]) -> str:

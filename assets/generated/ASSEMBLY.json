@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.32.0",
+  "version": "4.33.0",
   "components": {
     "core": {
-      "revision": "2a35476ff743c5c49be7725864f87a021714ff20",
+      "revision": "4cfab0a596d588fbfbb7560d6c56af441099ff0d",
       "version": "4.5.1",
       "distribution": "greenfield-workspace",
       "files": [
@@ -748,7 +748,7 @@
       }
     },
     "deployment": {
-      "revision": "058309bb61aa88e96d5a76ada07646c97650a4a5",
+      "revision": "996f9d423499650defc3fde30d722e799b9a2bd6",
       "distribution": "greenfield-project",
       "files": [
         {
@@ -794,12 +794,12 @@
         {
           "source": "src/project_forge_deployment/app_runtime.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime.py",
-          "sha256": "0ffcf5bd7f73035627fcc129e100f7dd6439bf762a7ae5707bb659f8ce3d9400"
+          "sha256": "680a059823d97c8b4d5638d80ce7ea92fcc599728f3e0cad9788501b8efa757c"
         },
         {
           "source": "src/project_forge_deployment/app_runtime_remote.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime_remote.py",
-          "sha256": "cdd5848917858d062a51c54cb96de6061cdadaa2cf9a5681f395d3b5fed362fd"
+          "sha256": "2aaaffa62e91034438cebab8c4d8db0f92916bde187ff435c520209c1ac3aa0f"
         },
         {
           "source": "src/project_forge_deployment/app_runtime_workstation.py",
@@ -885,6 +885,21 @@
           "source": "src/project_forge_deployment/feedback_release_evidence.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/feedback_release_evidence.py",
           "sha256": "a780cff1fa8b724f260914d44883b849de090d585eeace0b34cc26e6990eca9d"
+        },
+        {
+          "source": "src/project_forge_deployment/release_attestation.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/release_attestation.py",
+          "sha256": "7c0db86deea73d6af3d538a0cc7b45ab8fc4104c9f5114e09a70fa512bfb1791"
+        },
+        {
+          "source": "src/project_forge_deployment/release_attestation_signer.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/release_attestation_signer.py",
+          "sha256": "325259e9494f21fdc353be93457bb1b4e27e99371e2fd6a6d4d4ad49ed4990b7"
+        },
+        {
+          "source": "src/project_forge_deployment/release_attestation_postapply.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/release_attestation_postapply.py",
+          "sha256": "3e7ae67467574f50916708532b6d320ca7308bebc1737cfe3f3528cdcab1a0ea"
         },
         {
           "source": "src/project_forge_deployment/home_lab.py",
@@ -1302,6 +1317,87 @@
           "source": "docs/PROJECT_INTEGRATION.md",
           "destination": "tools/project-forge-feedback-kit/PROJECT_INTEGRATION.md",
           "sha256": "37ce2e667bcf46d0556973a517dc4e0cfdccda33b92b19d1955ab8c2eaf012b7"
+        }
+      ]
+    },
+    "release-notes": {
+      "revision": "11f0b28efc0a76ccaf2eff65f15d9f7413110726",
+      "distribution": "greenfield-project",
+      "files": [
+        {
+          "source": "src/ProjectForge.ReleaseNotes.Runtime/ProjectForge.ReleaseNotes.Runtime.csproj",
+          "destination": "tools/project-forge-release-notes-kit/ProjectForge.ReleaseNotes.Runtime/ProjectForge.ReleaseNotes.Runtime.csproj",
+          "sha256": "9b8458580be4e786dd73ed606f80627ab81a4545fbe8834e205dc430a56e7544"
+        },
+        {
+          "source": "src/ProjectForge.ReleaseNotes.Runtime/ReleaseNoteBatchTokens.cs",
+          "destination": "tools/project-forge-release-notes-kit/ProjectForge.ReleaseNotes.Runtime/ReleaseNoteBatchTokens.cs",
+          "sha256": "f14f0a13b167ed10841b6f904ed7c457b4bd86b02ee1177e3d2302f91da7a8c0"
+        },
+        {
+          "source": "src/ProjectForge.ReleaseNotes.Runtime/ReleaseNotesContracts.cs",
+          "destination": "tools/project-forge-release-notes-kit/ProjectForge.ReleaseNotes.Runtime/ReleaseNotesContracts.cs",
+          "sha256": "4aa1a19af0e416a9a58cd3687f0f13e6e65bee70cd07dc83aade4a7a48142b19"
+        },
+        {
+          "source": "src/ProjectForge.ReleaseNotes.Runtime/ReleaseNotesSelection.cs",
+          "destination": "tools/project-forge-release-notes-kit/ProjectForge.ReleaseNotes.Runtime/ReleaseNotesSelection.cs",
+          "sha256": "c0e7c14233765c6d013d607d02d38e8aed68d1c6377aafda00045622f79262f8"
+        },
+        {
+          "source": "src/ProjectForge.ReleaseNotes.Runtime/SignedReleaseAttestation.cs",
+          "destination": "tools/project-forge-release-notes-kit/ProjectForge.ReleaseNotes.Runtime/SignedReleaseAttestation.cs",
+          "sha256": "87d37c060d1ad9d2dbb2969cd5fc59cdfb5de688a4f3bba00dc45d03cf1a47af"
+        },
+        {
+          "source": "src/ui/WhatsNew.css",
+          "destination": "tools/project-forge-release-notes-kit/ui/WhatsNew.css",
+          "sha256": "14b7ffa7074f74a37be6e4e1558dd50b25f663856347fd8c38f907d3c15327f2"
+        },
+        {
+          "source": "src/ui/WhatsNew.tsx",
+          "destination": "tools/project-forge-release-notes-kit/ui/WhatsNew.tsx",
+          "sha256": "3184cbe7e8ac865cdbf1cdecc767c85e7ef307336ad29f6820e06e2212a8e07b"
+        },
+        {
+          "source": "src/ui/announcements.mjs",
+          "destination": "tools/project-forge-release-notes-kit/ui/announcements.mjs",
+          "sha256": "077da67352f1c5ef6c7d01615de62c9e5dc9b99f516f50bc46c153637a3815c8"
+        },
+        {
+          "source": "src/ui/package.json",
+          "destination": "tools/project-forge-release-notes-kit/ui/package.json",
+          "sha256": "b193f038c969a20cc6f31e802e129e0e022460ec1814890fd21322b98d622afa"
+        },
+        {
+          "source": "src/ui/package-lock.json",
+          "destination": "tools/project-forge-release-notes-kit/ui/package-lock.json",
+          "sha256": "9b0de80522c792c4da39a972d218ecf03f322ebb8ae874c03905459d92498638"
+        },
+        {
+          "source": "src/ui/tsconfig.json",
+          "destination": "tools/project-forge-release-notes-kit/ui/tsconfig.json",
+          "sha256": "488e24669a5f12add3a6f83c97c573f20d49e17a3a5cff7b3a24ba1916524f9f"
+        },
+        {
+          "source": "contract/release-manifest.schema.json",
+          "destination": "tools/project-forge-release-notes-kit/contract/release-manifest.schema.json",
+          "sha256": "cf289600f26ccbf8b3404a19a4f249c7b1842b157dbe8fc0da2bef37c76c747e"
+        },
+        {
+          "source": "contract/verified-activation.schema.json",
+          "destination": "tools/project-forge-release-notes-kit/contract/verified-activation.schema.json",
+          "sha256": "2e70a71e48e30890fcf966cdf352984ea7ab8b37cf03103ebd94c4f073b202c3"
+        },
+        {
+          "source": "tools/validate_manifest.py",
+          "destination": "tools/project-forge-release-notes-kit/tools/validate_manifest.py",
+          "sha256": "10ad51ff21e7d887282001c4578e0c2935ecc851d1683a47d9cc5002c13fa1a4"
+        },
+        {
+          "source": "docs/PROJECT_INTEGRATION.md",
+          "destination": "tools/project-forge-release-notes-kit/PROJECT_INTEGRATION.md",
+          "sha256": "2f3fc91a997c74c719c10bf9cd6c61f2fc2b5649fe5f9acdad8a045ae4e30942"
         }
       ]
     }

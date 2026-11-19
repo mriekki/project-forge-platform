@@ -1,0 +1,16 @@
+.pf-rn-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(0,0,0,.5);padding:max(1rem,env(safe-area-inset-top)) max(1rem,env(safe-area-inset-right)) max(1rem,env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left))}
+.pf-rn-dialog{width:min(100%,30rem);max-height:min(90dvh,48rem);overflow:auto;background:Canvas;color:CanvasText;border-radius:1rem;padding:1.25rem;box-shadow:0 15px 60px rgba(0,0,0,.2)}
+.pf-rn-heading,.pf-rn-actions{display:flex;align-items:center;justify-content:space-between;gap:.75rem}
+.pf-rn-heading h2{font-size:1.3rem;margin:0}
+.pf-rn-icon-button{font-size:1.6rem;min-width:2.75rem;min-height:2.75rem}
+.pf-rn-list{list-style:none;padding:0;margin:1rem 0}
+.pf-rn-list li{margin:.6rem 0;padding:.6rem 0;border-bottom:1px solid color-mix(in srgb,CanvasText 12%,transparent)}
+.pf-rn-list p,.pf-rn-history p{margin:.35rem 0}
+.pf-rn-actions{justify-content:flex-end;flex-wrap:wrap}
+.pf-rn-actions button,.pf-rn-history button{min-height:2.75rem}
+.pf-rn-history{max-width:54rem;margin:auto;padding:1rem}
+.pf-rn-history article{border-top:1px solid color-mix(in srgb,CanvasText 15%,transparent);padding:1rem 0}
+.pf-rn-history time{font-size:.9rem;opacity:.7}
+.pf-rn-dialog:focus-visible,.pf-rn-dialog button:focus-visible{outline:3px solid Highlight;outline-offset:2px}
+@media(max-width:360px){.pf-rn-dialog{padding:1rem}.pf-rn-actions button{flex:1}}
+@media(prefers-reduced-motion:reduce){.pf-rn-dialog{scroll-behavior:auto}}

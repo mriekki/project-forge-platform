@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "name": "greenfield-project",
+  "component": "release-notes",
+  "mappings": [
+    {
+      "source": "src/ProjectForge.ReleaseNotes.Runtime/ProjectForge.ReleaseNotes.Runtime.csproj",
+      "destination": "tools/project-forge-release-notes-kit/ProjectForge.ReleaseNotes.Runtime/ProjectForge.ReleaseNotes.Runtime.csproj"
+    },
+    {
+      "source": "src/ProjectForge.ReleaseNotes.Runtime/ReleaseNoteBatchTokens.cs",
+      "destination": "tools/project-forge-release-notes-kit/ProjectForge.ReleaseNotes.Runtime/ReleaseNoteBatchTokens.cs"
+    },
+    {
+      "source": "src/ProjectForge.ReleaseNotes.Runtime/ReleaseNotesContracts.cs",
+      "destination": "tools/project-forge-release-notes-kit/ProjectForge.ReleaseNotes.Runtime/ReleaseNotesContracts.cs"
+    },
+    {
+      "source": "src/ProjectForge.ReleaseNotes.Runtime/ReleaseNotesSelection.cs",
+      "destination": "tools/project-forge-release-notes-kit/ProjectForge.ReleaseNotes.Runtime/ReleaseNotesSelection.cs"
+    },
+    {
+      "source": "src/ProjectForge.ReleaseNotes.Runtime/SignedReleaseAttestation.cs",
+      "destination": "tools/project-forge-release-notes-kit/ProjectForge.ReleaseNotes.Runtime/SignedReleaseAttestation.cs"
+    },
+    {
+      "source": "src/ui/WhatsNew.css",
+      "destination": "tools/project-forge-release-notes-kit/ui/WhatsNew.css"
+    },
+    {
+      "source": "src/ui/WhatsNew.tsx",
+      "destination": "tools/project-forge-release-notes-kit/ui/WhatsNew.tsx"
+    },
+    {
+      "source": "src/ui/announcements.mjs",
+      "destination": "tools/project-forge-release-notes-kit/ui/announcements.mjs"
+    },
+    {
+      "source": "src/ui/package.json",
+      "destination": "tools/project-forge-release-notes-kit/ui/package.json"
+    },
+    {
+      "source": "src/ui/package-lock.json",
+      "destination": "tools/project-forge-release-notes-kit/ui/package-lock.json"
+    },
+    {
+      "source": "src/ui/tsconfig.json",
+      "destination": "tools/project-forge-release-notes-kit/ui/tsconfig.json"
+    },
+    {
+      "source": "contract/release-manifest.schema.json",
+      "destination": "tools/project-forge-release-notes-kit/contract/release-manifest.schema.json"
+    },
+    {
+      "source": "contract/verified-activation.schema.json",
+      "destination": "tools/project-forge-release-notes-kit/contract/verified-activation.schema.json"
+    },
+    {
+      "source": "tools/validate_manifest.py",
+      "destination": "tools/project-forge-release-notes-kit/tools/validate_manifest.py"
+    },
+    {
+      "source": "docs/PROJECT_INTEGRATION.md",
+      "destination": "tools/project-forge-release-notes-kit/PROJECT_INTEGRATION.md"
+    }
+  ]
+}

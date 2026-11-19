@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mriekki/project-forge-release-notes-kit/blob/main/contract/release-manifest.schema.json",
+  "title": "Project Forge Release Notes approved source manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "releaseKey", "releaseVersion", "releasedAtUtc", "entries"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "releaseKey": {"type":"string", "pattern":"^[a-z0-9][a-z0-9-]{2,79}$"},
+    "releaseVersion": {"type":"string", "pattern":"^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$"},
+    "releasedAtUtc": {"type":"null", "description":"Authored data cannot assert verified deployment time."},
+    "entries": {
+      "type": "array", "maxItems": 100,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["announcementId", "category", "title", "summary", "visibility", "priority", "revision"],
+        "properties": {
+          "announcementId": {"type":"string", "pattern":"^[a-z0-9][a-z0-9-]{2,119}$"},
+          "category": {"enum":["feature","improvement","fix","security","other"]},
+          "title": {"type":"string", "minLength":1, "maxLength":120},
+          "summary": {"type":"string", "minLength":1, "maxLength":350},
+          "details": {"type":"string", "minLength":1, "maxLength":2000},
+          "visibility": {"enum":["popup-and-history","history-only"]},
+          "priority": {"type":"integer", "minimum":0, "maximum":100},
+          "revision": {"type":"integer", "minimum":1, "maximum":100000}
+        }
+      }
+    }
+  }
+}

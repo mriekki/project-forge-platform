@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.32.0",
+  "version": "4.33.0",
   "defaultProfile": "greenfield-project",
   "profiles": {
     "greenfield-project": {
@@ -31,11 +31,43 @@
         "authentication",
         "feedback"
       ]
+    },
+    "greenfield-release-notes-project": {
+      "components": [
+        "core",
+        "deployment",
+        "release-notes"
+      ]
+    },
+    "greenfield-household-release-notes-project": {
+      "components": [
+        "core",
+        "deployment",
+        "authentication",
+        "release-notes"
+      ]
+    },
+    "greenfield-feedback-release-notes-project": {
+      "components": [
+        "core",
+        "deployment",
+        "feedback",
+        "release-notes"
+      ]
+    },
+    "greenfield-household-feedback-release-notes-project": {
+      "components": [
+        "core",
+        "deployment",
+        "authentication",
+        "feedback",
+        "release-notes"
+      ]
     }
   },
   "components": {
     "core": {
-      "revision": "2a35476ff743c5c49be7725864f87a021714ff20",
+      "revision": "4cfab0a596d588fbfbb7560d6c56af441099ff0d",
       "version": "4.5.1",
       "distribution": "greenfield-workspace",
       "descriptor": "assets/core/distribution.json",
@@ -51,7 +83,7 @@
       }
     },
     "deployment": {
-      "revision": "058309bb61aa88e96d5a76ada07646c97650a4a5",
+      "revision": "996f9d423499650defc3fde30d722e799b9a2bd6",
       "distribution": "greenfield-project",
       "descriptor": "assets/deployment/distribution.json",
       "sourceRoot": "assets/generated/deployment",
@@ -69,6 +101,13 @@
       "distribution": "greenfield-project",
       "descriptor": "assets/feedback/distribution.json",
       "sourceRoot": "assets/generated/feedback",
+      "canonicalDescriptor": "distributions/greenfield-project.json"
+    },
+    "release-notes": {
+      "revision": "11f0b28efc0a76ccaf2eff65f15d9f7413110726",
+      "distribution": "greenfield-project",
+      "descriptor": "assets/release-notes/distribution.json",
+      "sourceRoot": "assets/generated/release-notes",
       "canonicalDescriptor": "distributions/greenfield-project.json"
     }
   }

@@ -536,6 +536,7 @@ deploy() {
 
     local root releases state current_release="" previous_release="" current_spec="" current_container="" current_id="" next_previous=""
     local digest release_id release_dir release_file lock_file tmp recorded_image_id
+    local previous_generation=0 next_generation
     root="$APP_ROOT/$D_APP/$D_ENV"
     releases="$root/releases"
     state="$root/deployment.env"
@@ -562,6 +563,15 @@ deploy() {
         current_release="$(meta_value "$state" CURRENT_RELEASE || true)"
         previous_release="$(meta_value "$state" PREVIOUS_RELEASE || true)"
         current_spec="$(meta_value "$state" SPEC_SHA256 || true)"
+        previous_generation="$(meta_value "$state" DEPLOYMENT_GENERATION || true)"
+        # Legacy state has no generation and cannot be attested until the next
+        # authorized, successfully verified managed deployment.
+        [[ -n "$previous_generation" ]] || previous_generation=0
+        [[ "$previous_generation" =~ ^(0|[1-9][0-9]*)$ &&
+           "${#previous_generation}" -le 18 ]] || {
+            echo "Managed deployment generation is not a bounded integer." >&2
+            exit 35
+        }
         [[ -n "$current_release" && "$current_spec" =~ ^[0-9a-f]{64}$ ]] || {
             echo "Existing application state is malformed." >&2
             exit 35
@@ -597,6 +607,16 @@ deploy() {
             exit 36
         }
     fi
+
+    # Root-owned Project/environment state is under the existing deployment
+    # lock and outside application data/backup volumes. A normal update or
+    # rollback must not reuse the earlier generation.
+    next_generation=$((previous_generation + 1))
+    [[ "$next_generation" -gt "$previous_generation" &&
+       "$next_generation" -lt 9223372036854775807 ]] || {
+        echo "Managed deployment generation would overflow." >&2
+        exit 35
+    }
 
     if docker inspect "$D_CONTAINER" >/dev/null 2>&1 && [[ "$D_CONTAINER" != "$current_container" ]]; then
         echo "Desired container name is already occupied outside this managed runtime." >&2
@@ -683,10 +703,99 @@ deploy() {
         printf 'CURRENT_RELEASE=%s\n' "$release_id"
         printf 'PREVIOUS_RELEASE=%s\n' "$next_previous"
         printf 'SPEC_SHA256=%s\n' "$D_SPEC_SHA"
+        printf 'DEPLOYMENT_GENERATION=%s\n' "$next_generation"
     } > "$tmp"
     chmod 0600 "$tmp"
     mv -f "$tmp" "$state"
     record_evidence "$root" "deployed" "$release_id" "$next_previous"
+}
+
+
+# Read-only privileged observation of the exact live managed release. This is
+# neither a signed attestation nor a Production deployment authorization.
+inspect_release_for_attestation() {
+    decode_desired
+    platform_ready || { echo "Shared host is not ready for release observation." >&2; exit 41; }
+    local root state current release_file actual recorded generation
+    local source version manifest_hash revision_source release_id operation_hash state_before state_after status
+    root="$APP_ROOT/$D_APP/$D_ENV"
+    state="$root/deployment.env"
+    [[ -d "$root" && ! -L "$root" && -f "$state" && ! -L "$state" ]] || {
+        echo "Trusted managed release state is missing." >&2; exit 41;
+    }
+    [[ "$(stat -c '%u' "$state")" == 0 &&
+       "$(stat -c '%a' "$state")" == 600 ]] || {
+        echo "Release state ownership is unsafe." >&2; exit 41;
+    }
+    state_before="$(sha256sum "$state" | cut -d ' ' -f1)"
+    [[ "$(meta_value "$state" OWNER_REPO || true)" == "$D_OWNER" &&
+       "$(meta_value "$state" ENVIRONMENT || true)" == "$D_ENV" &&
+       "$(meta_value "$state" APP_SLUG || true)" == "$D_APP" &&
+       "$(meta_value "$state" SPEC_SHA256 || true)" == "$D_SPEC_SHA" ]] || {
+        echo "Release state differs from the authorized application." >&2; exit 41;
+    }
+    current="$(meta_value "$state" CURRENT_RELEASE || true)"
+    generation="$(meta_value "$state" DEPLOYMENT_GENERATION || true)"
+    [[ "$current" =~ ^sha256-[0-9a-f]{64}-[0-9a-f]{16}$ &&
+       "$generation" =~ ^[1-9][0-9]*$ &&
+       "${#generation}" -le 18 ]] || {
+        echo "Unverified legacy release or invalid host deployment generation." >&2; exit 41;
+    }
+    release_file="$root/releases/$current/release.env"
+    [[ -f "$release_file" && ! -L "$release_file" &&
+       "$(stat -c '%u' "$release_file")" == 0 &&
+       "$(stat -c '%a' "$release_file")" == 600 ]] || {
+        echo "Privileged release record unavailable." >&2; exit 41;
+    }
+    release_id="$(meta_value "$release_file" IMAGE || true)"
+    recorded="$(meta_value "$release_file" RUNTIME_IMAGE_ID || true)"
+    [[ "$release_id" == "$D_IMAGE" &&
+       "$(meta_value "$release_file" SPEC_SHA256 || true)" == "$D_SPEC_SHA" &&
+       "$(meta_value "$release_file" OWNER_REPO || true)" == "$D_OWNER" &&
+       "$(meta_value "$release_file" ENVIRONMENT || true)" == "$D_ENV" &&
+       "$(meta_value "$release_file" CONTAINER_NAME || true)" == "$D_CONTAINER" &&
+       "$recorded" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+        echo "Release image metadata does not match the authorized spec." >&2; exit 41;
+    }
+    container_identity "$D_CONTAINER" || exit 41
+    [[ -n "$CONTAINER_ID" ]] || {
+        echo "No verified application container exists." >&2; exit 41;
+    }
+    container_image_matches_release "$release_file" "$CONTAINER_ID" "$D_CONTAINER" || {
+        echo "Live Docker image differs from the approved release." >&2; exit 41;
+    }
+    status="$(docker inspect --format '{{.State.Status}}' "$CONTAINER_ID" 2>/dev/null)" || exit 41
+    [[ "$status" == running ]] && network_has_container "$D_CONTAINER" &&
+       probe_http "$D_CONTAINER" "$D_PORT" "$D_HEALTH" || {
+        echo "Live runtime is not verified healthy." >&2; exit 41;
+    }
+    material_inventory_state "$release_file" "$D_APP" "$D_ENV" "$D_CONTAINER" "$D_PERSISTENCE" || exit 41
+    [[ "$MATERIAL_OK" == true ]] || {
+        echo "Approved read-only runtime material mounts are not verified." >&2; exit 41;
+    }
+    actual="$(docker inspect --format '{{.Image}}' "$CONTAINER_ID" 2>/dev/null)" || exit 41
+    [[ "$actual" == "$recorded" ]] || {
+        echo "Live image and root-owned release identity differ." >&2; exit 41;
+    }
+    revision_source="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.source"}}' "$actual" 2>/dev/null)" || exit 41
+    source="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$actual" 2>/dev/null)" || exit 41
+    version="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "$actual" 2>/dev/null)" || exit 41
+    manifest_hash="$(docker image inspect --format '{{index .Config.Labels "com.mriekki.application.release-notes-manifest-sha256"}}' "$actual" 2>/dev/null)" || exit 41
+    [[ "$revision_source" == "https://github.com/$D_OWNER" &&
+       "$source" =~ ^[0-9a-f]{40}$ &&
+       "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$ &&
+       "$manifest_hash" =~ ^[0-9a-f]{64}$ ]] || {
+        echo "Image has no approved source, semantic version or manifest digest." >&2; exit 41;
+    }
+    state_after="$(sha256sum "$state" | cut -d ' ' -f1)"
+    [[ "$state_before" == "$state_after" ]] || {
+        echo "Release changed during host observation; verify again." >&2; exit 41;
+    }
+    operation_hash="$(printf '%s' "$D_OWNER|$D_APP|$D_ENV|$current|$generation|$CONTAINER_ID" | sha256sum | cut -d ' ' -f1)"
+    [[ "$operation_hash" =~ ^[0-9a-f]{64}$ ]] || exit 41
+    printf 'RELEASE_OBSERVATION\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\tpfrelease:%s\n' \
+        "$D_OWNER" "$D_APP" "$D_ENV" "$D_IMAGE" "$D_SPEC_SHA" "$source" \
+        "$manifest_hash" "$version" "$actual" "$generation" "$operation_hash"
 }
 
 case "$ACTION" in
@@ -699,6 +808,9 @@ case "$ACTION" in
     material-inspect)
         decode_desired
         material_probe false || exit 40
+        ;;
+    release-inspect)
+        inspect_release_for_attestation
         ;;
     *)
         echo "Unsupported application-runtime action: $ACTION" >&2

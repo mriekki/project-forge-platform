@@ -1,0 +1,13 @@
+{
+  "name": "@mriekki/project-forge-release-notes-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./announcements": "./announcements.mjs",
+    "./react": "./WhatsNew.tsx"
+  },
+  "peerDependencies": {"react": "^19.0.0", "react-dom": "^19.0.0"},
+  "devDependencies": {"react":"^19.0.0","react-dom":"^19.0.0","@types/react":"^19.0.0","@types/react-dom":"^19.0.0","typescript":"^5.8.0"},
+  "scripts": {"check": "tsc --noEmit", "test": "node --test tests/*.test.mjs"}
+}
