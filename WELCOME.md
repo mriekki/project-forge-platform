@@ -2,13 +2,13 @@
 
 **Build real software. Learn the engineering behind it.**
 
-![Project Forge overview showing the journey from an idea through planning, GitHub repository generation, AI-assisted development, delivery, learning, and controlled deployment.](./docs/images/project-forge-welcome.svg)
+![Project Forge overview showing a choice of starting paths—idea, existing source, or existing repository—followed by guided planning, a GitHub Project, AI-assisted development, delivery, learning and controlled deployment.](./docs/images/project-forge-welcome.svg)
 
-Project Forge is an AI-guided software development and learning platform for turning a personal software idea into a reproducible engineering project while keeping meaningful decisions under human control.
+Project Forge is an AI-guided software development and learning platform for starting from an idea, an existing product/source, or a repository you want to keep, while retaining meaningful decisions under human control.
 
 The goal is not just to generate source code. Project Forge creates an engineering operating model around the project: approved scope, explicit technology choices, deterministic generation, a self-contained VS Code workspace, setup/readiness checks, CI, delivery gates, optional learning, and controlled deployment boundaries.
 
-A typical journey is:
+Begin with `New Project`. Choose **Start from an idea**, **Start from an existing product or source** (to create a new Project), **Adopt an existing repository** (to retain a codebase), or **Not sure — recommend a path**. Only eligible modes from the verified current contract are presented. The illustration shows the common lifecycle after the selected path's discovery/reconciliation; an **idea-first greenfield example** is:
 
 ```text
 idea
@@ -107,4 +107,6 @@ Then start with the one Project-creation prompt:
 New Project
 ```
 
-ChatGPT presents the currently supported ways to start, explains each option, and walks you through the path you select.
+ChatGPT presents the currently supported ways to start, explains each option, and walks you through the path you select. For an adopted repository, reviewed exact-base adoption is a separate lifecycle from generating a new repository.
+
+Authentication, GitHub Issues Feedback and Release Notes are **optional, default-off** capabilities delivered through explicit qualified package profiles. Package inclusion alone does not configure accounts, external providers or Production activation, and passkey support has its own qualification state. See the [Platform README](README.md#optional-components-and-activation-boundaries).

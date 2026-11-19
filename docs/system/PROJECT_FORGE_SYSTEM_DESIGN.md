@@ -19,6 +19,14 @@ Foundational Project Forge repositories:
 - `mriekki/project-forge-platform`
 - `mriekki/project-forge-control-plane`
 
+**Optional capability source repositories** are not foundational workflow owners, but participate in approved package assembly and consumer integration:
+
+- `mriekki/project-forge-auth-kit` — reusable application authentication and candidate passkey source;
+- `mriekki/project-forge-feedback-kit` — GitHub-Issues-backed feedback adapter;
+- `mriekki/project-forge-release-notes-kit` — manifest validation, trusted-activation helpers and user-facing What's New assets.
+
+Each Kit remains the canonical owner for its implementation. Platform controls exact, optional package distribution. Bootstrap separately owns whether a new Project may select a supported capability; a consumer owns its configuration, runtime integration, data and Production acceptance. Package presence is not runtime activation.
+
 Generated or adopted software repositories are **consumers**, not foundational repositories. They are described here only at their boundary with Project Forge. A consumer remains authoritative for its own product requirements, application architecture, code/tests, deployment values, work items, accepted baselines, and delivery history.
 
 ## How to use this document
@@ -211,6 +219,9 @@ flowchart TB
   CORE[Core\nworkflow + HITL + orchestration]
   DEPLOY[Deployment Kit\ndeployment mechanics + evidence]
   ADOPT[Adoption Kit\nexisting-repo deterministic adoption]
+  AUTH[Authentication Kit\noptional accounts and candidate passkeys]
+  FEEDBACK[Feedback Kit\noptional GitHub Issues adapter]
+  NOTES[Release Notes Kit\noptional manifests and What's New]
   PLATFORM[Platform / @mriekki/project-forge\nexact accepted reusable assembly]
   CONSUMER[Generated or adopted consumer]
 
@@ -221,15 +232,21 @@ flowchart TB
   CP --> ADOPT
   CORE --> PLATFORM
   DEPLOY --> PLATFORM
+  AUTH --> PLATFORM
+  FEEDBACK --> PLATFORM
+  NOTES --> PLATFORM
   CORE --> ADOPT
   BOOT -. approved adoption discovery .-> ADOPT
   BOOT -. exact package/profile selection .-> PLATFORM
   BOOT --> CONSUMER
   PLATFORM --> CONSUMER
   ADOPT --> CONSUMER
+  AUTH -. qualified opt-in and Project-owned integration .-> CONSUMER
+  FEEDBACK -. qualified opt-in and Project-owned integration .-> CONSUMER
+  NOTES -. qualified opt-in and verified activation .-> CONSUMER
 ```
 
-The arrows represent **contract, assembly, orchestration, or delivery relationships**, not repository ownership transfer. In particular, canonical Core and Deployment Kit sources flow into Platform assembly; Platform does not own those component implementations. Bootstrap discovery can hand approved existing-repository evidence to Adoption Kit without gaining write authority over the target.
+The arrows represent **contract, assembly, orchestration, or delivery relationships**, not repository ownership transfer. In particular, canonical Core, Deployment, Authentication, Feedback and Release Notes sources flow into Platform assembly only when selected; Platform does not own those component implementations. Optional Kit source distribution does not grant runtime capability or Production approval. Bootstrap discovery can hand approved existing-repository evidence to Adoption Kit without gaining write authority over the target.
 
 ---
 
