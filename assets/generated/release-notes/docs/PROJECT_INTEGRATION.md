@@ -1,14 +1,13 @@
 # Project Forge Release Notes Kit — consumer integration contract
 
-**Status:** source-only, **default OFF**. This file describes the conditional
-distribution layout, not an available/supported or automatically enabled feature.
+**Status:** packaged optional component, **default OFF**. This file describes the distributed component layout, not verified Production activation or automatic support for every generated Project.
 
 The canonical source owner is `mriekki/project-forge-release-notes-kit`.
 Project Forge Platform distributes selected version-pinned components within
 `@mriekki/project-forge`; consumers do **not** need a separate npm publication
-of this source Kit. The current source is reviewed in
+of this source Kit. The first source implementation was merged in
 [Kit PR #2](https://github.com/mriekki/project-forge-release-notes-kit/pull/2).
-The build, publication and FMP Production gates remain independent.
+Platform package publication is complete for the accepted source; per-Project opt-in, FMP Production and Bootstrap catalog qualification remain independent gates.
 
 ## Opt-in distribution layout
 
@@ -29,9 +28,7 @@ non-secret, reusable artifacts under:
 It **does not** copy app-specific migrations, authentication secrets, host
 scripts, Production credentials, example/test data or a published announcements
 file. There is **no** automatically executed startup hook, route, database
-creation, deploy step or CI AI call. Platform packaging must qualify the source
-pin and keep the component excluded from default profiles until the accepted
-reference pilot.
+creation, deploy step or CI AI call. Platform packaging verifies the accepted source pin and excludes this component from default profiles. Explicit existing-Project opt-in is available independently of a Production pilot.
 
 ## Consumer-owned requirements
 
@@ -72,6 +69,4 @@ belongs to Deployment Kit; Platform owns assembly/public
 `@mriekki/project-forge` publishing. Don't patch Platform-generated copies
 as a replacement for upstream changes.
 
-The distribution descriptor is **not** a reason to activate a new Project
-profile until source, FMP E2E and rollback are verified and the Builder
-approves packaging/release.
+An explicit package profile opt-in installs inert, Kit-owned assets. It does **not** qualify a new generated Project, register runtime routes, activate a user-facing announcement, or replace the required FMP end-to-end and rollback acceptance.
