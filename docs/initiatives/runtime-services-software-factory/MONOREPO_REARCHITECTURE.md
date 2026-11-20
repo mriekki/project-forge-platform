@@ -25,7 +25,7 @@ Key measurable outcomes:
 
 ### Single source monorepo — private initially
 
-Candidate repository is the newly created private mriekki/project-forge-runtime-services **only if an explicit naming/destination decision approves renaming or repurposing it**. Do not rename, archive or move sources yet.
+**Decision 15 (approved):** The existing private `mriekki/project-forge-runtime-services` repository will be **renamed to `mriekki/project-forge-source`**, then used as the permanent private monorepo destination. The Builder approved this precise name; **the GitHub rename has not yet been executed or independently verified**. Keep using the existing owner/repo name for live GitHub operations until the rename is confirmed. Do not create a second destination repository or archive source repositories as part of this naming step.
 
 Suggested logical layout:
 
@@ -113,9 +113,9 @@ Existing GitHub Issues/PRs remain in their original repositories unless separate
 Document each repo's deployable/source assets, inter-repo copied paths, workflow and action dependencies, tags/releases, package/Docker images, CI permissions, published contracts, consumers and live provider integrations. Inspect secret **names and locations only**, never retrieve values. Identify all public/private and legal/licensing boundaries.
 
 ### P0.2 — Monorepo destination and visibility
-Select destination name and whether to repurpose/rename the near-empty runtime repository. Favor a clear general name such as project-forge-source or project-forge over a runtime-specific name if the repo will own all reusable source. This is a naming decision, not a reason to create duplicate repositories.
+**Name selection complete:** Rename the existing private `project-forge-runtime-services` repository to **`project-forge-source`**, preserving its GitHub repository identity, history, Issues, PRs, default branch and permissions. The rename is a separate GitHub Settings action and must be verified before changing live clone URLs, workflows or source authority. No new repository is required.
 
-**Visibility recommendation for the Builder's actual needs:** **private initially, structured to be public-ready**. Public source may bring external review, contributor patches, transparency, educational/portfolio value and easier external scrutiny; none inherently fixes development workflows or is needed for the Builder's own Projects. Public visibility also exposes complete source/history/metadata and requires licensing/credentials/security/copyright audits and ongoing issue/contributor expectations. Other Builders are not currently the deciding factor. No obligation to publish code, no need to split source solely to open-source it, and no visibility change without a later explicit Builder decision.
+**Visibility decision (approved): keep the monorepo PRIVATE.** Public source may bring external review, contributor patches, transparency, educational/portfolio value and easier external scrutiny; none inherently fixes development workflows or is needed for the Builder's own Projects. Public visibility also exposes complete source/history/metadata and requires licensing/credentials/security/copyright audits and ongoing issue/contributor expectations. Other Builders are not currently the deciding factor. No obligation to publish code, no need to split source solely to open-source it, and no visibility change without a later explicit Builder decision.
 
 ### P0.3 — Target build graph and release ADR
 Choose Node/JS/TS and .NET workspace integration without imposing one language. Establish package/service boundaries, dependency rules, CODEOWNERS, CI checks, artifacts, release manifest, stable consumer package path and rollback. Target one PR and one meaningful delivery gate per change; preserve publishing authorization as a separate explicit release decision.
