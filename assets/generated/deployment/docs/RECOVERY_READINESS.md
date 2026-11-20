@@ -164,6 +164,45 @@ still fail its HTTP health, authentication/session, provider or normal
 traffic tests. The journal is owner-private evidence, not a
 cryptographically authenticated receipt against a privileged host attacker.
 
+## Opt-in live Auth DB restore — boundary preflight only (#115)
+
+`auth_live_restore_preflight.inspect_auth_restore_boundary` is an internal,
+**read-only** inspection primitive for a future supported single-host restore.
+It accepts independently reviewed exact Project/environment, current managed
+runtime inventory and Docker inspection, immutable-image evidence, an explicit
+external epoch-store identity, and a selected private checkpointed
+`auth.sqlite` backup with its expected SHA-256. It refuses non-opted-in
+deployments, missing/ambiguous app records, image/owner drift, invalid epoch
+mount and environment settings, directory overlap, symlinks, uncheckpointed
+SQLite sidecars, changed artifacts, corrupt SQLite and hash mismatches. It
+never reads or writes the external epoch database.
+
+This preflight **does not** acquire the shared Auth Kit epoch fence,
+mark `restoreInProgress`, verify a trusted restore receipt, stop a container,
+mutate a live database, reconcile sessions/passkeys, or release traffic.
+Its result explicitly reports `restoreReceiptTrusted=false`,
+`authenticationPolicyVerified=false`, and `applicationRecoveryReady=false`.
+The expected backup hash establishes observed artifact integrity **only**,
+not independent provenance or authorization; existing Auth backup-set
+`receipt.json` is unsigned and must not be used as such proof.
+
+Any later live restore implementation must revalidate all evidence under the
+Kit's exact app/environment operation lock, then use an **Auth Kit-owned,
+accepted versioned** shared-fence/durable-hold/receipt/reconciliation API.
+It must commit the durable hold before the first DB mutation, keep all
+authentication and passkey routes blocked through reconciliation, and remain
+held on process interruption or invalid/missing evidence. The external epoch
+store must never be restored, rolled back or replaced. The approval gate for
+that missing owner interface is Auth Kit recovery-contract issue #31;
+the implementation work item is Deployment Kit issue #115. Resolve both
+through their canonical owning repositories; private source locations are
+not a public package contract.
+
+This is not a new operator CLI, a supported live restore engine, a change to
+the disposable-only PR #97 stop/capture/resume lifecycle, a multi-host
+guarantee, or a Production/passkey activation qualification. Non-opted-in
+deployments and ordinary SQLite backup behavior remain unchanged.
+
 ## Non-scope
 
 This contract does not implement generic secret archival, provider-specific secret storage, key transport, key rotation, session/token mutation, or a general database/application restore workflow. Those require separate requirements, plan approval, implementation review, and release/adoption gates.
