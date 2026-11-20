@@ -30,7 +30,10 @@ The first deployment is for this Builder's own Projects on an existing Ubuntu/Do
 | 13 | **Approved and created** private `mriekki/project-forge-runtime-services` for Registry + Portal source initially |
 | 14 | **Approved P0 objective:** consolidate most private Project Forge reusable sources into one monorepo; substantial internal refactoring and reimplementation are welcome where they improve the platform |
 | 15 | **Approved and executed:** existing private repository renamed to **`project-forge-source`**, verified in GitHub |
-| 16 | **Main-only migration scope:** import full reachable ancestry from `main` only for each source; do not import extra feature branches, PR-only refs or tag refs |
+| 16 | **Superseded:** main-ancestry import initially planned; Builder subsequently selected current-main source-file snapshots only, leaving all historical Git objects in existing repositories |
+| 17 | **Current migration strategy:** private monorepo imports exact reviewed current-`main` tracked files (preserving tree/blob provenance), with historical Gitleaks scanning deferred and no historical Git commits imported |
+
+**P0 implementation evidence:** [Source PRs #13–#16](https://github.com/mriekki/project-forge-source/pulls?q=is%3Apr+is%3Amerged) qualify the Feedback and Release Notes Kit current-main snapshots and equivalent public 4.35.0 npm package assembly in disposable consumer tests. Existing old repositories retain source authority until explicitly reviewed cutover. No historical commits imported, no Gitleaks scan represented as completed, no npm publish, and no FMP Production change.
 
 ### Decision 14 superseding source-repository strategy
 
