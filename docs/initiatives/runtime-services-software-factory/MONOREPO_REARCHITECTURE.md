@@ -1,7 +1,7 @@
 # Project Forge 2.0 — P0 Re-architecture and Private Source Monorepo Plan
 
 **Status:** Proposal for architecture review and incremental migration; source consolidation objective approved, actual cutover not yet approved.  
-**Approved direction:** Decision 14-C (private monorepo as P0 objective) plus Builder-approved substantial internal refactoring/reimplementation.  
+**Approved direction:** Decision 14-C (private monorepo as P0 objective) plus Builder-approved substantial internal refactoring/reimplementation. **Import scope clarified:** complete `main` ancestry only; no extra feature branches, PR refs or tag refs.  
 **Primary value:** Faster, clearer and safer development of the Builder's **own Projects**. Supporting other Builders is optional future growth, not the main justification.  
 **Owner issue:** https://github.com/mriekki/project-forge-platform/issues/357  
 **Cross-Project initiative:** https://github.com/mriekki/project-forge-platform/issues/351  
@@ -120,8 +120,14 @@ Document each repo's deployable/source assets, inter-repo copied paths, workflow
 ### P0.3 — Target build graph and release ADR
 Choose Node/JS/TS and .NET workspace integration without imposing one language. Establish package/service boundaries, dependency rules, CODEOWNERS, CI checks, artifacts, release manifest, stable consumer package path and rollback. Target one PR and one meaningful delivery gate per change; preserve publishing authorization as a separate explicit release decision.
 
+### P0.3a — Approved Git history scope and security gate
+
+Only **`main` and its complete reachable ancestry** from the seven private source owners will be imported; no PR-only commits, unmerged branches or original tag refs need transfer. Legacy repositories remain available for those links. Do not confuse this with squashing history to a single tip snapshot.
+
+Prepare a local full, non-shallow clone of each `main` and verify SHA pins, ancestor connectivity and historical secret/license safety **on that main ancestry**. The synthetic main-only import and offline security metadata checks are in [Source PR #10](https://github.com/mriekki/project-forge-source/pull/10). Filename-only screening does not prove historical content free of credentials. Hold real source-history object imports until this review is complete.
+
 ### P0.4 — Migration dry run
-In a disposable workspace/branch, import or selectively reimplement representative Core, Bootstrap and Kit source. Verify reproducible package build and an unchanged generated Project contract. Compare test coverage, output hashes where compatibility is required, and independent service release capability. Preserve historical Git references and mapping; no force push/default-branch overwrite.
+In a disposable workspace/branch, import or selectively reimplement representative Core, Bootstrap and Kit source. Verify reproducible package build and an unchanged generated Project contract. Compare test coverage, output hashes where compatibility is required, and independent service release capability. Preserve the exact committed ancestry reachable from each `main` SHA, with source tree equality and old-to-new commit mapping. Historical extra branches, PR refs and tags remain in the legacy repositories; do not copy them. No force push/default-branch overwrite.
 
 ### P0.5 — Incremental canonical cutover
 Move selected sources in dependency order and freeze/relabel former canonical owners only when CI/provenance/consumer qualification is proven. Favor short, bounded migration batches:
@@ -162,7 +168,7 @@ The Builder explicitly requires **GitHub Actions cost awareness and broader low-
 - [ ] Tested monorepo tooling with representative CI, artifact, generated-consumer and service independence proofs.
 - [ ] Cross-repo duplication and second-deliver causes identified with before/after tests.
 - [ ] Revised public PF-SYS requirements and System Design reviewed before declaring new source authority.
-- [ ] Old Git refs, existing Issues, release receipts, public bootstrap/Control Plane and consumer data remain valid.
+- [ ] Old repositories and their Issues/PRs, tags and non-main refs remain available historically; only `main` ancestry is imported with original commit IDs, and release receipts, public bootstrap/Control Plane and consumer data remain valid.
 - [ ] First-release Runtime Services roadmap rebaselined to monorepo source without losing the approved foundation + shared Feedback deliverable.
 - [ ] No Production deployment, forced consumer migration, irreversible repo action, paid license, or public-repository conversion without a distinct approved change.
 
