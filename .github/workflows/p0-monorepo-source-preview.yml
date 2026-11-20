@@ -1,0 +1,126 @@
+name: P0 Private Source Admission Preview (NO RELEASE)
+
+on:
+  workflow_dispatch:
+    inputs:
+      exact_source_sha:
+        description: 'Exact private merged-main source SHA (preview only)'
+        type: string
+        required: true
+      source_qualification_run_id:
+        description: 'Successful exact-main full source qualification run ID'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0-public-private-source-preview
+  cancel-in-progress: false
+
+jobs:
+  untrusted-preview-only:
+    # OFF unless explicitly enabled after reviewing protected read-only source access.
+    if: github.repository == 'mriekki/project-forge-platform' && github.ref == 'refs/heads/main' && vars.PF_MONOREPO_SOURCE_PREVIEW_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout public Platform publisher without credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Node 22 and Python 3.13
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13'
+
+      - name: Collect authenticated private source and exact release CI evidence
+        id: evidence
+        shell: bash
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          SOURCE_ID: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY_ID }}
+          GH_TOKEN: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          EXPECTED_SHA: ${{ inputs.exact_source_sha }}
+          SOURCE_RUN: ${{ inputs.source_qualification_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid requested source SHA' >&2; exit 2; }
+          [[ "$SOURCE_RUN" =~ ^[1-9][0-9]*$ ]] || { echo 'Invalid source release qualification run ID' >&2; exit 2; }
+          [[ "$SOURCE_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Protected private repository mapping is missing or invalid' >&2; exit 2; }
+          [[ "$SOURCE_ID" =~ ^[1-9][0-9]*$ ]] || { echo 'Protected immutable private repository ID is missing or invalid' >&2; exit 2; }
+          [[ -n "$GH_TOKEN" ]] || { echo 'Protected read-only private source credential is unavailable' >&2; exit 2; }
+          echo "::add-mask::$SOURCE_REPOSITORY"
+          echo "::add-mask::$SOURCE_ID"
+          # Fail closed without printing private repository URLs or API response bodies.
+          gh api "/repos/$SOURCE_REPOSITORY" > "$RUNNER_TEMP/pf-source-repository.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source repository read denied' >&2; exit 2; }
+          gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" > "$RUNNER_TEMP/pf-source-main.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source main read denied' >&2; exit 2; }
+          gh api "/repos/$SOURCE_REPOSITORY/actions/runs/$SOURCE_RUN" > "$RUNNER_TEMP/pf-source-release-run.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source Actions:read is denied or the run is missing' >&2; exit 2; }
+          PF_PROTECTED_SOURCE_REPOSITORY="$SOURCE_REPOSITORY" \
+          PF_PROTECTED_SOURCE_REPOSITORY_ID="$SOURCE_ID" \
+          node scripts/private-source-admission-preview.mjs \
+            --source-sha "$EXPECTED_SHA" \
+            --source-run-id "$SOURCE_RUN" \
+            --package-version 4.35.0 \
+            --repository-json "$RUNNER_TEMP/pf-source-repository.json" \
+            --main-json "$RUNNER_TEMP/pf-source-main.json" \
+            --run-json "$RUNNER_TEMP/pf-source-release-run.json"
+          echo "repository=$SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact independently admitted private source (read only)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ${{ steps.evidence.outputs.repository }}
+          ref: ${{ inputs.exact_source_sha }}
+          path: .private-source
+          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          persist-credentials: false
+
+      - name: Verify exact checkout and locally rebuild pinned historical npm candidate
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.exact_source_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$(git -C .private-source rev-parse HEAD)" == "$EXPECTED_SHA" ]] ||
+            { echo 'Private source checkout SHA changed' >&2; exit 2; }
+          [[ -z "$(git -C .private-source status --porcelain --untracked-files=no)" ]] ||
+            { echo 'Private source checkout dirty' >&2; exit 2; }
+          python3 .private-source/tools/npm/build_candidate.py \
+            --monorepo .private-source --output "$RUNNER_TEMP/private-native-candidate"
+          (
+            cd "$RUNNER_TEMP/private-native-candidate"
+            npm run verify:assets
+            npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pf-package.json"
+          )
+          filename="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync(process.argv[1]));if(x.length!==1||x[0].name!=="@mriekki/project-forge"||x[0].version!=="4.35.0")throw Error("Invalid version");process.stdout.write(x[0].filename)' "$RUNNER_TEMP/pf-package.json")"
+          python3 .private-source/tools/npm/candidate_handoff.py emit \
+            --tarball "$RUNNER_TEMP/$filename" \
+            --source-manifest .private-source/config/npm-assembly.json \
+            --public-components assets/components.json \
+            --handoff "$RUNNER_TEMP/pf-untrusted-handoff.json"
+          node scripts/verify-candidate-handoff.mjs \
+            --handoff "$RUNNER_TEMP/pf-untrusted-handoff.json" \
+            --tarball "$RUNNER_TEMP/$filename" \
+            --reference-commit 74b9462df28faab16bcde7599373f632e2b29626
+
+      - name: Recheck authenticated private main after candidate verification
+        shell: bash
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          GH_TOKEN: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          EXPECTED_SHA: ${{ inputs.exact_source_sha }}
+        run: |
+          set -euo pipefail
+          live="$(gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" --jq '.object.sha' 2>/dev/null)" ||
+            { echo 'Private main cannot be independently rechecked' >&2; exit 2; }
+          [[ "$live" == "$EXPECTED_SHA" ]] || { echo 'Private main advanced during preview' >&2; exit 2; }
+          echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED EXISTING 4.35.0 ONLY'
+          echo 'SOURCE_OWNERSHIP_TRANSFERRED=false'
+          echo 'NPM_PUBLISHED=false'
+          echo 'RELEASE_AUTHORIZED=false'
+          echo 'PRODUCTION_DEPLOYED=false'
