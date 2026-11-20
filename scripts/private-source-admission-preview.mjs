@@ -109,7 +109,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     const protectedSourceRepositoryId = Number(process.env.PF_PROTECTED_SOURCE_REPOSITORY_ID);
     const maxJsonBytes = 1_000_000;
     function readJson(filename) {
-      const stat = fs.statSync(filename);
+      const stat = fs.lstatSync(filename);
       failUnless(stat.size > 0 && stat.size <= maxJsonBytes && !stat.isSymbolicLink(),
         'Invalid authenticated GitHub API evidence file');
       return JSON.parse(fs.readFileSync(filename, 'utf8'));
