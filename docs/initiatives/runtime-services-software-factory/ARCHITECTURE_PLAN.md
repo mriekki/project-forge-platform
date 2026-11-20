@@ -11,7 +11,7 @@ Project Forge is a **Builder-directed, AI-assisted Software Factory** with an op
 
 The first deployment is for this Builder's own Projects on an existing Ubuntu/Docker host. Architect for self-hosting and additional Builders later without treating the initial deployment as a public multitenant SaaS. Prefer free/self-hosted/open-source software; target **$0 incremental recurring license/hosting fees**; document existing CPU, RAM, disk, electricity, support and optional paid AI API costs. Production writes and paid services require separate approval.
 
-### 12 accepted architectural decisions
+### Approved architectural decisions and source-strategy change
 
 | # | Accepted direction |
 |---|---|
@@ -27,7 +27,16 @@ The first deployment is for this Builder's own Projects on an existing Ubuntu/Do
 | 10 | Comprehensive Project Forge Management Portal in Phase 1 |
 | 11 | Portal controls run through existing authoritative systems and approval gates |
 | 12 | First release is foundation **plus shared Feedback integration** with FMP disposable proof |
-| 13 | **Approved and created** private `mriekki/project-forge-runtime-services` as canonical Registry + Portal source owner |
+| 13 | **Approved and created** private `mriekki/project-forge-runtime-services` for Registry + Portal source initially |
+| 14 | **Approved P0 objective:** consolidate most private Project Forge reusable sources into one monorepo; substantial internal refactoring and reimplementation are welcome where they improve the platform |
+
+### Decision 14 superseding source-repository strategy
+
+**New P0 critical-path dependency:** Before implementing substantial Registry/Portal runtime source, adopt and review the [Project Forge 2.0 monorepo/re-architecture proposal](MONOREPO_REARCHITECTURE.md) and the [P0 migration initiative](https://github.com/mriekki/project-forge-platform/issues/357). The Builder wants an architectural simplification—not just a mechanical import of old repositories—and is comfortable with major internal refactoring if existing consumer security, data, release and Production boundaries remain safe.
+
+The previously created private `project-forge-runtime-services` repository still exists and currently contains provisional Registry/Portal design backlog; **its longer-term role is under reconsideration as a possible renamed/repurposed monorepo destination**. Do not prematurely create a competing source authority. Preserve the public Platform contract and public Control Plane, and keep consumer Projects such as FMP independent.
+
+**Public-source visibility:** The Builder is open to public release if it produces meaningful benefits, but supporting other Builders is **not a major near-term goal**. Recommendation: keep the source monorepo private during migration, build clean public-ready source/security/license boundaries, and reassess public visibility independently later. The immediate reason to migrate is better day-to-day development and simpler CI/delivery, not community growth.
 
 ## 2. Current authority and intended owner map
 
@@ -43,7 +52,7 @@ The first deployment is for this Builder's own Projects on an existing Ubuntu/Do
 - **New Registry** will own runtime Project/service registration and grants only; it must not displace GitHub, Deployment Kit, Bootstrap or consumer authorities.
 - **New Portal** will orchestrate approved operations by delegating to the existing authorities, never duplicate GitHub Issues or create its own deploy engine.
 
-**Repository owner (Decision 13, approved/verified):** [private `mriekki/project-forge-runtime-services`](https://github.com/mriekki/project-forge-runtime-services) now exists on `main`, and the connected GitHub integration has confirmed read/write permissions. This repository owns Registry + Management Portal implementation, shared service API contracts, local runtime service assets, CI and source release artifacts. **The fact that the repository exists does not approve implementation of security- or state-critical runtime code before the P0 ADR.** Feedback service source remains in Feedback Kit; Deployment Kit owns host/deployment mechanics; Platform owns the cross-repository architecture and package distribution. Avoid one repository per container. Repository source ownership is settled; deployment-unit and trust model remain P0 design gates.
+**Repository state and transition:** The Builder created [private `mriekki/project-forge-runtime-services`](https://github.com/mriekki/project-forge-runtime-services), and the connected GitHub integration verified access. It was established under Decision 13 as Registry + Portal source owner. **Decision 14 supersedes its permanent standalone source ownership goal:** it is now a *candidate* source-monorepo destination pending P0 naming/migration ADR, with existing Issues remaining in place until an explicit source/issue-authority cutover. Feedback Kit and Deployment Kit are still current canonical sources; their implementation may later reside under monorepo paths while retaining logical ownership. Platform continues to own the current public cross-system and package boundaries until reviewed normative changes are accepted. No source moving, repo renaming, archived history, public visibility change, runtime implementation or Production write follows merely from this document.
 
 Existing planning view: https://github.com/mriekki/project-forge-platform/issues/294 (GitHub Projects Portfolio). A management portal is an operational interface, not another engineering Issue/PR database.
 
@@ -137,7 +146,13 @@ Preserve GitHub Issues as the only authoritative Feedback records. Extend the ca
 
 ## 10. Roadmap (priorities are not calendar dates)
 
-### P0 — Architecture & feasibility (start now)
+### P0 — Monorepo re-architecture, platform simplification, runtime design and feasibility (start now)
+
+**Critical path:** Review the [monorepo re-architecture plan](MONOREPO_REARCHITECTURE.md) and complete [Platform #357](https://github.com/mriekki/project-forge-platform/issues/357): inventory the current source/dependency graph, decide the single private monorepo destination, define atomic change/CI/release tooling, evaluate selective rewrite and public-ready but initially private boundaries, run an isolated migration pilot, and amend PF-SYS repository-bound ownership/provenance requirements explicitly. Gate substantial Registry/Portal implementation on this reviewed source architecture.
+
+The original Runtime Services P0 security, grants, Registry availability, portal authority, host capacity and local recovery decisions remain mandatory in parallel.
+
+### P0 — Original runtime-specific feasibility
 
 Deliver approved architecture ADR, owner map, revised cross-repo system requirements if needed, **confirmed runtime source repository boundary**, Registry protocol and availability model, service trust exchange, portal auth/roles/action schema, local-host inventory/capacity budget, recovery objectives, API compatibility and migration policy. The detailed plan and this GitHub backlog can be prepared in advance; **implementation/Production phase gates remain explicit**.
 
