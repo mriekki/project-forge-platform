@@ -136,6 +136,25 @@ This is a suggested ordering, not mandatory if dependency analysis supports a sa
 ### P0.6 — Operational validation
 Prove existing FMP remains unchanged and supports an explicit future update; no Production data or image changes. Verify public descriptor, Control Plane GitHub App path, package publishing preflight, cross-repo links and first new source release receipts. Define rollback to original repository sources until acceptance.
 
+## P0 cost envelope (approved design constraint)
+
+The Builder explicitly requires **GitHub Actions cost awareness and broader low-cost/self-hosted operation**. Plan to target **$0 incremental recurring cash costs** without mischaracterizing electricity, hardware wear, existing network/domain spending, maintenance or optional AI APIs as free.
+
+- First source-monorepo pilot: https://github.com/mriekki/project-forge-source/pull/6. Experimental Core + Bootstrap + Feedback samples, one source checkout and deterministic offline contract bundle; a single path-filtered Linux job capped at five minutes, no Docker, browser, artifact upload or publication.
+- Detailed bounded policy: https://github.com/mriekki/project-forge-source/blob/p0/atomic-source-pilot/docs/P0_COST_GUARDRAILS.md (draft). It covers current GitHub Free usage allowances, Actions runner types, storage/cache, CI duplication, local host CPU/RAM/electricity, Prometheus/Loki retention, backup growth, Cloudflare limits, paid AI API guards and maintenance.
+- **Right-sized CI:** fast checks per PR; affected-component checks by source/dependency graph; expensive Docker/browser/recovery/security checks when a changed component or release gate actually requires them. Do not save compute by skipping relevant auth, passkey, deployment, secrets or restore safety evidence.
+- CI billable minutes and GitHub Plans are mutable; review **actual GitHub Billing and Usage** rather than guessing spend from workflow count or wall clock. The current inventory identifies at least 28 existing workflows, but that count does **not** imply billable usage.
+- Host/runtime provisioning must start with a measured capacity and storage budget. Grafana/Loki retention can exhaust disks even with free software; enforce quotas and alert before full disk. Off-host DR, additional disks, domain renewals and services may eventually require explicit spend approval.
+- Keep the monorepo private (approved); GitHub Free private-branch enforcement limitations should not trigger a paid plan upgrade unless a separately reviewed security/business case warrants it.
+
+### P0 cost acceptance
+
+- [ ] Collect monthly GitHub Actions billed usage and project future CI cost before adding OS matrices.
+- [ ] Establish an upper-cost budget and fail-closed or notification policy for paid APIs/vendors.
+- [ ] Verify a reproducible source-pinned CI build in one checkout without irrelevant jobs/duplicate source handoffs.
+- [ ] Establish host utilization/storage estimates with monitoring retention and backup growth.
+- [ ] Document unavoidable paid requirements separately; none silently introduced.
+
 ## 6. Success criteria and hazards
 
 - [ ] One source-repo decision and private/public rationale recorded.
