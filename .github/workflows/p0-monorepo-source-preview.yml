@@ -44,7 +44,7 @@ jobs:
         env:
           SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
           SOURCE_ID: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY_ID }}
-          GH_TOKEN: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
           EXPECTED_SHA: ${{ inputs.exact_source_sha }}
           SOURCE_RUN: ${{ inputs.source_qualification_run_id }}
         run: |
@@ -77,7 +77,7 @@ jobs:
           repository: ${{ steps.evidence.outputs.repository }}
           ref: ${{ inputs.exact_source_sha }}
           path: .private-source
-          token: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          token: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
           persist-credentials: false
 
       - name: Verify exact checkout and locally rebuild pinned historical npm candidate
@@ -112,7 +112,7 @@ jobs:
         shell: bash
         env:
           SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
-          GH_TOKEN: ${{ secrets.PROJECT_FORGE_SOURCE_TOKEN }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
           EXPECTED_SHA: ${{ inputs.exact_source_sha }}
         run: |
           set -euo pipefail

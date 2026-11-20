@@ -20,7 +20,7 @@ test('public/private source preview is manual-only and disabled without an expli
 test('private source mapping and immutable repo ID are protected, run evidence is authenticated', () => {
   assert.match(preview, /secrets\.PF_MONOREPO_SOURCE_REPOSITORY/);
   assert.match(preview, /secrets\.PF_MONOREPO_SOURCE_REPOSITORY_ID/);
-  assert.match(preview, /secrets\.PROJECT_FORGE_SOURCE_TOKEN/);
+  assert.match(preview, /secrets\.PF_MONOREPO_SOURCE_READ_TOKEN/);
   assert.match(preview, /actions\/runs\/\$SOURCE_RUN/);
   assert.match(preview, /private-source-admission-preview\.mjs/);
   assert.match(preview, /--source-sha "\$EXPECTED_SHA"/);
@@ -47,5 +47,7 @@ test('legacy public npm publisher remains untouched and preview has no publish o
   assert.match(preview, /RELEASE_AUTHORIZED=false/);
   assert.match(publish, /npm publish "dist\/release\/\$\{TARBALL\}"/);
   assert.match(publish, /secrets\.PROJECT_FORGE_SOURCE_TOKEN/);
+  assert.doesNotMatch(publish, /secrets\.PF_MONOREPO_SOURCE_READ_TOKEN/);
+  assert.doesNotMatch(preview, /secrets\.PROJECT_FORGE_SOURCE_TOKEN/);
   assert.doesNotMatch(publish, /private-source-admission-preview/);
 });
