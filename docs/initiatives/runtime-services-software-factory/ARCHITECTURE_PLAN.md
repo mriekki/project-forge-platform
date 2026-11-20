@@ -27,6 +27,7 @@ The first deployment is for this Builder's own Projects on an existing Ubuntu/Do
 | 10 | Comprehensive Project Forge Management Portal in Phase 1 |
 | 11 | Portal controls run through existing authoritative systems and approval gates |
 | 12 | First release is foundation **plus shared Feedback integration** with FMP disposable proof |
+| 13 | **Approved and created** private `mriekki/project-forge-runtime-services` as canonical Registry + Portal source owner |
 
 ## 2. Current authority and intended owner map
 
@@ -42,7 +43,7 @@ The first deployment is for this Builder's own Projects on an existing Ubuntu/Do
 - **New Registry** will own runtime Project/service registration and grants only; it must not displace GitHub, Deployment Kit, Bootstrap or consumer authorities.
 - **New Portal** will orchestrate approved operations by delegating to the existing authorities, never duplicate GitHub Issues or create its own deploy engine.
 
-**Repository decision gate:** A new canonical source repo provisionally named project-forge-runtime-services is likely justified for the Registry + Portal and their shared contracts, but **do not create it until an ADR approves the ownership and service boundaries**. Feedback service source remains in Feedback Kit, and Deployment Kit retains deploy mechanics. Avoid one repo per container.
+**Repository owner (Decision 13, approved/verified):** [private `mriekki/project-forge-runtime-services`](https://github.com/mriekki/project-forge-runtime-services) now exists on `main`, and the connected GitHub integration has confirmed read/write permissions. This repository owns Registry + Management Portal implementation, shared service API contracts, local runtime service assets, CI and source release artifacts. **The fact that the repository exists does not approve implementation of security- or state-critical runtime code before the P0 ADR.** Feedback service source remains in Feedback Kit; Deployment Kit owns host/deployment mechanics; Platform owns the cross-repository architecture and package distribution. Avoid one repository per container. Repository source ownership is settled; deployment-unit and trust model remain P0 design gates.
 
 Existing planning view: https://github.com/mriekki/project-forge-platform/issues/294 (GitHub Projects Portfolio). A management portal is an operational interface, not another engineering Issue/PR database.
 
@@ -138,7 +139,7 @@ Preserve GitHub Issues as the only authoritative Feedback records. Extend the ca
 
 ### P0 — Architecture & feasibility (start now)
 
-Deliver approved architecture ADR, owner map, revised cross-repo system requirements if needed, code repo decision, Registry protocol and availability model, service trust exchange, portal auth/roles/action schema, local-host inventory/capacity budget, recovery objectives, API compatibility and migration policy. The detailed plan and this GitHub backlog can be prepared in advance; **implementation/Production phase gates remain explicit**.
+Deliver approved architecture ADR, owner map, revised cross-repo system requirements if needed, **confirmed runtime source repository boundary**, Registry protocol and availability model, service trust exchange, portal auth/roles/action schema, local-host inventory/capacity budget, recovery objectives, API compatibility and migration policy. The detailed plan and this GitHub backlog can be prepared in advance; **implementation/Production phase gates remain explicit**.
 
 **Exit:** reviewed decisions, owners, resource envelope, unresolved blockers and a feasible implementation order.
 
@@ -164,7 +165,8 @@ Central SSO/user federation, AI model gateway/local inference, file/object stora
 
 ## 11. Ownership plan / backlog routing
 
-Platform: overarching architecture/ADRs, owner decision, compatibility/release/public contract coordination.  
+Platform: overarching architecture/ADRs, normative PF-SYS changes, compatibility/release/public contract coordination.
+**Runtime Services (`mriekki/project-forge-runtime-services`):** canonical Registry and Portal source, migrations, APIs, RBAC, integration tests, service-specific release evidence; **P0 detailed security and operational design remains pending**.  
 Deployment Kit: service runtime/secret isolation, telemetry stack deployment, backup/recovery/alert operations and bounded portal operation adapters.  
 Feedback Kit: extend existing #24 and implement service/API under its canonical ownership after ADR review.  
 FMP: disposable consumer proof, no Production mutation.  
@@ -177,7 +179,7 @@ Use one coordinating Platform issue with owner issues and reciprocal links; GitH
 ## 12. Open implementation design gates and risk register
 
 **Gates left to resolve before consequential runtime work:**
-- Final source repository ownership and separate deployable units.
+- Source repository **approved and created**; decide separate deployable units, CI/release scope and ownership invariants in the P0 ADR.
 - Registry online-vs-lease grant validation, revocation freshness, resilience and data migration.
 - Exact service-to-service authentication and key rotation.
 - Operator sign-in, portal RBAC, action dispatch and independent Production approvals.
@@ -200,7 +202,7 @@ Use one coordinating Platform issue with owner issues and reciprocal links; GitH
 
 P1 is **done** only after canonical owner/ADR acceptance; required tests and source-pinned CI; reproducible non-Production host deployment; Registry/Portal/Feedback API and cross-tenant security proof; Grafana dashboards/alert proof; local backup with isolated restore; FMP disposable embedded/shared and rollback proof; credible resources/costs; documentation; and clear release receipts/limitations.
 
-A green Grafana dashboard, merged PR, npm version or issue closure **is not Production acceptance**. No new repository, GitHub App grant, provider credential, Production migration, package publication or host write is authorized by this plan without its distinct approved execution gate.
+A green Grafana dashboard, merged PR, npm version or issue closure **is not Production acceptance**. The dedicated runtime source repository has already been **created with Builder authorization**. No *additional* repository, GitHub App grant, provider credential, Production migration, package publication or host write is authorized by this plan without its distinct approved execution gate.
 
 ### Candidate free tools to validate during owner implementation
 
