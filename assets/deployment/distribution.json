@@ -192,6 +192,10 @@
       "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_guard.py"
     },
     {
+      "source": "src/project_forge_deployment/auth_live_restore_preflight.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/auth_live_restore_preflight.py"
+    },
+    {
       "source": "src/project_forge_deployment/auth_recovery_capture.py",
       "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_capture.py"
     },

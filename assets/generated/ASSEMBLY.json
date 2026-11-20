@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.34.0",
+  "version": "4.35.0",
   "components": {
     "core": {
       "revision": "4cfab0a596d588fbfbb7560d6c56af441099ff0d",
@@ -748,7 +748,7 @@
       }
     },
     "deployment": {
-      "revision": "39dfe4f4303527379744544aa468b8a70a131f93",
+      "revision": "0e4f4f7edefd8567f989824d2e6aa88c2b9d92eb",
       "distribution": "greenfield-project",
       "files": [
         {
@@ -987,6 +987,11 @@
           "sha256": "8ca97923b994f07655b04062556e2dd755c2127ff134ecbfe64c64f20f0e5ac8"
         },
         {
+          "source": "src/project_forge_deployment/auth_live_restore_preflight.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/auth_live_restore_preflight.py",
+          "sha256": "014e1e3ef3162e429df6a6663cd4fa27e23f05c73bf622f35bdd02cfa89dfe59"
+        },
+        {
           "source": "src/project_forge_deployment/auth_recovery_capture.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/auth_recovery_capture.py",
           "sha256": "de8e2db1d66b07d69afe11aa331264cc180cd9b3ecf734c175cd1fdff5764d4c"
@@ -1119,7 +1124,7 @@
         {
           "source": "docs/RECOVERY_READINESS.md",
           "destination": "docs/project-forge/RECOVERY_READINESS.md",
-          "sha256": "61d4b26d5f126acbc544925489acb3adc8d6c7ea5d2d02b4b71bf6ccb3d3171b"
+          "sha256": "41f37ad2a2a527cc8101d6304674fe855929b9dce8186923d8eb4d92035ff03f"
         },
         {
           "source": "docs/images/developer-environment-journey.svg",
