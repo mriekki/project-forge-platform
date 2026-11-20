@@ -1,7 +1,7 @@
 # Project Forge 2.0 — P0 Re-architecture and Private Source Monorepo Plan
 
 **Status:** Proposal for architecture review and incremental migration; source consolidation objective approved, actual cutover not yet approved.  
-**Approved direction:** Decision 14-C (private monorepo as P0 objective) plus Builder-approved substantial internal refactoring/reimplementation. **Import scope clarified:** complete `main` ancestry only; no extra feature branches, PR refs or tag refs.  
+**Approved direction:** Decision 14-C (private monorepo as P0 objective) plus Builder-approved substantial internal refactoring/reimplementation. **Current implementation strategy (Builder-approved):** copy current `main` source snapshots only, without importing historical commits; original private repositories retain full Git history, Issues, PRs, tags and source provenance.  
 **Primary value:** Faster, clearer and safer development of the Builder's **own Projects**. Supporting other Builders is optional future growth, not the main justification.  
 **Owner issue:** https://github.com/mriekki/project-forge-platform/issues/357  
 **Cross-Project initiative:** https://github.com/mriekki/project-forge-platform/issues/351  
@@ -25,7 +25,7 @@ Key measurable outcomes:
 
 ### Single source monorepo — private initially
 
-**Decision 15 (approved):** The existing private `mriekki/project-forge-runtime-services` repository will be **renamed to `mriekki/project-forge-source`**, then used as the permanent private monorepo destination. The Builder approved this precise name; **the GitHub rename has not yet been executed or independently verified**. Keep using the existing owner/repo name for live GitHub operations until the rename is confirmed. Do not create a second destination repository or archive source repositories as part of this naming step.
+**Decision 15 (approved):** The existing private `mriekki/project-forge-runtime-services` repository will be **renamed to `mriekki/project-forge-source`**, then used as the permanent private monorepo destination. The Builder approved this precise name, and the GitHub rename to private `mriekki/project-forge-source` has been executed and independently verified. Do not create a second destination repository or archive source repositories as part of this naming step.
 
 Suggested logical layout:
 
@@ -122,12 +122,14 @@ Choose Node/JS/TS and .NET workspace integration without imposing one language. 
 
 ### P0.3a — Approved Git history scope and security gate
 
-Only **`main` and its complete reachable ancestry** from the seven private source owners will be imported; no PR-only commits, unmerged branches or original tag refs need transfer. Legacy repositories remain available for those links. Do not confuse this with squashing history to a single tip snapshot.
+The Builder later chose **current-`main` source snapshots only**: copy tracked files at an exact, reviewed canonical source tip, preserving file paths/modes/bytes and source commit/tree attribution, **without copying historical Git objects**. Legacy repositories retain original histories, Issues, PRs, tags and release evidence. The earlier full-ancestry import tooling is optional and is not the migration path.
 
-Prepare a local full, non-shallow clone of each `main` and verify SHA pins, ancestor connectivity and historical secret/license safety **on that main ancestry**. The synthetic main-only import and offline security metadata checks are in [Source PR #10](https://github.com/mriekki/project-forge-source/pull/10). Filename-only screening does not prove historical content free of credentials. Hold real source-history object imports until this review is complete.
+Historical Git object import and Gitleaks scanning have been deferred at the Builder's request. Source snapshot migrations must still verify current tracked file provenance and basic sensitive-file safety. No historical secret scan is claimed. If a future decision imports old commits or publishes their contents, reassess security/license gates.
+
+**Verified current milestones (November 2026):** Private Source PRs [#13](https://github.com/mriekki/project-forge-source/pull/13) and [#15](https://github.com/mriekki/project-forge-source/pull/15) copied complete, Git-tree-identical Feedback (17 files) and Release Notes (27 files) snapshots; .NET, Python and React CI passed. PRs [#14](https://github.com/mriekki/project-forge-source/pull/14) and [#16](https://github.com/mriekki/project-forge-source/pull/16) proved mapped sources produce identical public Platform 4.35.0 npm tarball bytes and pass disposable Project install/check/update/check. This is a **qualification baseline**, not canonical cutover, npm publication, or Production deployment.
 
 ### P0.4 — Migration dry run
-In a disposable workspace/branch, import or selectively reimplement representative Core, Bootstrap and Kit source. Verify reproducible package build and an unchanged generated Project contract. Compare test coverage, output hashes where compatibility is required, and independent service release capability. Preserve the exact committed ancestry reachable from each `main` SHA, with source tree equality and old-to-new commit mapping. Historical extra branches, PR refs and tags remain in the legacy repositories; do not copy them. No force push/default-branch overwrite.
+In a disposable workspace/branch, import or selectively reimplement representative Core, Bootstrap and Kit source. Verify reproducible package build and an unchanged generated Project contract. Compare test coverage, output hashes where compatibility is required, and independent service release capability. Verify exact current-main source tree SHA equality and maintain a source repo + immutable commit/blob provenance ledger. Do **not** copy historical commit objects or feature/PR/tag refs; the original repositories remain available historically. No force push/default-branch overwrite.
 
 ### P0.5 — Incremental canonical cutover
 Move selected sources in dependency order and freeze/relabel former canonical owners only when CI/provenance/consumer qualification is proven. Favor short, bounded migration batches:
@@ -168,7 +170,7 @@ The Builder explicitly requires **GitHub Actions cost awareness and broader low-
 - [ ] Tested monorepo tooling with representative CI, artifact, generated-consumer and service independence proofs.
 - [ ] Cross-repo duplication and second-deliver causes identified with before/after tests.
 - [ ] Revised public PF-SYS requirements and System Design reviewed before declaring new source authority.
-- [ ] Old repositories and their Issues/PRs, tags and non-main refs remain available historically; only `main` ancestry is imported with original commit IDs, and release receipts, public bootstrap/Control Plane and consumer data remain valid.
+- [ ] Original repositories and full history/Issues/PRs/tags remain available; only exact pinned current-main files are imported with Git tree/blob identities, and release receipts, public Bootstrap/Control Plane and consumer data remain valid.
 - [ ] First-release Runtime Services roadmap rebaselined to monorepo source without losing the approved foundation + shared Feedback deliverable.
 - [ ] No Production deployment, forced consumer migration, irreversible repo action, paid license, or public-repository conversion without a distinct approved change.
 
