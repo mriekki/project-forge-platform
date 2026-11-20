@@ -46,6 +46,8 @@ test('legacy public npm publisher remains untouched and preview has no publish o
   assert.match(preview, /NPM_PUBLISHED=false/);
   assert.match(preview, /RELEASE_AUTHORIZED=false/);
   assert.match(publish, /npm publish "dist\/release\/\$\{TARBALL\}"/);
-  assert.match(publish, /secrets\.PF_MONOREPO_SOURCE_READ_TOKEN/);
+  assert.match(publish, /secrets\.PROJECT_FORGE_SOURCE_TOKEN/);
+  assert.doesNotMatch(publish, /secrets\.PF_MONOREPO_SOURCE_READ_TOKEN/);
+  assert.doesNotMatch(preview, /secrets\.PROJECT_FORGE_SOURCE_TOKEN/);
   assert.doesNotMatch(publish, /private-source-admission-preview/);
 });
