@@ -35,6 +35,54 @@ function archiveJson(bytes, name) {
   }
 }
 
+// Shared exact archive projection. Only the independent caller can establish
+// that these bytes were rebuilt from the reviewed, authenticated source.
+export function readReleaseArchiveProjection({archiveBytes, expectedVersion, expectedProfile,
+  requirePublishableForm = false}) {
+  requireFact(Buffer.isBuffer(archiveBytes) && archiveBytes.length > 0 &&
+    archiveBytes.length <= 32 * 1024 * 1024, 'Invalid release archive size');
+  const pkg = archiveJson(archiveBytes, 'package.json');
+  const metadata = archiveJson(archiveBytes, 'assets/components.json');
+  const assembly = archiveJson(archiveBytes, 'assets/generated/ASSEMBLY.json');
+  requireFact(pkg?.name === PKG && pkg?.version === expectedVersion && pkg?.private !== true &&
+    metadata?.schemaVersion === 2 && metadata?.package === PKG && metadata?.version === expectedVersion &&
+    assembly?.schemaVersion === 2 && assembly?.package === PKG && assembly?.version === expectedVersion,
+    'Prior archive package metadata differs');
+  if (requirePublishableForm) {
+    requireFact((pkg.private === undefined || pkg.private === false) &&
+      pkg.publishConfig?.access === 'public' && pkg.publishConfig?.provenance === true,
+      'Candidate is not in public stable release form');
+  }
+  inventory(metadata.components);
+  inventory(assembly.components);
+  // Optional descriptor alignment uses profiles read from the same verified
+  // archive, not from the potentially stale checkout or a caller projection.
+  if (expectedProfile !== undefined) {
+    requireFact(typeof expectedProfile === 'string' &&
+      /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(expectedProfile) &&
+      metadata.profiles && typeof metadata.profiles === 'object' &&
+      !Array.isArray(metadata.profiles) &&
+      Object.hasOwn(metadata.profiles, expectedProfile),
+      'Exact archive does not provide the selected generation profile');
+    const selected = metadata.profiles[expectedProfile]?.components;
+    requireFact(Array.isArray(selected) && selected.includes('core') &&
+      selected.includes('deployment') && new Set(selected).size === selected.length &&
+      selected.every(id => COMPONENTS.includes(id)),
+      'Invalid selected archive generation profile component set');
+  }
+  const packageComponents = {};
+  for (const id of COMPONENTS) {
+    const component = metadata.components[id], assembled = assembly.components[id];
+    requireFact(component && assembled && component.revision === assembled.revision &&
+      (id !== 'core' || component.version === assembled.version),
+      'Prior archive component revision mismatch');
+    packageComponents[id] = id === 'core'
+      ? {revision:component.revision,version:component.version} : {revision:component.revision};
+  }
+  return {package: {name:pkg.name, version:pkg.version}, packageComponents,
+    assemblyRevisions: Object.fromEntries(COMPONENTS.map(id => [id, assembly.components[id].revision]))};
+}
+
 export function verifyPriorRegistryArchive({
   receiptBytes, expectedVersion, expectedSha256, archiveBytes,
   registry, platformSource, componentDigests, expectedProfile
@@ -64,40 +112,10 @@ export function verifyPriorRegistryArchive({
     registry?.dist?.integrity === 'sha512-' + hash('sha512', archiveBytes, 'base64'),
     'Exact registry version or integrity differs');
 
-  const pkg = archiveJson(archiveBytes, 'package.json');
-  const metadata = archiveJson(archiveBytes, 'assets/components.json');
-  const assembly = archiveJson(archiveBytes, 'assets/generated/ASSEMBLY.json');
-  requireFact(pkg?.name === PKG && pkg?.version === expectedVersion && pkg?.private !== true &&
-    metadata?.schemaVersion === 2 && metadata?.package === PKG && metadata?.version === expectedVersion &&
-    assembly?.schemaVersion === 2 && assembly?.package === PKG && assembly?.version === expectedVersion,
-    'Prior archive package metadata differs');
-  inventory(metadata.components);
-  inventory(assembly.components);
-  // Optional descriptor alignment uses profiles read from the same verified
-  // archive, not from the potentially stale checkout or a caller projection.
-  if (expectedProfile !== undefined) {
-    requireFact(typeof expectedProfile === 'string' &&
-      /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(expectedProfile) &&
-      metadata.profiles && typeof metadata.profiles === 'object' &&
-      !Array.isArray(metadata.profiles) &&
-      Object.hasOwn(metadata.profiles, expectedProfile),
-      'Exact archive does not provide the selected generation profile');
-    const selected = metadata.profiles[expectedProfile]?.components;
-    requireFact(Array.isArray(selected) && selected.includes('core') &&
-      selected.includes('deployment') && new Set(selected).size === selected.length &&
-      selected.every(id => COMPONENTS.includes(id)),
-      'Invalid selected archive generation profile component set');
-  }
-  const packageComponents = {};
-  for (const id of COMPONENTS) {
-    const component = metadata.components[id], assembled = assembly.components[id];
-    requireFact(component && assembled && component.revision === assembled.revision &&
-      (id !== 'core' || component.version === assembled.version),
-      'Prior archive component revision mismatch');
-    packageComponents[id] = id === 'core'
-      ? {revision:component.revision,version:component.version} : {revision:component.revision};
-  }
-  const observed = {package:{name:pkg.name,version:pkg.version}, platformSource,
+  const {package: packageInfo, packageComponents} = readReleaseArchiveProjection({
+    archiveBytes, expectedVersion, expectedProfile
+  });
+  const observed = {package:packageInfo, platformSource,
     artifact, packageComponents, componentDigests};
   const previous = selectPriorRelease({receiptBytes,expectedVersion,expectedSha256,observed});
   return Object.freeze({previous, observed, archiveReceiptMatched:true,
