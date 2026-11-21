@@ -19,6 +19,7 @@ on:
         options:
           - historical-4.35
           - changed-feedback-4.36-preview
+          - versioned-assembly-fixture-preview
   issues:
     types: [opened]
 
@@ -45,7 +46,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout public Platform publisher without credentials
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - name: Set up Node 22 and Python 3.13
@@ -113,7 +114,7 @@ jobs:
           echo "repository=$SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
 
       - name: Checkout exact independently admitted private source (read only)
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ steps.evidence.outputs.repository }}
           ref: ${{ steps.request.outputs.source_sha }}
@@ -185,6 +186,43 @@ jobs:
           echo 'NPM_PUBLISHED=false SOURCE_OWNERSHIP_TRANSFERRED=false PRODUCTION_CHANGED=false'
           echo 'verified=true' >> "$GITHUB_OUTPUT"
 
+      - name: Independently rebuild versioned assembly fixture (NO PUBLISH)
+        id: native_fixture
+        if: steps.request.outputs.candidate_mode == 'versioned-assembly-fixture-preview'
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.request.outputs.source_sha }}
+          PYTHONDONTWRITEBYTECODE: '1'
+          GIT_CONFIG_NOSYSTEM: '1'
+          GIT_CONFIG_GLOBAL: /dev/null
+        run: |
+          set -euo pipefail
+          # Restrict this rehearsal to the reviewed exact source. Later source
+          # selection needs explicit code/manifest review, not relaxed pins.
+          [[ "$EXPECTED_SHA" == '827674a8658b45532b3565c2fa598d5ad036a039' ]]
+          [[ "$(git -C .private-source rev-parse HEAD)" == "$EXPECTED_SHA" ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_manifest_preview.py")" == 'e7e353a9c73ffcde0d1f906534e245d33e3faa9d' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tests/release/native_candidate_archive_proof.py")" == '163081f8fd55dea533768601490823846d88617c' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_native_source_preview.py")" == 'd7ee0c2e49188462a1687be509c395dd35b3766d' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/release/native_revision_plan.py")" == 'afa230b1a4961768be0d5e22a2ee14c953c290b7' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/release/plan_component_revisions.py")" == '3e93f443d4165b201a30c6aa717a9fa6f266ffae' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_candidate.py")" == 'e37c13c6f1166c8d9d9b58d468132c3218be5e9e' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_versioned_preview.py")" == 'be0e792bf9aa6bce49e6031cf7cd5740e876c997' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:experiments/npm-kit-source/changed-feedback-rollback.sh")" == '4a0899fe5b7c93a8ef925e2f60dcd6a9e2d0d25c' ]]
+          filename="$(node -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync(process.argv[1]));process.stdout.write(a[0].filename)' "$RUNNER_TEMP/pf-package.json")"
+          # Disposable proof uses committed files, isolated Git repositories and
+          # local npm archives. No stable candidate or release intent is admitted.
+          python3 .private-source/tests/release/native_candidate_archive_proof.py \
+            --historical-archive "$RUNNER_TEMP/$filename" \
+            --scratch "$RUNNER_TEMP" > "$RUNNER_TEMP/pf-native-fixture.log" 2>&1 || {
+              echo 'Versioned assembly fixture qualification failed (private log withheld)' >&2
+              exit 2
+            }
+          grep -Fx 'PASS: digest-pinned versioned manifest, reviewed descriptor and shell changes, reproducible archive and installed upgrade' "$RUNNER_TEMP/pf-native-fixture.log"
+          grep -Fx 'PASS: shell-only edit preserves all component revisions; forged selection and mismatched descriptor refused' "$RUNNER_TEMP/pf-native-fixture.log"
+          grep -Fx 'RELEASE_AUTHORIZED=false SOURCE_OWNER_TRANSFERRED=false PRODUCTION_CHANGED=false' "$RUNNER_TEMP/pf-native-fixture.log"
+          echo 'verified=true' >> "$GITHUB_OUTPUT"
+
       - name: Recheck authenticated private main after candidate verification
         shell: bash
         env:
@@ -202,6 +240,12 @@ jobs:
               exit 2
             }
             echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED HISTORICAL 4.35.0 AND UNPUBLISHED CHANGED-FEEDBACK SOURCE'
+          elif [[ "${{ steps.request.outputs.candidate_mode }}" == 'versioned-assembly-fixture-preview' ]]; then
+            [[ "${{ steps.native_fixture.outputs.verified }}" == 'true' ]] || {
+              echo 'Versioned assembly fixture verification did not complete' >&2
+              exit 2
+            }
+            echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED VERSIONED DISPOSABLE ASSEMBLY FIXTURE'
           else
             echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED EXISTING 4.35.0 ONLY'
           fi

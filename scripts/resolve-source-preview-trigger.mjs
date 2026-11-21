@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 
 const ISSUE_TITLE = '[project-forge-source-preview]';
 const SHA40 = /^[0-9a-f]{40}$/;
-const MODES = new Set(['historical-4.35', 'changed-feedback-4.36-preview']);
+const MODES = new Set(['historical-4.35', 'changed-feedback-4.36-preview', 'versioned-assembly-fixture-preview']);
 
 function requireThat(value, reason) {
   if (!value) throw new Error(reason);

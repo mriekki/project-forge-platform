@@ -31,7 +31,7 @@ test('owner-created Issue triggers only read-only unpublished preview',()=>{
   assert.deepEqual(x,{sourceSha:SHA,sourceRunId:12345,candidateMode:'changed-feedback-4.36-preview'});
 });
 test('manual historical and new-mode dispatch remain supported',()=>{
-  for(const mode of ['historical-4.35','changed-feedback-4.36-preview']){
+  for(const mode of ['historical-4.35','changed-feedback-4.36-preview','versioned-assembly-fixture-preview']){
     const x=resolvePreviewTrigger({
       eventName:'workflow_dispatch', repositoryOwner:'mriekki',
       dispatch:{exact_source_sha:SHA,source_qualification_run_id:'12345',candidate_mode:mode}
@@ -64,4 +64,12 @@ test('invalid or wrong source identity and run ID refused',()=>{
 });
 test('other GitHub events are forbidden',()=>{
   assert.throws(()=>resolvePreviewTrigger({eventName:'push'}),/Unsupported/);
+});
+
+test('owner issue can select versioned fixture proof, not stable publication',()=>{
+  const x=issueRequest();
+  const b=JSON.parse(x.event.issue.body);
+  b.candidateMode='versioned-assembly-fixture-preview';
+  x.event.issue.body=JSON.stringify(b);
+  assert.equal(resolvePreviewTrigger(x).candidateMode,b.candidateMode);
 });
