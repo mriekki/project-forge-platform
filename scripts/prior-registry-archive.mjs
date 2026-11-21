@@ -37,7 +37,7 @@ function archiveJson(bytes, name) {
 
 export function verifyPriorRegistryArchive({
   receiptBytes, expectedVersion, expectedSha256, archiveBytes,
-  registry, platformSource, componentDigests
+  registry, platformSource, componentDigests, expectedProfile
 }) {
   requireFact(Buffer.isBuffer(receiptBytes) && receiptBytes.length > 0 &&
     receiptBytes.length <= 1024 * 1024 &&
@@ -73,6 +73,21 @@ export function verifyPriorRegistryArchive({
     'Prior archive package metadata differs');
   inventory(metadata.components);
   inventory(assembly.components);
+  // Optional descriptor alignment uses profiles read from the same verified
+  // archive, not from the potentially stale checkout or a caller projection.
+  if (expectedProfile !== undefined) {
+    requireFact(typeof expectedProfile === 'string' &&
+      /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(expectedProfile) &&
+      metadata.profiles && typeof metadata.profiles === 'object' &&
+      !Array.isArray(metadata.profiles) &&
+      Object.hasOwn(metadata.profiles, expectedProfile),
+      'Exact archive does not provide the selected generation profile');
+    const selected = metadata.profiles[expectedProfile]?.components;
+    requireFact(Array.isArray(selected) && selected.includes('core') &&
+      selected.includes('deployment') && new Set(selected).size === selected.length &&
+      selected.every(id => COMPONENTS.includes(id)),
+      'Invalid selected archive generation profile component set');
+  }
   const packageComponents = {};
   for (const id of COMPONENTS) {
     const component = metadata.components[id], assembled = assembly.components[id];
