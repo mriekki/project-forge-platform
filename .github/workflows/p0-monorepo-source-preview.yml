@@ -19,6 +19,8 @@ on:
         options:
           - historical-4.35
           - changed-feedback-4.36-preview
+  issues:
+    types: [opened]
 
 permissions:
   contents: read
@@ -30,7 +32,15 @@ concurrency:
 jobs:
   untrusted-preview-only:
     # OFF unless explicitly enabled after reviewing protected read-only source access.
-    if: github.repository == 'mriekki/project-forge-platform' && github.ref == 'refs/heads/main' && vars.PF_MONOREPO_SOURCE_PREVIEW_ENABLED == 'true'
+    if: >-
+      github.repository == 'mriekki/project-forge-platform' &&
+      github.ref == 'refs/heads/main' &&
+      vars.PF_MONOREPO_SOURCE_PREVIEW_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'issues' &&
+        github.event.issue.user.login == github.repository_owner &&
+        github.event.sender.login == github.repository_owner &&
+        github.event.issue.title == '[project-forge-source-preview]'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -46,6 +56,17 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Resolve exact owner-authorized nonpublishing preview request
+        id: request
+        shell: bash
+        env:
+          PF_EVENT_NAME: ${{ github.event_name }}
+          PF_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          PF_DISPATCH_SHA: ${{ inputs.exact_source_sha }}
+          PF_DISPATCH_RUN: ${{ inputs.source_qualification_run_id }}
+          PF_DISPATCH_MODE: ${{ inputs.candidate_mode }}
+        run: node scripts/resolve-source-preview-trigger.mjs
+
       - name: Collect authenticated private source and exact release CI evidence
         id: evidence
         shell: bash
@@ -53,8 +74,8 @@ jobs:
           SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
           SOURCE_ID: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY_ID }}
           GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
-          EXPECTED_SHA: ${{ inputs.exact_source_sha }}
-          SOURCE_RUN: ${{ inputs.source_qualification_run_id }}
+          EXPECTED_SHA: ${{ steps.request.outputs.source_sha }}
+          SOURCE_RUN: ${{ steps.request.outputs.source_run_id }}
         run: |
           set -euo pipefail
           [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid requested source SHA' >&2; exit 2; }
@@ -83,7 +104,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: ${{ steps.evidence.outputs.repository }}
-          ref: ${{ inputs.exact_source_sha }}
+          ref: ${{ steps.request.outputs.source_sha }}
           path: .private-source
           token: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
           persist-credentials: false
@@ -91,7 +112,7 @@ jobs:
       - name: Verify exact checkout and locally rebuild pinned historical npm candidate
         shell: bash
         env:
-          EXPECTED_SHA: ${{ inputs.exact_source_sha }}
+          EXPECTED_SHA: ${{ steps.request.outputs.source_sha }}
         run: |
           set -euo pipefail
           [[ "$(git -C .private-source rev-parse HEAD)" == "$EXPECTED_SHA" ]] ||
@@ -120,7 +141,7 @@ jobs:
         if: inputs.candidate_mode == 'changed-feedback-4.36-preview'
         shell: bash
         env:
-          EXPECTED_SHA: ${{ inputs.exact_source_sha }}
+          EXPECTED_SHA: ${{ steps.request.outputs.source_sha }}
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
           set -euo pipefail
@@ -155,13 +176,13 @@ jobs:
         env:
           SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
           GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
-          EXPECTED_SHA: ${{ inputs.exact_source_sha }}
+          EXPECTED_SHA: ${{ steps.request.outputs.source_sha }}
         run: |
           set -euo pipefail
           live="$(gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" --jq '.object.sha' 2>/dev/null)" ||
             { echo 'Private main cannot be independently rechecked' >&2; exit 2; }
           [[ "$live" == "$EXPECTED_SHA" ]] || { echo 'Private main advanced during preview' >&2; exit 2; }
-          if [[ "${{ inputs.candidate_mode }}" == 'changed-feedback-4.36-preview' ]]; then
+          if [[ "${{ steps.request.outputs.candidate_mode }}" == 'changed-feedback-4.36-preview' ]]; then
             echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED HISTORICAL 4.35.0 AND UNPUBLISHED CHANGED-FEEDBACK SOURCE'
           else
             echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED EXISTING 4.35.0 ONLY'

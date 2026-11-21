@@ -8,8 +8,13 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const preview = fs.readFileSync(path.join(ROOT, '.github/workflows/p0-monorepo-source-preview.yml'), 'utf8');
 const publish = fs.readFileSync(path.join(ROOT, '.github/workflows/npm-publish.yml'), 'utf8');
 
-test('public/private source preview is manual-only and disabled without an explicit protected variable', () => {
+test('public/private source preview accepts only manual or owner-Issue requests behind protected variable', () => {
   assert.match(preview, /^\s*workflow_dispatch:/m);
+  assert.match(preview, /^\s*issues:/m);
+  assert.match(preview, /types: \[opened\]/);
+  assert.match(preview, /github\.event\.issue\.user\.login == github\.repository_owner/);
+  assert.match(preview, /github\.event\.sender\.login == github\.repository_owner/);
+  assert.match(preview, /github\.event\.issue\.title == '\[project-forge-source-preview\]'/);
   assert.doesNotMatch(preview, /^\s*pull_request:/m);
   assert.doesNotMatch(preview, /^\s*push:/m);
   assert.match(preview, /vars\.PF_MONOREPO_SOURCE_PREVIEW_ENABLED == 'true'/);
@@ -29,7 +34,7 @@ test('private source mapping and immutable repo ID are protected, run evidence i
 
 test('preview independently rebuilds source and compares a historical public receipt', () => {
   assert.match(preview, /repository: \$\{\{ steps\.evidence\.outputs\.repository \}\}/);
-  assert.match(preview, /ref: \$\{\{ inputs\.exact_source_sha \}\}/);
+  assert.match(preview, /ref: \$\{\{ steps\.request\.outputs\.source_sha \}\}/);
   assert.match(preview, /persist-credentials: false/g);
   assert.match(preview, /build_candidate\.py/);
   assert.match(preview, /candidate_handoff\.py emit/);
