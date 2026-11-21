@@ -48,7 +48,7 @@ export function compareStableEvidence({evidence,selected,prior,projection,manife
     sourceOwnershipTransferred:false,productionAuthorized:false});
 }
 
-function run(dir) {
+export function readVerifiedStableCandidate(dir) {
   const read = name => fs.readFileSync(path.join(dir,name));
   const json = name => JSON.parse(read(name));
   verifyHistoricalRun(json('pf-prior-public-run.json'),json('pf-prior-public-jobs.json'));
@@ -79,6 +79,15 @@ function run(dir) {
     parity.candidateSha256===hash(archive) && parity.releaseAuthorized===false &&
     parity.published===false && parity.sourceOwnershipTransferred===false &&
     parity.productionAuthorized===false,'First stable content evidence mismatch');
+  return {prior, archive, projection, manifestBytes,
+    priorInputs:{receiptBytes:fs.readFileSync('release/receipts/4.35.0.json'),
+      archiveBytes:read('pf-prior-registry/mriekki-project-forge-4.35.0.tgz'),
+      registry:json('pf-prior-registry/registry.json'),platformSource:PREVIOUS_SOURCE,
+      componentDigests:Object.fromEntries(ids.map(id=>[id,priorComputed[id].mappedInputSha256]))},
+    componentDigests:current};
+}
+function run(dir) {
+  const {archive}=readVerifiedStableCandidate(dir);
   console.log('Verified exact selected stable candidate, historical registry archive and unchanged shipped content.');
   console.log('STABLE_CANDIDATE_SHA256='+hash(archive));
   console.log('CURRENT_SIGNATURE_REVERIFIED=false RELEASE_AUTHORIZED=false NPM_PUBLISHED=false SOURCE_OWNERSHIP_TRANSFERRED=false');
