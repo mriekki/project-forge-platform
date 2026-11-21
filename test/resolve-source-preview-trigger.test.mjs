@@ -31,7 +31,7 @@ test('owner-created Issue triggers only read-only unpublished preview',()=>{
   assert.deepEqual(x,{sourceSha:SHA,sourceRunId:12345,candidateMode:'changed-feedback-4.36-preview'});
 });
 test('manual historical and new-mode dispatch remain supported',()=>{
-  for(const mode of ['historical-4.35','changed-feedback-4.36-preview','versioned-assembly-fixture-preview', 'selected-native-manifest-preview']){
+  for(const mode of ['historical-4.35','changed-feedback-4.36-preview','versioned-assembly-fixture-preview', 'selected-native-manifest-preview', 'selected-native-stable-candidate']){
     const x=resolvePreviewTrigger({
       eventName:'workflow_dispatch', repositoryOwner:'mriekki',
       dispatch:{exact_source_sha:SHA,source_qualification_run_id:'12345',candidate_mode:mode}
