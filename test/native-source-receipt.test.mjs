@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateReleaseReceipt } from '../scripts/release-receipt.mjs';
+import { validateReleaseReceipt, loadReleaseReceipt, resolvePublishedPlatformSource } from '../scripts/release-receipt.mjs';
+import os from 'node:os';
 import {validateNativeReceipt,constructNativeReceipt,verifyNativeProjection,
   classifyNativeRecovery,constructNativeIntent,validateNativeIntent,verifyNativeIntent,
   constructNativeReceiptFromIntent,verifyReceiptMatchesIntent,classifyNativeIntentRecovery} from '../scripts/native-source-receipt.mjs';
@@ -256,4 +257,45 @@ test('versioned prior receipt preserves native identity and refuses mismatched i
   const unknown=Buffer.from(JSON.stringify({...record,schemaVersion:7}));
   assert.throws(()=>selectPriorRelease({...input,receiptBytes:unknown,expectedSha256:digestBytes(unknown)}),
     /Unsupported prior receipt schema/);
+});
+
+test('durable receipt loader dispatches strict schemas and binds exact native predecessor bytes', async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'pf-native-receipt-'));
+  try {
+    const receiptDir=path.join(directory,'release','receipts');
+    fs.mkdirSync(receiptDir,{recursive:true});
+    const previousFile=path.join(receiptDir,'4.35.0.json');
+    const nativeFile=path.join(receiptDir,'4.36.0.json');
+    const record=fixture().receipt;
+    record.source.previousReceiptSha256=digestBytes(actualOldBytes);
+    fs.writeFileSync(previousFile,actualOldBytes);
+    fs.writeFileSync(nativeFile,JSON.stringify(record));
+    assert.deepEqual(await loadReleaseReceipt('4.35.0',directory),old);
+    assert.deepEqual(await loadReleaseReceipt('4.36.0',directory),record);
+    assert.equal(await resolvePublishedPlatformSource('4.36.0',directory),record.platformSource);
+    fs.writeFileSync(previousFile,Buffer.concat([actualOldBytes,Buffer.from('\n')]));
+    await assert.rejects(loadReleaseReceipt('4.36.0',directory),/previous durable release receipt digest/i);
+    fs.rmSync(previousFile);
+    await assert.rejects(loadReleaseReceipt('4.36.0',directory),/missing previous durable release receipt/i);
+    fs.writeFileSync(previousFile,actualOldBytes);
+    for(const mutate of [
+      x=>x.kind='project-forge-native-release-intent',
+      x=>x.schemaVersion=99,
+      x=>x.source.sourceRepository='private/fixture',
+      x=>x.ci.nativeSourceMain.runAttempt=0,
+      x=>x.publication.provenance.signed=false
+    ]) {
+      const invalid=structuredClone(record);mutate(invalid);
+      fs.writeFileSync(nativeFile,JSON.stringify(invalid));
+      await assert.rejects(loadReleaseReceipt('4.36.0',directory));
+    }
+    // A matching digest is not permission to use malformed prior facts.
+    const wrong=structuredClone(old);
+    wrong.publication.neutralNpxSmoke='unknown';
+    const wrongBytes=Buffer.from(JSON.stringify(wrong));
+    fs.writeFileSync(previousFile,wrongBytes);
+    fs.writeFileSync(nativeFile,JSON.stringify({...record,source:{...record.source,
+      previousReceiptSha256:digestBytes(wrongBytes)}}));
+    await assert.rejects(loadReleaseReceipt('4.36.0',directory),/neutralNpxSmoke/);
+  } finally {fs.rmSync(directory,{recursive:true,force:true});}
 });
