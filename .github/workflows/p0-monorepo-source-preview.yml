@@ -11,6 +11,14 @@ on:
         description: 'Successful exact-main full source qualification run ID'
         type: string
         required: true
+      candidate_mode:
+        description: 'Historical parity (default) or extra unpublished changed-Feedback proof'
+        type: choice
+        required: true
+        default: historical-4.35
+        options:
+          - historical-4.35
+          - changed-feedback-4.36-preview
 
 permissions:
   contents: read
@@ -108,6 +116,40 @@ jobs:
             --tarball "$RUNNER_TEMP/$filename" \
             --reference-commit 74b9462df28faab16bcde7599373f632e2b29626
 
+      - name: Independently inspect changed Feedback source preview (NO PUBLISH)
+        if: inputs.candidate_mode == 'changed-feedback-4.36-preview'
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.exact_source_sha }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          [[ "$(git -C .private-source rev-parse HEAD)" == "$EXPECTED_SHA" ]] || {
+            echo 'Private source SHA drifted before changed-source preview' >&2
+            exit 2
+          }
+          python3 .private-source/tools/npm/build_changed_component_preview.py build \
+            --monorepo .private-source --source-sha "$EXPECTED_SHA" \
+            --output "$RUNNER_TEMP/private-changed-preview" \
+            --evidence "$RUNNER_TEMP/private-changed-preview-evidence.json"
+          python3 .private-source/tools/npm/build_changed_component_preview.py verify \
+            --monorepo .private-source --source-sha "$EXPECTED_SHA" \
+            --output "$RUNNER_TEMP/private-changed-preview" \
+            --evidence "$RUNNER_TEMP/private-changed-preview-evidence.json"
+          (
+            cd "$RUNNER_TEMP/private-changed-preview"
+            npm run verify:assets
+            npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" \
+              > "$RUNNER_TEMP/private-changed-pack.json"
+          )
+          filename="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync(process.argv[1]));if(x.length!==1||x[0].name!=="@mriekki/project-forge"||x[0].version!=="4.36.0-preview.2")throw Error("Wrong unpublished preview package");process.stdout.write(x[0].filename)' "$RUNNER_TEMP/private-changed-pack.json")"
+          node scripts/verify-private-changed-source-preview.mjs \
+            --source-sha "$EXPECTED_SHA" \
+            --evidence "$RUNNER_TEMP/private-changed-preview-evidence.json" \
+            --archive "$RUNNER_TEMP/$filename"
+          echo 'PUBLIC SOURCE PREVIEW: changed Feedback source proven without npm release'
+          echo 'NPM_PUBLISHED=false SOURCE_OWNERSHIP_TRANSFERRED=false PRODUCTION_CHANGED=false'
+
       - name: Recheck authenticated private main after candidate verification
         shell: bash
         env:
@@ -119,7 +161,11 @@ jobs:
           live="$(gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" --jq '.object.sha' 2>/dev/null)" ||
             { echo 'Private main cannot be independently rechecked' >&2; exit 2; }
           [[ "$live" == "$EXPECTED_SHA" ]] || { echo 'Private main advanced during preview' >&2; exit 2; }
-          echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED EXISTING 4.35.0 ONLY'
+          if [[ "${{ inputs.candidate_mode }}" == 'changed-feedback-4.36-preview' ]]; then
+            echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED HISTORICAL 4.35.0 AND UNPUBLISHED CHANGED-FEEDBACK SOURCE'
+          else
+            echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED EXISTING 4.35.0 ONLY'
+          fi
           echo 'SOURCE_OWNERSHIP_TRANSFERRED=false'
           echo 'NPM_PUBLISHED=false'
           echo 'RELEASE_AUTHORIZED=false'
