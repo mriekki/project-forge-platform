@@ -21,6 +21,7 @@ on:
           - changed-feedback-4.36-preview
           - versioned-assembly-fixture-preview
           - selected-native-manifest-preview
+          - selected-native-stable-candidate
   issues:
     types: [opened]
 
@@ -120,7 +121,7 @@ jobs:
           repository: ${{ steps.evidence.outputs.repository }}
           ref: ${{ steps.request.outputs.source_sha }}
           path: .private-source
-          fetch-depth: ${{ steps.request.outputs.candidate_mode == 'selected-native-manifest-preview' && '0' || '1' }}
+          fetch-depth: ${{ (steps.request.outputs.candidate_mode == 'selected-native-manifest-preview' || steps.request.outputs.candidate_mode == 'selected-native-stable-candidate') && '0' || '1' }}
           token: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
           persist-credentials: false
 
@@ -302,6 +303,93 @@ jobs:
           node scripts/verify-selected-native-preview.mjs "$RUNNER_TEMP"
           echo 'verified=true' >> "$GITHUB_OUTPUT"
 
+      - name: Retrieve reviewed stable selection (read only)
+        if: steps.request.outputs.candidate_mode == 'selected-native-stable-candidate'
+        shell: bash
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+          EXPECTED_SHA: ${{ steps.request.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" == '14415666dd8b698f540f8f68f82971ea17884374' ]]
+          # This first admission requires the fully checked owner-Issue path.
+          node -e 'const r=require(process.argv[1]); if(r.event!=="issues")process.exit(2)' "$RUNNER_TEMP/pf-source-release-run.json"
+          gh api --method GET "/repos/$SOURCE_REPOSITORY/contents/config/selected-native-stable.json" \
+            -f ref='90d9cc28ff86c3c0c33690a764a3ff3826575c57' > "$RUNNER_TEMP/pf-stable-selection-response.json" 2> "$RUNNER_TEMP/pf-api-error" || {
+              echo 'Reviewed stable selection unavailable' >&2; exit 2;
+            }
+          node --input-type=module - "$RUNNER_TEMP" <<'NODE'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const dir=process.argv[2];
+          const r=JSON.parse(fs.readFileSync(dir+'/pf-stable-selection-response.json'));
+          if(r.type!=='file'||r.encoding!=='base64'||r.sha!=='792764b5790aaf2a8c9f807699e84bccfc88cdd8')process.exit(2);
+          const b=Buffer.from(r.content,'base64');
+          if(createHash('sha256').update(b).digest('hex')!=='af2a6dcb3c34d782828de3f28a149ad32379dd52c46585a9a8308bddcd32bf31')process.exit(2);
+          fs.writeFileSync(dir+'/pf-selected-stable-manifest.json',b,{flag:'wx',mode:0o600});
+          NODE
+
+      - name: Independently assemble and verify first stable candidate (NO PUBLISH)
+        id: selected_stable
+        if: steps.request.outputs.candidate_mode == 'selected-native-stable-candidate'
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.request.outputs.source_sha }}
+          PYTHONDONTWRITEBYTECODE: '1'
+          GIT_CONFIG_NOSYSTEM: '1'
+          GIT_CONFIG_GLOBAL: /dev/null
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" == '14415666dd8b698f540f8f68f82971ea17884374' ]]
+          [[ "$(git -C .private-source rev-parse HEAD)" == "$EXPECTED_SHA" ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/assemble_selected_stable.py")" == 'f60247c196271d01f1e33d9437e58a1fa7da4380' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_manifest_preview.py")" == 'd9fccb28a4a6e15a4322579927f26e2021464317' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/preview_selected_manifest.py")" == 'c34134ce0b22bcc518dfbc6e44fc7fcc66be9a79' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/release/native_revision_plan.py")" == 'afa230b1a4961768be0d5e22a2ee14c953c290b7' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/release/plan_component_revisions.py")" == '3e93f443d4165b201a30c6aa717a9fa6f266ffae' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_candidate.py")" == 'e37c13c6f1166c8d9d9b58d468132c3218be5e9e' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_versioned_preview.py")" == 'be0e792bf9aa6bce49e6031cf7cd5740e876c997' ]]
+          python3 - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          root=Path('.private-source').resolve()
+          sys.path.insert(0,str(root/'tools/npm'))
+          from build_manifest_preview import observations
+          from native_revision_plan import historical_components
+          from plan_component_revisions import committed_json, MANIFEST, METADATA
+          historical='827674a8658b45532b3565c2fa598d5ad036a039'
+          scratch=Path(os.environ['RUNNER_TEMP'])
+          (scratch/'pf-prior-components.json').write_text(json.dumps(historical_components(root,historical)))
+          _, current=observations(root,os.environ['EXPECTED_SHA'],committed_json(root,historical,MANIFEST),committed_json(root,historical,METADATA))
+          (scratch/'pf-current-components.json').write_text(json.dumps(current))
+          PY
+          mkdir "$RUNNER_TEMP/pf-prior-registry"
+          (
+            cd "$RUNNER_TEMP/pf-prior-registry"
+            npm view @mriekki/project-forge@4.35.0 --json --registry=https://registry.npmjs.org/ > registry.json
+            npm pack @mriekki/project-forge@4.35.0 --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json
+          )
+          curl --fail --silent --show-error --retry 2 --max-time 45 \
+            'https://api.github.com/repos/mriekki/project-forge-platform/actions/runs/44646438478' > "$RUNNER_TEMP/pf-prior-public-run.json"
+          curl --fail --silent --show-error --retry 2 --max-time 45 \
+            'https://api.github.com/repos/mriekki/project-forge-platform/actions/runs/44646438478/attempts/1/jobs?per_page=100' > "$RUNNER_TEMP/pf-prior-public-jobs.json"
+          python3 .private-source/tools/npm/assemble_selected_stable.py \
+            --monorepo .private-source --manifest "$RUNNER_TEMP/pf-selected-stable-manifest.json" \
+            --manifest-sha256 'af2a6dcb3c34d782828de3f28a149ad32379dd52c46585a9a8308bddcd32bf31' --source-sha "$EXPECTED_SHA" \
+            --output "$RUNNER_TEMP/pf-selected-stable" > "$RUNNER_TEMP/pf-selected-stable-evidence.json"
+          (
+            cd "$RUNNER_TEMP/pf-selected-stable"
+            npm run verify:assets > "$RUNNER_TEMP/pf-selected-stable-assets.log" 2>&1
+            npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pf-selected-stable-pack.json"
+          )
+          python3 scripts/verify-first-native-stable-content.py \
+            --prior "$RUNNER_TEMP/pf-prior-registry/mriekki-project-forge-4.35.0.tgz" \
+            --candidate "$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz" \
+            --prior-sha256 '2c84926e8baeec9870f3af8828da9e2321e36ecca840c5638870b2a33bc928aa' > "$RUNNER_TEMP/pf-first-stable-content.json"
+          node scripts/verify-selected-native-stable.mjs "$RUNNER_TEMP"
+          echo 'verified=true' >> "$GITHUB_OUTPUT"
+
       - name: Recheck authenticated private main after candidate verification
         shell: bash
         env:
@@ -328,6 +416,9 @@ jobs:
           elif [[ "${{ steps.request.outputs.candidate_mode }}" == 'selected-native-manifest-preview' ]]; then
             [[ "${{ steps.selected_native.outputs.verified }}" == 'true' ]] || exit 2
             echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED EXACT SELECTED NATIVE CANDIDATE (UNPUBLISHED)'
+          elif [[ "${{ steps.request.outputs.candidate_mode }}" == 'selected-native-stable-candidate' ]]; then
+            [[ "${{ steps.selected_stable.outputs.verified }}" == 'true' ]] || exit 2
+            echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED EXACT SELECTED STABLE CANDIDATE (UNPUBLISHED)'
           else
             echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED EXISTING 4.35.0 ONLY'
           fi
