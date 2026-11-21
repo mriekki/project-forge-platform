@@ -1,4 +1,6 @@
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { validateNativeReceipt } from './native-source-receipt.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -151,6 +153,25 @@ export async function loadReleaseReceipt(version, repositoryRoot = root) {
     }
     throw new Error(`Unable to read durable release receipt for @mriekki/project-forge@${version}: ${error.message}`);
   }
+  if (parsed?.schemaVersion === 2) {
+    const receipt = validateNativeReceipt(parsed, version);
+    // Preserve the durable receipt byte chain. This is a local consistency
+    // check, not authentication of GitHub or npm provenance.
+    const previousPath = path.join(repositoryRoot, 'release', 'receipts',
+      receipt.source.previousVersion + '.json');
+    let previousBytes;
+    try { previousBytes = await readFile(previousPath); }
+    catch { throw new Error('Missing previous durable release receipt for native receipt'); }
+    if (createHash('sha256').update(previousBytes).digest('hex') !== receipt.source.previousReceiptSha256) {
+      throw new Error('Previous durable release receipt digest differs');
+    }
+    let previous;
+    try { previous = JSON.parse(previousBytes); }
+    catch { throw new Error('Malformed previous durable release receipt'); }
+    if (previous?.schemaVersion === 2) validateNativeReceipt(previous, receipt.source.previousVersion);
+    else validateReleaseReceipt(previous, receipt.source.previousVersion);
+    return receipt;
+  }
   return validateReleaseReceipt(parsed, version);
 }
 
@@ -183,6 +204,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const receipt = await loadReleaseReceipt(options.version);
     if (options.json) {
       console.log(JSON.stringify({
+        ...(receipt.schemaVersion === 2 ? { schemaVersion: 2, kind: receipt.kind, source: receipt.source } : {}),
         package: receipt.package,
         platformSource: receipt.platformSource,
         components: receipt.components,
