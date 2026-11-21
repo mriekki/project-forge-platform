@@ -196,3 +196,64 @@ test('intent recovery before and after actual publication never implies write au
   assert.equal(classifyNativeIntentRecovery({...input,registry:changed}).decision,
     'BLOCKED_REGISTRY_CONFLICT');
 });
+
+
+// Exact byte selection and independent prior observations are a separate
+// adapter; no new live receipt reader or publishing authority.
+import { createHash } from 'node:crypto';
+import { selectPriorRelease, verifyIntentWithPriorReceipt } from '../scripts/prior-release-projection.mjs';
+const actualOldBytes = fs.readFileSync(path.join(root,'release/receipts/4.35.0.json'));
+const digestBytes = bytes => createHash('sha256').update(bytes).digest('hex');
+function priorFacts(record, componentDigests) {
+  return {
+    package:structuredClone(record.package),platformSource:record.platformSource,
+    artifact:structuredClone(record.artifact),
+    packageComponents:Object.fromEntries(COMPONENTS.map(cid=>[cid,cid==='core'
+      ? {revision:record.components[cid].revision,version:record.components[cid].version}
+      : {revision:record.components[cid].revision}])),
+    componentDigests
+  };
+}
+test('exact historical receipt bytes connect to dormant native intent without inventing digests',()=>{
+  const {intent,previous,observed}=intentFixture();
+  intent.source.previousReceiptSha256=digestBytes(actualOldBytes);
+  const priorObserved=priorFacts(old,Object.fromEntries(COMPONENTS.map(cid=>[
+    cid,previous.components[cid].mappedInputSha256])));
+  const projection=selectPriorRelease({receiptBytes:actualOldBytes,expectedVersion:'4.35.0',
+    expectedSha256:intent.source.previousReceiptSha256,observed:priorObserved});
+  assert.deepEqual(projection.components,previous.components);
+  const result=verifyIntentWithPriorReceipt({intent,receiptBytes:actualOldBytes,
+    priorObserved,candidateObserved:observed});
+  assert.equal(result.result,'NATIVE_INTENT_MATCH');
+  assert.equal(result.priorReceiptBytesMatched,true);
+  assert.equal(result.priorReceiptAuthenticatedHere,false);
+  assert.equal(result.releaseAuthorized,false);
+  const changed=Buffer.concat([actualOldBytes,Buffer.from('\n')]);
+  assert.throws(()=>verifyIntentWithPriorReceipt({intent,receiptBytes:changed,
+    priorObserved,candidateObserved:observed}),/receipt digest mismatch/);
+  priorObserved.artifact.registryShasum='0'.repeat(40);
+  assert.throws(()=>verifyIntentWithPriorReceipt({intent,receiptBytes:actualOldBytes,
+    priorObserved,candidateObserved:observed}),/source\/archive proof differs/);
+});
+test('versioned prior receipt preserves native identity and refuses mismatched independent evidence',()=>{
+  const record=fixture().receipt;
+  const bytes=Buffer.from(JSON.stringify(record));
+  const observed=priorFacts(record,Object.fromEntries(COMPONENTS.map(cid=>[
+    cid,record.components[cid].mappedInputSha256])));
+  const input={receiptBytes:bytes,expectedVersion:record.package.version,
+    expectedSha256:digestBytes(bytes),observed};
+  assert.deepEqual(selectPriorRelease(input).components,record.components);
+  for (const mutate of [
+    x=>x.observed.componentDigests.feedback='1'.repeat(64),
+    x=>x.observed.packageComponents.feedback.revision=nextHead,
+    x=>x.observed.platformSource=nextHead,
+    x=>x.expectedVersion='4.37.0',
+    x=>delete x.observed.componentDigests.core
+  ]) {
+    const x={...input,observed:structuredClone(observed)};mutate(x);
+    assert.throws(()=>selectPriorRelease(x));
+  }
+  const unknown=Buffer.from(JSON.stringify({...record,schemaVersion:7}));
+  assert.throws(()=>selectPriorRelease({...input,receiptBytes:unknown,expectedSha256:digestBytes(unknown)}),
+    /Unsupported prior receipt schema/);
+});
