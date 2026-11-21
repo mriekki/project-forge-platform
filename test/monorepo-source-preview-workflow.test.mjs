@@ -65,3 +65,12 @@ test('legacy public npm publisher remains untouched and preview has no publish o
   assert.doesNotMatch(preview, /secrets\.PROJECT_FORGE_SOURCE_TOKEN/);
   assert.doesNotMatch(publish, /private-source-admission-preview/);
 });
+
+
+test('selected native preview pins the reviewed source, selection and digest', () => {
+  assert.match(preview, /5596f4de502935c4c4f04f8b1a261333416f7efb/);
+  assert.match(preview, /7657f0273d143534eb7c80d6251a624c1822d75a/);
+  assert.match(preview, /a3936e8f9964c9b9c44c025dc04e0ddea40cfdb064d332ff172a5e090451d153/);
+  assert.match(preview, /verify-selected-native-preview\.mjs/);
+  assert.match(preview, /steps\.selected_native\.outputs\.verified/);
+});
