@@ -5,21 +5,22 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateReleaseReceipt } from '../scripts/release-receipt.mjs';
 import {validateNativeReceipt,constructNativeReceipt,verifyNativeProjection,
-  classifyNativeRecovery} from '../scripts/native-source-receipt.mjs';
+  classifyNativeRecovery,constructNativeIntent,validateNativeIntent,verifyNativeIntent,
+  constructNativeReceiptFromIntent,verifyReceiptMatchesIntent,classifyNativeIntentRecovery} from '../scripts/native-source-receipt.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const old = JSON.parse(fs.readFileSync(path.join(root,'release/receipts/4.35.0.json'),'utf8'));
 const head = 'a'.repeat(40), nextHead = 'b'.repeat(40);
 const COMPONENTS = ['authentication','core','deployment','feedback','release-notes'];
 function fixture() {
-  const previous = {version: old.package.version, components: Object.fromEntries(COMPONENTS.map((id,i) =>
+  const previous = {version: old.package.version, receiptSha256:'0'.repeat(64), components: Object.fromEntries(COMPONENTS.map((id,i) =>
     [id, {...old.components[id], revisionKind:'original-owner-git-commit',
       mappedInputSha256: String(i+1).repeat(64)}]))};
   const facts = {
     package:{name:'@mriekki/project-forge',version:'4.36.0'},
     platformSource:'c'.repeat(40),
     source:{mode:'native-monorepo',commit:head,previousVersion:previous.version,
-      manifestSha256:'d'.repeat(64),qualificationEvent:'issues'},
+      manifestSha256:'d'.repeat(64),previousReceiptSha256:previous.receiptSha256,qualificationEvent:'issues'},
     components:structuredClone(previous.components),
     artifact:{releaseCandidateSha256:'e'.repeat(64),registryShasum:'f'.repeat(40)},
     publication:{publishedAt:'2026-01-01T00:00:00Z',workflowRunId:10,publisher:'github-oidc',
@@ -60,9 +61,10 @@ test('native source fixture preserves the legacy reader and untouched historical
 test('unrelated source advance preserves prior native component identity',()=>{
   const a=fixture();
   const b=fixture();
-  b.previous={version:a.receipt.package.version,components:structuredClone(a.receipt.components)};
+  b.previous={version:a.receipt.package.version,receiptSha256:'1'.repeat(64),components:structuredClone(a.receipt.components)};
   b.receipt.package.version='4.37.0';
   b.receipt.source.previousVersion=a.receipt.package.version;
+  b.receipt.source.previousReceiptSha256=b.previous.receiptSha256;
   b.receipt.source.commit=nextHead;
   b.observed.packageVersion=b.receipt.package.version;
   b.observed.sourceCommit=nextHead;
@@ -133,4 +135,64 @@ test('interrupted publication never implies republish, receipt write or alignmen
   wrongReceipt.publication.workflowRunId++;
   assert.equal(classifyNativeRecovery({...context,existingReceipt:wrongReceipt}).decision,
     'BLOCKED_RECEIPT_CONFLICT');
+});
+
+function intentFixture() {
+  const {receipt,previous,observed} = fixture();
+  const {package:packageInfo,platformSource,source,components,ci} = receipt;
+  const intent=constructNativeIntent({package:packageInfo,platformSource,source,components,ci,
+    candidateSha256:receipt.artifact.releaseCandidateSha256});
+  const {artifact,publication,...observation} = observed;
+  observation.candidateSha256=artifact.releaseCandidateSha256;
+  return {intent,previous,observed:observation,receipt};
+}
+test('prepublication intent does not contain fictitious signed receipt facts',()=>{
+  const {intent,previous,observed,receipt}=intentFixture();
+  assert.equal(verifyNativeIntent({intent,previous,observed}).result,'NATIVE_INTENT_MATCH');
+  assert.equal(Object.hasOwn(intent,'publication'),false);
+  assert.equal(Object.hasOwn(intent,'artifact'),false);
+  assert.equal(intent.releaseAuthorized,false);
+  assert.throws(()=>validateNativeReceipt(intent),/native receipt/);
+  assert.throws(()=>constructNativeReceiptFromIntent(intent,{}),/postpublication facts/);
+  assert.deepEqual(constructNativeReceiptFromIntent(intent,{
+    artifact:receipt.artifact,publication:receipt.publication
+  }),receipt);
+  const wrong=structuredClone(receipt);
+  wrong.source.previousReceiptSha256='3'.repeat(64);
+  assert.throws(()=>verifyReceiptMatchesIntent(wrong,intent),/selected intent/);
+});
+test('prepublication intent binds prior receipt bytes and new artifact, refuses misleading fields',()=>{
+  const mutations=[
+    x=>x.previous.receiptSha256='1'.repeat(64),
+    x=>x.observed.candidateSha256='1'.repeat(64),
+    x=>x.observed.sourceCommit=nextHead,
+    x=>x.intent.source.previousReceiptSha256='bad',
+    x=>x.intent.releaseAuthorized=true,
+    x=>x.intent.publication={provenance:{signed:true}},
+    x=>x.intent.package.version=x.intent.source.previousVersion
+  ];
+  for(const mutate of mutations) {
+    const x=intentFixture();mutate(x);assert.throws(()=>verifyNativeIntent(x));
+  }
+});
+test('intent recovery before and after actual publication never implies write authority',()=>{
+  const {intent,receipt}=intentFixture();
+  const input={intent,existingReceipt:null,registry:{status:'unknown'}};
+  assert.equal(classifyNativeIntentRecovery(input).decision,'BLOCKED_REGISTRY_UNVERIFIED');
+  assert.equal(classifyNativeIntentRecovery({...input,registry:{status:'absent'}}).decision,
+    'NOT_PUBLISHED_NEW_AUTHORIZATION_REQUIRED');
+  const present={status:'present',package:receipt.package,artifact:receipt.artifact};
+  assert.equal(classifyNativeIntentRecovery({...input,registry:present}).decision,
+    'VERIFY_EXISTING_PUBLICATION_NO_REPUBLISH');
+  const matched=classifyNativeIntentRecovery({...input,registry:present,existingReceipt:receipt});
+  assert.equal(matched.decision,'MATCHED_RECEIPT_VERIFY_ALIGNMENT');
+  for (const k of ['publishAuthorized','receiptWriteAuthorized','alignmentAuthorized'])
+    assert.equal(matched[k],false);
+  const changed=structuredClone(present);
+  changed.artifact.registryShasum='1'.repeat(40);
+  assert.equal(classifyNativeIntentRecovery({...input,registry:changed,existingReceipt:receipt}).decision,
+    'BLOCKED_RECEIPT_CONFLICT');
+  changed.artifact.releaseCandidateSha256='1'.repeat(64);
+  assert.equal(classifyNativeIntentRecovery({...input,registry:changed}).decision,
+    'BLOCKED_REGISTRY_CONFLICT');
 });
