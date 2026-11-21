@@ -7,6 +7,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { verifyPriorRegistryArchive } from '../scripts/prior-registry-archive.mjs';
 import { verifyReleasedContractAlignment } from '../scripts/native-release-contract-alignment.mjs';
+import { verifyNativeStableCandidate } from '../scripts/native-stable-candidate-verifier.mjs';
+import { constructNativeIntent } from '../scripts/native-source-receipt.mjs';
 
 const hash = (algorithm, bytes, encoding = 'hex') =>
   createHash(algorithm).update(bytes).digest(encoding);
@@ -18,6 +20,7 @@ function fixture(change = () => {}, native = false) {
   const componentDigests = Object.fromEntries(Object.keys(receipt.components).map((id,i)=>[id,String(i+1).repeat(64)]));
   if (native) {
     const head = 'a'.repeat(40);
+    componentDigests.feedback = '7'.repeat(64);
     receipt.schemaVersion = 2;
     receipt.kind = 'project-forge-native-source-release';
     receipt.package.version = '4.36.0';
@@ -49,7 +52,7 @@ function fixture(change = () => {}, native = false) {
         id, id === 'core' ? {revision:item.revision,version:item.version} : {revision:item.revision}
       ]))};
     const docs = {
-      'package.json':{...receipt.package},
+      'package.json':{...receipt.package,publishConfig:{access:'public',provenance:true}},
       'assets/components.json':metadata,
       'assets/generated/ASSEMBLY.json':structuredClone(metadata)
     };
@@ -160,4 +163,76 @@ test('native receipt shape must remain distinct from legacy and prepublication i
     input.expectedSha256=hash('sha256',input.receiptBytes);
     assert.throws(()=>verifyReleasedContractAlignment(input));
   }
+});
+
+function candidateFixture(change = () => {}) {
+  const previous = fixture();
+  const candidate = fixture(change,true);
+  const nextReceipt = JSON.parse(candidate.receiptBytes);
+  nextReceipt.source.previousReceiptSha256 = previous.expectedSha256;
+  const {package: packageInfo, platformSource, source, components, ci} = nextReceipt;
+  const intent = constructNativeIntent({
+    package:packageInfo, platformSource, source, components, ci,
+    candidateSha256:hash('sha256',candidate.archiveBytes)
+  });
+  const prior = {
+    receiptBytes:previous.receiptBytes, archiveBytes:previous.archiveBytes,
+    registry:previous.registry, platformSource:previous.platformSource,
+    componentDigests:previous.componentDigests
+  };
+  return { intent, prior, candidateArchiveBytes:candidate.archiveBytes,
+    observedSource:{
+      platformSource,sourceCommit:source.commit,manifestSha256:source.manifestSha256,
+      qualificationEvent:source.qualificationEvent,nativeSourceMain:ci.nativeSourceMain,
+      platformMain:ci.platformMain,componentDigests:candidate.componentDigests
+    }
+  };
+}
+
+test('exact synthetic native stable candidate matches intent and prior registry archive without authority',()=>{
+  const input=candidateFixture();
+  const proof=verifyNativeStableCandidate(input);
+  assert.equal(proof.result,'NATIVE_STABLE_CANDIDATE_EVIDENCE_MATCH');
+  assert.equal(proof.changedComponents,1);
+  assert.equal(proof.candidateSha256,input.intent.candidateSha256);
+  for (const key of ['priorArchiveReceiptMatched','candidateArchiveMatched'])
+    assert.equal(proof[key],true);
+  for (const key of ['sourceEvidenceAuthenticatedHere','priorReceiptAuthenticatedHere',
+    'registrySignatureVerifiedHere','releaseAuthorized','publicationAuthorized',
+    'sourceOwnershipTransferred','productionAuthorized'])
+    assert.equal(proof[key],false);
+});
+
+test('candidate verification refuses mismatched archive, prior receipt and independent evidence',()=>{
+  for (const mutate of [
+    x=>x.intent.candidateSha256='0'.repeat(64),
+    x=>x.prior.registry.dist.integrity='sha512-wrong',
+    x=>x.intent.source.previousReceiptSha256='0'.repeat(64),
+    x=>x.observedSource.nativeSourceMain={result:'success',workflowRunId:30,runAttempt:2},
+    x=>x.observedSource.sourceCommit='0'.repeat(40),
+    x=>x.observedSource.componentDigests.feedback='9'.repeat(64),
+    x=>x.observedSource.releaseAuthorized=true,
+    x=>x.intent.releaseAuthorized=true,
+    x=>x.intent.components.feedback.revisionKind='original-owner-git-commit'
+  ]) {
+    const input=candidateFixture();
+    mutate(input);
+    assert.throws(()=>verifyNativeStableCandidate(input));
+  }
+});
+
+test('stable candidate verifier refuses rehearsal/private and inconsistent archive even with matching intent digest',()=>{
+  for (const change of [
+    x=>x['package.json'].private=true,
+    x=>x['package.json'].private='false',
+    x=>delete x['package.json'].publishConfig,
+    x=>x['package.json'].publishConfig.provenance=false,
+    x=>x['package.json'].version='4.36.0-preview.7',
+    x=>x['assets/components.json'].components.feedback.revision='0'.repeat(40),
+    x=>x['assets/generated/ASSEMBLY.json'].components.core.version='0.0.0',
+    x=>{
+      x['assets/components.json'].components.feedback.revision='0'.repeat(40);
+      x['assets/generated/ASSEMBLY.json'].components.feedback.revision='0'.repeat(40);
+    },
+  ]) assert.throws(()=>verifyNativeStableCandidate(candidateFixture(change)));
 });
