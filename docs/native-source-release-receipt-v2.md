@@ -1,0 +1,19 @@
+# Native-source release receipt v2 — dormant contract
+
+This is a nonpublishing compatibility contract, not an accepted release, signature, registry request, or source authority transfer. No v2 receipt is installed under release/receipts; the checked-in historical v1 records and legacy live reader, stable descriptor and OIDC publisher remain unchanged.
+
+## Contract
+
+- `schemaVersion: 2`, `kind: project-forge-native-source-release`, exact stable package version, exact public Platform source.
+- `source`: mode native-monorepo, exact source commit, previous accepted release version, manifest SHA-256 and qualification event. Only immutable source identifiers, never private repository locators.
+- Five component records with 40-character revision, explicit original-owner-git-commit or private-monorepo-git-commit kind and independently derived mappedInputSha256; Core retains its compatibility version. When mapped digest is unchanged, preserve the previously accepted component record, including its kind. Changed mapped content must have a distinct exact selected native commit; never replace every component identity on each release. Source ancestry and actual input hashes are independently verified in the source owner's tooling, not by converting receipt hashes to Git commits.
+- Exact nativeSourceMain and platformMain successful run and attempt evidence. Do not fabricate original owner CI records for a native release.
+- Retain existing exact archive SHA-256, npm registry shasum, verified neutral smoke, public OIDC publication run and signed Sigstore provenance reference. These are observations from actual authenticated/verified workflows, not authority claims derived from preview JSON.
+
+The new module `scripts/native-source-receipt.mjs` constructs and validates strict structured records and compares them to independently obtained observations. It does not verify GitHub REST transport, npm signature, actual archive or registry status itself, write any receipt, grant publication, or choose a new source commit. The caller must do those checks independently, including previous receipt authenticity and mapping/source ancestry. Validation rejects unknown nested fields, unknown kinds, unchanged-input identity churn, wrong hashes or attempt, duplicate/non-advancing version and failed/incomplete CI or signed-publication evidence. Recovery classification separates missing, unknown and conflicting registry observations and prevents inferring republish permission from an interrupted receipt write.
+
+## Live adoption work remains explicitly gated
+
+The legacy receipt reader is intentionally not broadened by this dormant implementation. Existing alignment, candidate handoff, receipt read/CLI, release preparation, old-owner checkout, stable descriptor publication and recovery paths retain v1 behavior. Before activation: audit and implement explicit version dispatch and privacy-safe v2 output across all live consumers; verify a general native assembler against reviewed manifest and independently read bytes; authenticated prior-release continuity and source/main/full qualification; platform exact-public-main CI; actual generated/adopted consumer upgrade, managed drift refusal and rollback; publish/recovery simulation with real signed-proof requirements; verify final stable alignment after an authorized publication. No historical receipt changes, new signing system, npm trust root changes, credential changes or automatic source ownership transfer.
+
+Fixtures exercise semantic continuity across successive native candidate revisions, full v1 backward compatibility in the unchanged reader, negative shape/identity cases, and ambiguous publication recovery. Tests use fabricated fact records and are not evidence of actual publication. Existing PR CI executes the tests. No new job or recurring cost.
