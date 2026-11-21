@@ -138,7 +138,8 @@ jobs:
             --reference-commit 74b9462df28faab16bcde7599373f632e2b29626
 
       - name: Independently inspect changed Feedback source preview (NO PUBLISH)
-        if: inputs.candidate_mode == 'changed-feedback-4.36-preview'
+        id: changed_preview
+        if: steps.request.outputs.candidate_mode == 'changed-feedback-4.36-preview'
         shell: bash
         env:
           EXPECTED_SHA: ${{ steps.request.outputs.source_sha }}
@@ -170,6 +171,7 @@ jobs:
             --archive "$RUNNER_TEMP/$filename"
           echo 'PUBLIC SOURCE PREVIEW: changed Feedback source proven without npm release'
           echo 'NPM_PUBLISHED=false SOURCE_OWNERSHIP_TRANSFERRED=false PRODUCTION_CHANGED=false'
+          echo 'verified=true' >> "$GITHUB_OUTPUT"
 
       - name: Recheck authenticated private main after candidate verification
         shell: bash
@@ -183,6 +185,10 @@ jobs:
             { echo 'Private main cannot be independently rechecked' >&2; exit 2; }
           [[ "$live" == "$EXPECTED_SHA" ]] || { echo 'Private main advanced during preview' >&2; exit 2; }
           if [[ "${{ steps.request.outputs.candidate_mode }}" == 'changed-feedback-4.36-preview' ]]; then
+            [[ "${{ steps.changed_preview.outputs.verified }}" == 'true' ]] || {
+              echo 'Changed-source verification step did not complete successfully' >&2
+              exit 2
+            }
             echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED HISTORICAL 4.35.0 AND UNPUBLISHED CHANGED-FEEDBACK SOURCE'
           else
             echo 'PUBLIC-PRIVATE BRIDGE PREVIEW: VERIFIED EXISTING 4.35.0 ONLY'

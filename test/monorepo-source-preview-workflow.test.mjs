@@ -43,6 +43,15 @@ test('preview independently rebuilds source and compares a historical public rec
   assert.match(preview, /Private main advanced during preview/);
 });
 
+test('changed-source mode requires completed optional proof, not just a selected mode', () => {
+  assert.ok(preview.includes("id: changed_preview"));
+  assert.ok(preview.includes("if: steps.request.outputs.candidate_mode == 'changed-feedback-4.36-preview'"));
+  assert.ok(!preview.includes("if: inputs.candidate_mode =="));
+  assert.ok(preview.includes(`echo 'verified=true' >> "$GITHUB_OUTPUT"`));
+  assert.ok(preview.includes("steps.changed_preview.outputs.verified"));
+  assert.ok(preview.includes("Changed-source verification step did not complete successfully"));
+});
+
 test('legacy public npm publisher remains untouched and preview has no publish or elevated token scope', () => {
   assert.match(preview, /permissions:\n  contents: read/);
   assert.doesNotMatch(preview, /npm publish\s/);
