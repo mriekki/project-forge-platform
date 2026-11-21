@@ -71,11 +71,7 @@ function ciEvidence(x) {
     'Successful exact-run CI evidence required');
 }
 
-export function validateNativeReceipt(receipt, expectedVersion) {
-  fields(receipt, ['schemaVersion','kind','package','platformSource','source','components',
-    'artifact','publication','ci'], 'native receipt');
-  check(receipt.schemaVersion === 2 && receipt.kind === 'project-forge-native-source-release',
-    'Unsupported native receipt schema or kind');
+function validateReleaseIdentity(receipt, expectedVersion) {
   fields(receipt.package, ['name','version'], 'package');
   check(receipt.package.name === PKG, 'Wrong package');
   version(receipt.package.version);
@@ -83,18 +79,27 @@ export function validateNativeReceipt(receipt, expectedVersion) {
     'Receipt version differs from selection');
   check(exact(receipt.platformSource, SHA40), 'Exact public Platform source required');
   fields(receipt.source, ['mode','commit','previousVersion','manifestSha256',
-    'qualificationEvent'], 'native source');
+    'qualificationEvent','previousReceiptSha256'], 'native source');
   check(receipt.source.mode === 'native-monorepo' && exact(receipt.source.commit, SHA40) &&
     exact(receipt.source.manifestSha256, SHA256) &&
+    exact(receipt.source.previousReceiptSha256, SHA256) &&
     EVENTS.has(receipt.source.qualificationEvent), 'Invalid native source identity');
   check(advances(receipt.package.version, receipt.source.previousVersion),
     'Release version must advance previous accepted version');
   componentRecords(receipt.components);
-  artifact(receipt.artifact);
-  publication(receipt.publication);
   fields(receipt.ci, ['nativeSourceMain','platformMain'], 'native CI');
   ciEvidence(receipt.ci.nativeSourceMain);
   ciEvidence(receipt.ci.platformMain);
+}
+
+export function validateNativeReceipt(receipt, expectedVersion) {
+  fields(receipt, ['schemaVersion','kind','package','platformSource','source','components',
+    'artifact','publication','ci'], 'native receipt');
+  check(receipt.schemaVersion === 2 && receipt.kind === 'project-forge-native-source-release',
+    'Unsupported native receipt schema or kind');
+  validateReleaseIdentity(receipt, expectedVersion);
+  artifact(receipt.artifact);
+  publication(receipt.publication);
   return receipt;
 }
 
@@ -111,15 +116,12 @@ export function constructNativeReceipt(facts) {
 // The caller must obtain all observed values independently, verify exact main,
 // actor/code/job/step policy, and verify the actual archive and registry proof.
 // The function deliberately reports comparison only, not authentication.
-export function verifyNativeProjection({ receipt, previous, observed }) {
-  validateNativeReceipt(receipt);
-  fields(previous, ['version','components'], 'previous acceptance projection');
+function compareReleaseProjection(receipt, previous, observed) {
+  fields(previous, ['version','receiptSha256','components'], 'previous acceptance projection');
   componentRecords(previous.components);
-  check(previous.version === receipt.source.previousVersion,
-    'Previous accepted version differs from receipt');
-  fields(observed, ['packageVersion','platformSource','sourceCommit','manifestSha256',
-    'qualificationEvent','nativeSourceMain','platformMain','componentDigests',
-    'packageComponents','assemblyRevisions','artifact','publication'], 'observed proof');
+  check(previous.version === receipt.source.previousVersion &&
+    previous.receiptSha256 === receipt.source.previousReceiptSha256,
+    'Previous accepted version or receipt digest differs');
   check(observed.packageVersion === receipt.package.version &&
     observed.platformSource === receipt.platformSource &&
     observed.sourceCommit === receipt.source.commit &&
@@ -152,6 +154,15 @@ export function verifyNativeProjection({ receipt, previous, observed }) {
       observed.assemblyRevisions[cid] === next.revision,
     'Public package/assembly revision projection differs');
   }
+  return changed;
+}
+
+export function verifyNativeProjection({ receipt, previous, observed }) {
+  validateNativeReceipt(receipt);
+  fields(observed, ['packageVersion','platformSource','sourceCommit','manifestSha256',
+    'qualificationEvent','nativeSourceMain','platformMain','componentDigests',
+    'packageComponents','assemblyRevisions','artifact','publication'], 'observed proof');
+  const changed = compareReleaseProjection(receipt, previous, observed);
   check(isDeepStrictEqual(receipt.artifact, observed.artifact) &&
     isDeepStrictEqual(receipt.publication, observed.publication),
   'Independent artifact or publication evidence differs');
@@ -188,5 +199,93 @@ export function classifyNativeRecovery({expectedReceipt, registry, existingRecei
     }
   }
   return Object.freeze({decision, publishAuthorized:false, receiptWriteAuthorized:false,
+    alignmentAuthorized:false});
+}
+
+
+// Separate prepublication identity from postpublication facts. An intent
+// intentionally contains no purported registry success or signature.
+export function validateNativeIntent(intent) {
+  fields(intent, ['schemaVersion','kind','package','platformSource','source',
+    'components','ci','candidateSha256','releaseAuthorized','sourceOwnershipTransferred',
+    'productionAuthorized'], 'native release intent');
+  check(intent.schemaVersion === 1 && intent.kind === 'project-forge-native-release-intent' &&
+    intent.releaseAuthorized === false && intent.sourceOwnershipTransferred === false &&
+    intent.productionAuthorized === false, 'Invalid nonauthorizing native intent');
+  validateReleaseIdentity(intent);
+  check(exact(intent.candidateSha256, SHA256), 'Exact candidate archive digest required');
+  return intent;
+}
+export function constructNativeIntent(facts) {
+  fields(facts, ['package','platformSource','source','components','ci','candidateSha256'],
+    'native intent facts');
+  return validateNativeIntent({ schemaVersion:1, kind:'project-forge-native-release-intent',
+    ...structuredClone(facts), releaseAuthorized:false, sourceOwnershipTransferred:false,
+    productionAuthorized:false });
+}
+export function verifyNativeIntent({intent, previous, observed}) {
+  validateNativeIntent(intent);
+  fields(observed, ['packageVersion','platformSource','sourceCommit','manifestSha256',
+    'qualificationEvent','nativeSourceMain','platformMain','componentDigests',
+    'packageComponents','assemblyRevisions','candidateSha256'], 'observed intent proof');
+  const changed = compareReleaseProjection(intent, previous, observed);
+  check(observed.candidateSha256 === intent.candidateSha256, 'Candidate digest differs');
+  return Object.freeze({result:'NATIVE_INTENT_MATCH',changedComponents:changed,
+    sourceEvidenceAuthenticatedHere:false,releaseAuthorized:false,
+    sourceOwnershipTransferred:false,productionAuthorized:false});
+}
+export function verifyReceiptMatchesIntent(receipt, intent) {
+  validateNativeReceipt(receipt);
+  validateNativeIntent(intent);
+  for (const field of ['package','platformSource','source','components','ci']) {
+    check(isDeepStrictEqual(receipt[field], intent[field]), 'Receipt differs from selected intent');
+  }
+  check(receipt.artifact.releaseCandidateSha256 === intent.candidateSha256,
+    'Receipt archive differs from selected intent');
+  return receipt;
+}
+// Use only AFTER independent verification of registry and signed publication
+// facts. Construction remains a structural operation, not a publication claim.
+export function constructNativeReceiptFromIntent(intent, facts) {
+  validateNativeIntent(intent);
+  fields(facts, ['artifact','publication'], 'postpublication facts');
+  const {package:packageInfo,platformSource,source,components,ci} = intent;
+  return verifyReceiptMatchesIntent(constructNativeReceipt({
+    package:packageInfo,platformSource,source,components,ci,...facts
+  }), intent);
+}
+
+// Resume from exact accepted intent and separately observed registry state.
+// Unlike the postpublication recovery comparison, this requires no fictional
+// publication timestamp, workflow or signature to exist before publishing.
+export function classifyNativeIntentRecovery({intent, registry, existingReceipt}) {
+  validateNativeIntent(intent);
+  fields(registry, registry?.status === 'present'
+    ? ['status','package','artifact'] : ['status'], 'registry observation');
+  let decision;
+  if (registry.status === 'unknown') decision = 'BLOCKED_REGISTRY_UNVERIFIED';
+  else if (registry.status === 'absent') decision = existingReceipt === null
+    ? 'NOT_PUBLISHED_NEW_AUTHORIZATION_REQUIRED' : 'BLOCKED_RECEIPT_WITHOUT_REGISTRY';
+  else {
+    check(registry.status === 'present', 'Unknown registry status');
+    fields(registry.package, ['name','version'], 'registry package');
+    artifact(registry.artifact);
+    if (!isDeepStrictEqual(registry.package,intent.package) ||
+        registry.artifact.releaseCandidateSha256 !== intent.candidateSha256) {
+      decision = 'BLOCKED_REGISTRY_CONFLICT';
+    } else if (existingReceipt === null) {
+      decision = 'VERIFY_EXISTING_PUBLICATION_NO_REPUBLISH';
+    } else {
+      try {
+        verifyReceiptMatchesIntent(existingReceipt,intent);
+        check(isDeepStrictEqual(registry.artifact,existingReceipt.artifact),
+          'Registry and receipt artifact mismatch');
+        decision = 'MATCHED_RECEIPT_VERIFY_ALIGNMENT';
+      } catch {
+        decision = 'BLOCKED_RECEIPT_CONFLICT';
+      }
+    }
+  }
+  return Object.freeze({decision,publishAuthorized:false,receiptWriteAuthorized:false,
     alignmentAuthorized:false});
 }
