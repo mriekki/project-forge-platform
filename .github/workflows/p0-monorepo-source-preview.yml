@@ -89,6 +89,18 @@ jobs:
           gh api "/repos/$SOURCE_REPOSITORY" > "$RUNNER_TEMP/pf-source-repository.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source repository read denied' >&2; exit 2; }
           gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" > "$RUNNER_TEMP/pf-source-main.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source main read denied' >&2; exit 2; }
           gh api "/repos/$SOURCE_REPOSITORY/actions/runs/$SOURCE_RUN" > "$RUNNER_TEMP/pf-source-release-run.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source Actions:read is denied or the run is missing' >&2; exit 2; }
+          # Bind issue-triggered evidence to the exact run attempt and reviewed source
+          # qualification code. These metadata reads use the existing protected
+          # read-only credential; neither the raw responses nor private locator are logged.
+          source_event="$(node -e 'const fs=require("fs"); const r=JSON.parse(fs.readFileSync(process.argv[1])); if(!["workflow_dispatch","issues"].includes(r.event))process.exit(2);process.stdout.write(r.event)' "$RUNNER_TEMP/pf-source-release-run.json")"
+          extra=()
+          if [[ "$source_event" == 'issues' ]]; then
+            attempt="$(node -e 'const fs=require("fs"); const r=JSON.parse(fs.readFileSync(process.argv[1])); if(!Number.isSafeInteger(r.run_attempt)||r.run_attempt<1)process.exit(2);process.stdout.write(String(r.run_attempt))' "$RUNNER_TEMP/pf-source-release-run.json")"
+            gh api "/repos/$SOURCE_REPOSITORY/actions/runs/$SOURCE_RUN/attempts/$attempt/jobs?per_page=100" > "$RUNNER_TEMP/pf-source-jobs.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Exact source qualification job evidence unavailable' >&2; exit 2; }
+            gh api --method GET "/repos/$SOURCE_REPOSITORY/contents/.github/workflows/p0-main-release-qualification.yml" -f ref="$EXPECTED_SHA" --jq '{path,type,sha}' > "$RUNNER_TEMP/pf-source-workflow.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Reviewed qualification workflow metadata unavailable' >&2; exit 2; }
+            gh api --method GET "/repos/$SOURCE_REPOSITORY/contents/tools/release/verify_main_identity.py" -f ref="$EXPECTED_SHA" --jq '{path,type,sha}' > "$RUNNER_TEMP/pf-source-identity.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Reviewed identity verifier metadata unavailable' >&2; exit 2; }
+            extra=(--jobs-json "$RUNNER_TEMP/pf-source-jobs.json" --workflow-json "$RUNNER_TEMP/pf-source-workflow.json" --identity-json "$RUNNER_TEMP/pf-source-identity.json")
+          fi
           PF_PROTECTED_SOURCE_REPOSITORY="$SOURCE_REPOSITORY" \
           PF_PROTECTED_SOURCE_REPOSITORY_ID="$SOURCE_ID" \
           node scripts/private-source-admission-preview.mjs \
@@ -97,7 +109,7 @@ jobs:
             --package-version 4.35.0 \
             --repository-json "$RUNNER_TEMP/pf-source-repository.json" \
             --main-json "$RUNNER_TEMP/pf-source-main.json" \
-            --run-json "$RUNNER_TEMP/pf-source-release-run.json"
+            --run-json "$RUNNER_TEMP/pf-source-release-run.json" "${extra[@]}"
           echo "repository=$SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
 
       - name: Checkout exact independently admitted private source (read only)
