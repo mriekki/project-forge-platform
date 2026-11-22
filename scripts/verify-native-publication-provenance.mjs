@@ -74,10 +74,18 @@ export function expectedProvenance({receipt,registry,archive,attestations,times}
  // Enforce the SAME non-falsifiable certificate OIDs as the signed statement.
  // Sigstore verifies signature, Fulcio chain, SCT and Rekor inclusion, plus
  // all these OID values. A matching unsigned statement is never sufficient.
+ // Fulcio modern extensions are DER UTF8String inside the extension octet string.
+ // Sigstore's certificateOIDs policy compares raw extension bytes. All expected
+ // strings are restricted to ASCII and short-form DER, so the option's UTF-8
+ // conversion preserves the complete DER encoding (tag, length, value).
+ const derUTF8=value=>{
+  need(/^[\x20-\x7e]{1,127}$/.test(value),'Unsupported expected certificate identity encoding');
+  return String.fromCharCode(12,value.length)+value;
+ };
  const certificateOIDs=Object.fromEntries(Object.entries({
   9:SIGNER,10:source,11:'github-hosted',12:REPO,13:source,14:'refs/heads/main',
   15:String(REPOSITORY_ID),17:String(OWNER_ID),18:SIGNER,19:source,20:'issues',21:invocation,22:'public'
- }).map(([k,v])=>[OID+k,v]));
+ }).map(([k,v])=>[OID+k,derUTF8(v)]));
  const options={certificateIssuer:ISSUER,
  certificateIdentityURI:'^'+SIGNER.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$',
  certificateOIDs,ctLogThreshold:1,tlogThreshold:1,timeout:30000,retry:2};
@@ -138,7 +146,16 @@ export async function qualifyPriorProvenance({receipt,registry,archive,times,loc
  const require=createRequire(path.join(npmRoot,'package.json'));
  need(require('./package.json').name==='npm'&&require('./package.json').version==='11.21.0','Pinned npm verifier required');
  const sigstore=require('sigstore');
- await sigstore.verify(identity.bundle,identity.options);
+ const signer=await sigstore.verify(identity.bundle,identity.options);
+ // Require independently observed verified signer OIDs as well as policy
+ // validation, so dropped/ignored constraints cannot silently become success.
+ need(signer?.identity?.subjectAlternativeName===SIGNER&&signer.identity.extensions?.issuer===ISSUER,
+  'Verified signer identity differs');
+ for(const [oid,expected] of Object.entries(identity.options.certificateOIDs)){
+  const matching=signer.identity.oids?.filter(x=>x.oid?.id?.join('.')===oid)??[];
+  need(matching.length===1&&Buffer.isBuffer(matching[0].value)&&matching[0].value.equals(Buffer.from(expected)),
+   'Verified signer extension differs: '+oid);
+ }
  const prefix='/repos/mriekki/project-forge-platform/actions/runs/'+identity.runId;
  const run=JSON.parse(api(prefix+'/attempts/'+identity.attempt));
  const jobs=JSON.parse(api(prefix+'/attempts/'+identity.attempt+'/jobs?per_page=100'));

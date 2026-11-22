@@ -57,7 +57,7 @@ jobs:
           SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
           SOURCE_ID: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY_ID }}
           SOURCE_WORKFLOW_ID: ${{ vars.PF_NATIVE_SUCCESSOR_WORKFLOW_ID }}
-          PF_REVIEWED_HARNESS: ${{ vars.PF_NATIVE_SUCCESSOR_REVIEWED_HARNESS }}
+          PF_REVIEWED_HARNESS: ${{ secrets.PF_NATIVE_SUCCESSOR_REVIEWED_HARNESS }}
           GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
         run: node scripts/native-successor-admission-preview.mjs collect
       - name: Checkout independently compared exact private source (read only)

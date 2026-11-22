@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual as equal} from 'node:util';
 import {pathToFileURL} from 'node:url';
-import {verifySuccessorRunEvidence,extractSuccessorProof,REQUIRED_CODE_PATHS} from './native-successor-run-evidence.mjs';
+import {verifySuccessorRunEvidence,extractSuccessorProof,verifyReviewedHarness,REQUIRED_CODE_PATHS} from './native-successor-run-evidence.mjs';
 import {verifyPriorRegistryArchive,readReleaseArchiveProjection} from './prior-registry-archive.mjs';
 import {compareSuccessorEvidence} from './verify-native-successor-evidence.mjs';
 import {validateNativeReceipt} from './native-source-receipt.mjs';
@@ -14,7 +14,7 @@ import {loadPackageData} from '../src/package-data.mjs';
 import {strictJson} from './strict-json.mjs';
 
 const pins=Object.freeze({
-  ".github/workflows/native-successor-main-qualification.yml": "0cb137b10fea08bf6d461b659faaa638c54589cf",
+  ".github/workflows/native-successor-main-qualification.yml": "830e7f1a16bd36d4d4f9027ffbe781f3b119c439",
   "tools/release/resolve_successor_request.py": "de3ed44e85b848ffd463102843fd5847e34791ce",
   "tools/release/verify_main_identity.py": "a7919cce83e31c11b506594481837dad5c86c10e",
   "tools/shared/verify_current_main_snapshot.py": "48158c418c4dacdd39206a5d8a068995d76f954b",
@@ -87,12 +87,6 @@ function collect(){
     'Independent exact source tree/harness and run review required');
   const selectedCommit=query('/git/commits/'+r.sourceCommit);
   need(selectedCommit.sha===r.sourceCommit&&selectedCommit.tree?.sha===review.tree,'Reviewed exact source tree differs');
-  const issue=query('/issues/'+review.qualificationIssue);
-  need(issue.number===review.qualificationIssue&&issue.user?.id===12054121&&
-    issue.title==='[project-forge-native-successor-qualify]'&&
-    equal(strictJson(issue.body,4096),{exactSourceSha:r.sourceCommit,previousVersion:r.previousVersion,
-      previousReceiptSha256:r.previousReceiptSha256,previousPlatformCommit:review.previousPlatformCommit,
-      targetVersion:r.version}),'Reviewed exact qualification request differs');
   save('pf-successor-reviewed-harness.json',review);
   const repo=query(''),mainRef=query('/git/ref/heads/main'),
     run=query('/actions/runs/'+r.workflowRunId),
@@ -102,7 +96,9 @@ function collect(){
   const result=verifySuccessorRunEvidence({policy:{repository,repositoryId,workflowId,codePins:pins},
     selected:{sourceCommit:r.sourceCommit,workflowRunId:r.workflowRunId,runAttempt:r.runAttempt},
     repo,mainRef,run,jobs,code});
-  const proof=extractSuccessorProof(gh(prefix+'/actions/jobs/'+result.sourceJobId+'/logs'));
+  const log=gh(prefix+'/actions/jobs/'+result.sourceJobId+'/logs',['--allow-escape-sequences']);
+  verifyReviewedHarness(log,review);
+  const proof=extractSuccessorProof(log);
   save('pf-successor-source-proof.json',proof);
   // Bind the job log to the exact independently observed run and selected source.
   need(proof.sourceCommit===r.sourceCommit&&proof.manifestSha256===r.manifestSha256&&

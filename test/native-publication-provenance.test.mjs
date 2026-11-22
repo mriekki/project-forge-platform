@@ -35,8 +35,8 @@ test('exact subject, immutable workflow certificate policy and receipt invocatio
  const x=fixture(),r=selected(x);
  assert.equal(r.options.certificateIssuer,'https://token.actions.githubusercontent.com');
  assert.match(repo+'/.github/workflows/npm-publish.yml@refs/heads/main',new RegExp(r.options.certificateIdentityURI));
- assert.equal(r.options.certificateOIDs['1.3.6.1.4.1.57264.1.13'],x.receipt.platformSource);
- assert.equal(r.options.certificateOIDs['1.3.6.1.4.1.57264.1.21'],r.invocation);
+ assert.equal(r.options.certificateOIDs['1.3.6.1.4.1.57264.1.13'],String.fromCharCode(12,x.receipt.platformSource.length)+x.receipt.platformSource);
+ assert.equal(r.options.certificateOIDs['1.3.6.1.4.1.57264.1.21'],String.fromCharCode(12,r.invocation.length)+r.invocation);
  assert.equal(r.options.ctLogThreshold,1);assert.equal(r.options.tlogThreshold,1);
  for(const mutate of [
   x=>x.statement.subject[0].name='pkg:npm/other@4.36.0',
