@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
+import {execFileSync,spawnSync} from 'node:child_process';
 import {resolveSuccessorPublication,requireRegistryState,verifyAdmissionWitness,decodeAdmissionWitnessPayload} from '../scripts/native-successor-publication.mjs';
 const sha='a'.repeat(40),digest='b'.repeat(64),version='4.36.1';
 function fixture(){
@@ -69,4 +69,23 @@ test('admission witness survives GitHub masking without weakening exact identity
    'A', 'A'.repeat(24001),Buffer.from([0xff,0xfe]).toString('base64url'),
    Buffer.from('{"duplicate":1,"duplicate":2}').toString('base64url')
  ])assert.throws(()=>decodeAdmissionWitnessPayload(invalid));
+});
+
+test('all successor publisher preflight, publish and recovery repacks use distinct empty npm configs',()=>{
+ const workflow=fs.readFileSync(new URL('../.github/workflows/npm-publish.yml',import.meta.url),'utf8');
+ const pre=workflow.slice(workflow.indexOf('\n  native-successor-preflight:'),workflow.indexOf('\n  native-successor-publish:'));
+ const publish=workflow.slice(workflow.indexOf('\n  native-successor-publish:'),workflow.indexOf('\n  native-successor-verify:'));
+ const verify=workflow.slice(workflow.indexOf('\n  native-successor-verify:'),workflow.indexOf('\n  native-publish:'));
+ for(const [name,job] of [['preflight',pre],['publish',publish],['verify',verify]]){
+   assert.ok(job.length>0,name+' workflow job present');
+   assert.match(job,/umask 077/);
+   assert.match(job,/user_config="\$RUNNER_TEMP\/pf-native-user\.npmrc"/);
+   assert.match(job,/global_config="\$RUNNER_TEMP\/pf-native-global\.npmrc"/);
+   assert.match(job,/: > "\$user_config"/);
+   assert.match(job,/: > "\$global_config"/);
+   assert.match(job,/npm pack --ignore-scripts --offline --userconfig "\$user_config" --globalconfig "\$global_config" --json --pack-destination "\$RUNNER_TEMP"/);
+   assert.doesNotMatch(job,/npm pack[^\n]*--userconfig \/dev\/null --globalconfig \/dev\/null/);
+ }
+ assert.equal((workflow.match(/pf-native-user\.npmrc/g)||[]).length,3);
+ assert.equal((workflow.match(/pf-native-global\.npmrc/g)||[]).length,3);
 });
