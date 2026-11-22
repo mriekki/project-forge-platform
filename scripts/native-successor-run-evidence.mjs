@@ -6,6 +6,7 @@
  * private checkout, issue body or logs. No active trust policy is installed.
  */
 import {isDeepStrictEqual as equal} from 'node:util';
+import {strictJson} from './strict-json.mjs';
 
 const SHA=/^[0-9a-f]{40}$/;
 const REPO=/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
@@ -34,6 +35,7 @@ export const REQUIRED_CODE_PATHS=Object.freeze([
 export const REQUIRED_STEPS=Object.freeze([
   'Checkout exact event main source',
   'Validate exact owner-issued nonpublishing successor request',
+  'Observe authenticated current main without executing source code',
   'Verify authenticated current main and independent historical snapshots',
   'Checkout public reference only for immutable historical parity, never for build inputs',
   'Checkout public receipt verifier (read-only)',
@@ -126,7 +128,7 @@ export function extractSuccessorProof(log){
   const raw=lines[starts[0]+1];
   need(Buffer.byteLength(raw,'utf8')<=64*1024,'Invalid successor proof size');
   let proof;
-  try{proof=JSON.parse(raw);}catch{throw new Error('Malformed successor proof');}
+  try{proof=strictJson(raw,64*1024);}catch{throw new Error('Malformed successor proof');}
   need(proof&&typeof proof==='object'&&!Array.isArray(proof)&&
     proof.kind==='project-forge-offline-native-successor-proof'&&proof.schemaVersion===1&&
     proof.releaseAuthorized===false&&proof.published===false&&proof.productionAuthorized===false,
@@ -134,4 +136,15 @@ export function extractSuccessorProof(log){
   // Full field-by-field comparison to independent candidate evidence is
   // mandatory in composeSuccessorIntent; log extraction is not authentication.
   return proof;
+}
+
+export function verifyReviewedHarness(log,review){
+ need(typeof log==='string'&&Buffer.byteLength(log)<=16*1024*1024,'Invalid source qualification log size');
+ const lines=log.split(/\r?\n/).map(line=>line.replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z /,''));
+ const begin='PROJECT_FORGE_NATIVE_SUCCESSOR_HARNESS_BEGIN',end='PROJECT_FORGE_NATIVE_SUCCESSOR_HARNESS_END';
+ const starts=lines.flatMap((line,i)=>line===begin?[i]:[]),stops=lines.flatMap((line,i)=>line===end?[i]:[]);
+ need(starts.length===1&&stops.length===1&&stops[0]===starts[0]+2&&
+ lines[stops[0]+1]==='PROJECT_FORGE_NATIVE_SUCCESSOR_PROOF_BEGIN','Unique reviewed harness immediately before final proof required');
+ need(equal(strictJson(lines[starts[0]+1],8192),review),'Exact independently reviewed harness differs');
+ return true;
 }

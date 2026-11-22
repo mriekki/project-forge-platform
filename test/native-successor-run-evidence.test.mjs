@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {verifySuccessorRunEvidence,extractSuccessorProof,REQUIRED_CODE_PATHS,REQUIRED_STEPS}
+import {verifySuccessorRunEvidence,extractSuccessorProof,verifyReviewedHarness,REQUIRED_CODE_PATHS,REQUIRED_STEPS}
   from '../scripts/native-successor-run-evidence.mjs';
 
 const sha='a'.repeat(40), name='Native Exact-Main Successor Qualification (NO PUBLISH)';
@@ -57,4 +57,13 @@ test('extract one exact final proof block without treating command echoes as pro
     log.replace(JSON.stringify(p),JSON.stringify({...p,published:true})),
     log.replace(stamp+end,stamp+'extra\n'+stamp+end),'echo '+begin+'\n'+JSON.stringify(p)+'\n'+end
   ])assert.throws(()=>extractSuccessorProof(altered));
+});
+
+test('reviewed harness binds exact selected tree, run, predecessor and trace',()=>{
+ const h={sourceCommit:sha,tree:'b'.repeat(40),workflowRunId:3,runAttempt:2,qualificationIssue:4,previousPlatformCommit:'c'.repeat(40),manifestSha256:'d'.repeat(64),candidateSha256:'e'.repeat(64)};
+ const log=['PROJECT_FORGE_NATIVE_SUCCESSOR_HARNESS_BEGIN',JSON.stringify(h),'PROJECT_FORGE_NATIVE_SUCCESSOR_HARNESS_END','PROJECT_FORGE_NATIVE_SUCCESSOR_PROOF_BEGIN'].join('\n');
+ assert.equal(verifyReviewedHarness(log,h),true);
+ assert.throws(()=>verifyReviewedHarness(log,{...h,tree:'f'.repeat(40)}));
+ assert.throws(()=>verifyReviewedHarness(log+'\nPROJECT_FORGE_NATIVE_SUCCESSOR_HARNESS_BEGIN',h));
+ assert.throws(()=>verifyReviewedHarness(log.replace('PROOF_BEGIN','UNREVIEWED'),h));
 });

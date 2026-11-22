@@ -16,14 +16,17 @@ test('exact successor preview request does not authorize publication',()=>{
       {previousVersion:'4.35.0'},{version:'4.36.1-preview.7'},{version:'4.36.1\nBAD=1'},
       {candidateSha256:'wrong'},{publicationAuthorized:true}].map(change=>x=>x.issue.body=JSON.stringify({...r,...change}))
   ]){const x=event();mutate(x);assert.throws(()=>resolveSuccessorPreview(x,'owner'));}
+  const duplicate=event();
+  duplicate.issue.body=JSON.stringify(r).slice(0,-1)+',"version":"4.36.1"}';
+  assert.throws(()=>resolveSuccessorPreview(duplicate,'owner'));
 });
 test('protected preview defaults off, uses no publisher permission and isolates private output',()=>{
   const body=fs.readFileSync(new URL('../.github/workflows/native-successor-admission-preview.yml',import.meta.url),'utf8');
   for(const value of [
     "vars.PF_NATIVE_SUCCESSOR_PREVIEW_ENABLED == 'true'",
     "vars.PF_MONOREPO_SOURCE_PREVIEW_ENABLED == 'true'",'permissions:\n  contents: read',
-    'persist-credentials: false','verify-checkout .private-source','PF_NATIVE_SUCCESSOR_WORKFLOW_ID',
-    'npm audit signatures','git merge-base --is-ancestor','test "$status" = 404',
+    'persist-credentials: false','verify-checkout "$RUNNER_TEMP/pf-successor-private-source"','PF_NATIVE_SUCCESSOR_WORKFLOW_ID','PF_NATIVE_SUCCESSOR_REVIEWED_HARNESS','verify-native-publication-provenance.mjs','fetch-source',
+    'audit signatures','git merge-base --is-ancestor','test "$status" = 404',
     'pf-successor-private-build.log','pf-successor-reviewed-code','python3 -I -B',
     'verify-assets "$RUNNER_TEMP/pf-successor-stage"','npm pack --ignore-scripts --offline','Recheck authenticated private and public main after preview',
     'RELEASE_AUTHORIZED=false NPM_PUBLISHED=false PRODUCTION_CHANGED=false'
