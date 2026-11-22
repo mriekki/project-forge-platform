@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "project-forge-native-successor-publisher-abort",
+  "version": "4.36.2",
+  "disposition": "authorization-consumed-preflight-failed-no-oidc",
+  "publishAuthorizedOriginally": true,
+  "publishCompleted": false,
+  "publicationRun": {
+    "issueNumber": 430,
+    "issueId": 6548273895,
+    "workflowRunId": 45074582099,
+    "runAttempt": 1,
+    "platformCommit": "bc815c52be4d4e01146cbb77ec964769572a9eae",
+    "claim": "success",
+    "preflight": "failure",
+    "oidcPublisher": "skipped",
+    "registryVerification": "skipped"
+  },
+  "authorization": {
+    "issueNumber": 426,
+    "issueId": 6547526840,
+    "consumed": true,
+    "markerCommentId": 7086389652
+  },
+  "selection": {
+    "path": "release/native-selections/4.36.2.json",
+    "sha256": "b74a87c0f73084e52358c7d6d4f37edf9e84f3459f7606725fcf75199ce59afc",
+    "candidateSha256": "0badcde9c39e8ad6afc1b9ea5129a63f8871517b6ae9fc81bf7528be3286b66d"
+  },
+  "failure": {
+    "jobId": 137368901179,
+    "step": "Derive exact verified successor intent",
+    "cause": "Historical first-native-publication.mjs top-level CLI dispatch ran during successor import of read-only helpers and attempted to read absent legacy pf-source-release-run.json"
+  },
+  "tracking": {
+    "repository": "mriekki/project-forge-source",
+    "issueNumber": 118
+  },
+  "rule": "Do not reopen or reset consumed authority, rerun its publish workflow, replace original selection, or grant another publication based on this record; a newly qualified successor and distinct Builder authorization are required."
+}
