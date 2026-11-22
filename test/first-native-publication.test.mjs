@@ -31,6 +31,20 @@ test('native recovery request cannot invoke publication and binds original run a
     x.event.issue.body=JSON.stringify({...body,...change});assert.throws(()=>resolveNativePublish(x));
   }
 });
+test('recovery-only workflow may advance while receipt preserves exact publishing commit',()=>{
+  const x=request();
+  x.event.issue.title='[project-forge-native-publish-verify] 4.36.0';
+  const body={...JSON.parse(x.event.issue.body),sourceCommit:'b4806c1d2e49fcfda9bd0446d0842ac691d73cd3',
+    publicationRunId:44965248785,provenanceUrl:'https://search.sigstore.dev/?logIndex=4034417139'};
+  x.event.issue.body=JSON.stringify(body);
+  const resolved=resolveNativePublish(x);
+  assert.equal(resolved.mode,'verify');
+  assert.equal(resolved.sourceCommit,body.sourceCommit);
+  assert.equal(resolved.publicationRunId,body.publicationRunId);
+  for(const change of [{sourceCommit:'c'.repeat(40)},{publicationRunId:99}]){
+    x.event.issue.body=JSON.stringify({...body,...change});assert.throws(()=>resolveNativePublish(x));
+  }
+});
 test('native candidate requires an authenticated exact main run; absence is only HTTP 404 with prior latest',()=>{
   const run={id:1,run_attempt:1,head_sha:head,head_branch:'main',path:'.github/workflows/ci.yml',
     event:'push',status:'completed',conclusion:'success',repository:{id:1420848802},head_repository:{id:1420848802}};
@@ -62,6 +76,9 @@ test('native publisher uses existing workflow identity, exact rebuilt digest and
   assert.match(body,/Verify unused target release and exact previous registry latest/);
   assert.match(body,/- name: Publish verified native archive with existing npm trusted publisher\n        id: native_npm\n        if: steps.native_request.outputs.mode == 'publish'/);
   assert.match(body,/npm audit signatures/);
+  assert.match(body,/gh api --allow-escape-sequences/);
+  assert.match(body,/git merge-base --is-ancestor/);
+  assert.match(body,/Unapproved recovery drift/);
   assert.match(body,/Verify exact original native publication run for recovery/);
   assert.match(body,/node scripts\/first-native-publication.mjs finalize/);
   assert.doesNotMatch(body,/secrets\.PROJECT_FORGE_SOURCE_TOKEN|upload-artifact|contents: write/);

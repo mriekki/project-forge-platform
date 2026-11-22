@@ -699,6 +699,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - name: Resolve exact native publication request
         id: native_request
@@ -721,8 +722,17 @@ jobs:
           EXPECTED_COMMIT: ${{ steps.native_request.outputs.sourceCommit }}
         run: |
           set -euo pipefail
-          [[ "$(git rev-parse HEAD)" == "$EXPECTED_COMMIT" ]]
-          [[ "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" == "$EXPECTED_COMMIT" ]]
+          [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]]
+          [[ "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" == "$GITHUB_SHA" ]]
+          if [[ "$EXPECTED_COMMIT" != "$GITHUB_SHA" ]]; then
+            git merge-base --is-ancestor "$EXPECTED_COMMIT" "$GITHUB_SHA"
+            while IFS= read -r changed; do
+              case "$changed" in
+                .github/workflows/npm-publish.yml|scripts/resolve-native-publish.mjs|test/first-native-publication.test.mjs) ;;
+                *) echo "Unapproved recovery drift" >&2; exit 2;;
+              esac
+            done < <(git diff --name-only "$EXPECTED_COMMIT" "$GITHUB_SHA")
+          fi
           [[ "$(node -p "require('./package.json').version")" == '4.36.0' ]]
           [[ "$(npm --version)" == '10.9.9' ]]
           gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=$EXPECTED_COMMIT&per_page=20" > "$RUNNER_TEMP/pf-native-platform-ci.json"
@@ -911,8 +921,17 @@ jobs:
           EXPECTED_COMMIT: ${{ steps.native_request.outputs.sourceCommit }}
         run: |
           set -euo pipefail
-          [[ "$(git rev-parse HEAD)" == "$EXPECTED_COMMIT" ]]
-          [[ "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" == "$EXPECTED_COMMIT" ]]
+          [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]]
+          [[ "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" == "$GITHUB_SHA" ]]
+          if [[ "$EXPECTED_COMMIT" != "$GITHUB_SHA" ]]; then
+            git merge-base --is-ancestor "$EXPECTED_COMMIT" "$GITHUB_SHA"
+            while IFS= read -r changed; do
+              case "$changed" in
+                .github/workflows/npm-publish.yml|scripts/resolve-native-publish.mjs|test/first-native-publication.test.mjs) ;;
+                *) echo "Unapproved recovery drift" >&2; exit 2;;
+              esac
+            done < <(git diff --name-only "$EXPECTED_COMMIT" "$GITHUB_SHA")
+          fi
           echo 'd098f7ff91e6c051f229961ea0458e9c4519f55b682bb1103ddb2fb27f8d46b4  '"$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz" | sha256sum -c -
           test ! -e release/receipts/4.36.0.json
 
@@ -940,8 +959,8 @@ jobs:
           gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$PUBLICATION_RUN_ID/attempts/$attempt/jobs?per_page=100" > "$RUNNER_TEMP/pf-native-original-jobs.json"
           node scripts/first-native-publication.mjs check-recovery
           job="$(node -e 'const r=require(process.argv[1]);process.stdout.write(String(r.jobs.find(j=>j.name==="native-publish").id))' "$RUNNER_TEMP/pf-native-original-jobs.json")"
-          gh api "/repos/$GITHUB_REPOSITORY/actions/jobs/$job/logs" > "$RUNNER_TEMP/pf-native-original-log"
-          grep -F "NATIVE_PUBLISHED_PROVENANCE_URL=$PROVENANCE_URL" "$RUNNER_TEMP/pf-native-original-log" >/dev/null
+          gh api --allow-escape-sequences "/repos/$GITHUB_REPOSITORY/actions/jobs/$job/logs" > "$RUNNER_TEMP/pf-native-original-log"
+          awk -v expected="NATIVE_PUBLISHED_PROVENANCE_URL=$PROVENANCE_URL" '$1 ~ /^[0-9TZ:.-]+$/ && $2 == expected && NF == 2 { matches++ } END { exit(matches == 1 ? 0 : 1) }' "$RUNNER_TEMP/pf-native-original-log"
 
       - name: Publish verified native archive with existing npm trusted publisher
         id: native_npm
@@ -964,8 +983,8 @@ jobs:
             cd "$RUNNER_TEMP/pf-native-registry"
             found=''
             for delay in 1 2 4 8 16 30 30 30 30 30 30; do
-              if npm view @mriekki/project-forge@4.36.0 --json --registry=https://registry.npmjs.org/ > registry.json &&
-                 npm pack @mriekki/project-forge@4.36.0 --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json &&
+              if npm --prefer-online --cache "$RUNNER_TEMP/pf-native-cache-$RANDOM" view @mriekki/project-forge@4.36.0 --json --registry=https://registry.npmjs.org/ > registry.json &&
+                 npm --prefer-online --cache "$RUNNER_TEMP/pf-native-cache-$RANDOM" pack @mriekki/project-forge@4.36.0 --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json &&
                  cmp -s mriekki-project-forge-4.36.0.tgz "$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz"; then
                 found=true; break
               fi
