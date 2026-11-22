@@ -116,7 +116,7 @@ jobs:
           # No private credential or OIDC capability in this step. Never print
           # private source, command output or file lists from the rebuild.
           reviewed="$RUNNER_TEMP/pf-successor-reviewed-code"
-          trap 'case "$(cat "$RUNNER_TEMP/pf-successor-rebuild-stage" 2>/dev/null || true)" in select|assemble|observe|assets|pack|copy) echo "Independent native rebuild refused at reviewed stage: $(cat "$RUNNER_TEMP/pf-successor-rebuild-stage") (private output withheld)" >&2 ;; *) echo "Independent native rebuild refused before stage selection (private output withheld)" >&2 ;; esac' ERR
+          trap 'stage="$(cat "$RUNNER_TEMP/pf-successor-rebuild-stage" 2>/dev/null || true)"; case "$stage" in select|assemble|observe|assets|pack|copy) printf "Independent native rebuild refused at reviewed stage: %s (private output withheld)\n" "$stage" >&2 ;; *) echo "Independent native rebuild refused before stage selection (private output withheld)" >&2 ;; esac' ERR
           (
             printf '%s\n' select > "$RUNNER_TEMP/pf-successor-rebuild-stage"
             python3 -I -B -c 'import runpy,sys; from pathlib import Path; entry=sys.argv.pop(1); sys.path.insert(0,str(Path(entry).parent)); runpy.run_path(entry,run_name="__main__")' "$reviewed/tools/npm/select_native_stable.py" --monorepo "$RUNNER_TEMP/pf-successor-private-source" \
