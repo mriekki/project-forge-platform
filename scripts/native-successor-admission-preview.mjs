@@ -155,7 +155,30 @@ function compare(){
   const preview=verifyPreview({selection,prior,observed:json('pf-successor-observations.json'),
     manifestBytes:read('pf-successor-manifest.json'),evidence:json('pf-successor-assembly.json'),
     sourceProof:json('pf-successor-source-proof.json'),archiveBytes:read('pf-successor-candidate.tgz')});
+  // The final public witness is emitted only after the workflow's separately
+  // authenticated source and public-main rechecks. It contains no locators,
+  // private code, credentials, raw logs, or purported authority.
+  save('pf-successor-preview-witness.json',{
+    schemaVersion:1,kind:'project-forge-successor-admission-witness',
+    selection,platformCommit:process.env.GITHUB_SHA,
+    previewRunId:Number(process.env.GITHUB_RUN_ID),previewRunAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),
+    priorComponentDigests:prior.componentDigests,
+    componentDigests:json('pf-successor-observations.json').componentDigests,
+    previousSourceCommit:json('pf-successor-observations.json').previousSourceCommit,
+    changedComponents:preview.changedComponents,
+    releaseAuthorized:false,published:false,productionAuthorized:false
+  });
   console.log(JSON.stringify(preview));
+}
+function finalizeWitness(){
+  const witness=json('pf-successor-preview-witness.json');
+  need(exact(witness.platformCommit,sha)&&positive(witness.previewRunId)&&positive(witness.previewRunAttempt),
+    'Exact preview run context missing');
+  need(witness.platformCommit===process.env.GITHUB_SHA&&witness.previewRunId===Number(process.env.GITHUB_RUN_ID)&&
+    witness.previewRunAttempt===Number(process.env.GITHUB_RUN_ATTEMPT),'Preview context differs');
+  console.log('PROJECT_FORGE_SUCCESSOR_ADMISSION_WITNESS_BEGIN');
+  console.log(JSON.stringify(witness));
+  console.log('PROJECT_FORGE_SUCCESSOR_ADMISSION_WITNESS_END');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   try{
@@ -171,6 +194,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
       case 'verify-checkout':localPins(process.argv[3],json('pf-successor-request.json').sourceCommit);break;
       case 'verify-assets':verifyStagedAssets(process.argv[3]);break;
       case 'compare':compare();break;
+      case 'witness':finalizeWitness();break;
       default:throw new Error('Unknown read-only preview operation');
     }
   }catch{console.error('Native successor preview refused');process.exitCode=2;}
