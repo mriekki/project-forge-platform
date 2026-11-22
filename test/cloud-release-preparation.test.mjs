@@ -82,3 +82,11 @@ test('release process documents cloud/local preparation and bounded end-to-end a
   assert.match(process, /does not need private Actions API access/i);
   assert.match(process, /## Actions retention boundary/);
 });
+
+test('legacy cloud preparation fails closed before setup, credentials or branch writes', () => {
+  const workflow = read('.github/workflows/prepare-package-release.yml');
+  const guard = workflow.indexOf('- name: Refuse legacy preparation after native release cutover');
+  assert.ok(guard > 0 && guard < workflow.indexOf('- name: Setup Node'));
+  assert.match(workflow.slice(guard, workflow.indexOf('- name: Setup Node')), /exit 2/);
+  assert.match(read('.github/skills/release-project-forge/SKILL.md'), /NATIVE RELEASE QUALIFICATION REQUIRED/);
+});
