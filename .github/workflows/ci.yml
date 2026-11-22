@@ -49,6 +49,25 @@ jobs:
         if: matrix.node == '22'
         shell: bash
         run: bash test/native-successor-mirror-4362.sh
+      - name: Verify exact 4.36.2 publisher readiness without claims or secrets (NO PUBLISH)
+        if: matrix.node == '22' && github.event_name == 'pull_request'
+        shell: bash
+        env:
+          RELEASE_FLAG_EXACT_TRUE: ${{ vars.PF_NATIVE_SUCCESSOR_PUBLISH_ENABLED == 'true' }}
+        run: |
+          set -euo pipefail
+          echo "PF_NATIVE_SUCCESSOR_PUBLISH_ENABLED_EXACT_TRUE=$RELEASE_FLAG_EXACT_TRUE"
+          test "$RELEASE_FLAG_EXACT_TRUE" = 'true'
+          status="$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' 'https://registry.npmjs.org/@mriekki%2fproject-forge/4.36.2')"
+          echo "NPM_4_36_2_TARGET_HTTP_STATUS=$status"
+          test "$status" = '404'
+          npm view @mriekki/project-forge dist-tags --json --registry=https://registry.npmjs.org/ > "$RUNNER_TEMP/pf-native-prior-dist-tags.json"
+          node - "$RUNNER_TEMP/pf-native-prior-dist-tags.json" <<'NODE'
+          const fs = require('node:fs');
+          const tags = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (tags.latest !== '4.36.0') process.exit(2);
+          console.log('PASS registry latest remains signed predecessor 4.36.0 (NO PUBLISH)');
+          NODE
 
   required:
     name: required
