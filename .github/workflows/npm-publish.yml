@@ -922,7 +922,17 @@ jobs:
           printf '%s  %s\n' "$CANDIDATE_SHA" "$archive" | sha256sum -c -
           cd "$RUNNER_TEMP/pf-npm-client"
           unset NODE_AUTH_TOKEN NPM_TOKEN NPM_CONFIG_USERCONFIG npm_config_userconfig NPM_CONFIG_GLOBALCONFIG npm_config_globalconfig
-          export npm_config_userconfig=/dev/null npm_config_globalconfig=/dev/null
+          # The pinned npm 11 publisher also refuses user/global config aliasing.
+          # Do not consume a one-use authorization on a known-invalid CLI setup.
+          # Keep scopes distinct, private, outside the package and free of tokens.
+          umask 077
+          user_config="$RUNNER_TEMP/pf-successor-publish-user.npmrc"
+          global_config="$RUNNER_TEMP/pf-successor-publish-global.npmrc"
+          : > "$user_config"
+          : > "$global_config"
+          test "$user_config" != "$global_config"
+          export npm_config_userconfig="$user_config" npm_config_globalconfig="$global_config"
+          test "$(node "$RUNNER_TEMP/pf-publisher/package/bin/npm-cli.js" --version)" = 11.21.0
           node "$RUNNER_TEMP/pf-publisher/package/bin/npm-cli.js" publish "$archive" --access public --provenance --ignore-scripts --registry=https://registry.npmjs.org/ 2>&1 | tee "$RUNNER_TEMP/publish.log"
           url="$(grep -Eo 'https://search\.sigstore\.dev/\?logIndex=[0-9]+' "$RUNNER_TEMP/publish.log" | tail -n1)"
           [[ "$url" =~ ^https://search\.sigstore\.dev/\?logIndex=[0-9]+$ ]]
