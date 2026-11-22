@@ -116,15 +116,18 @@ jobs:
           # No private credential or OIDC capability in this step. Never print
           # private source, command output or file lists from the rebuild.
           reviewed="$RUNNER_TEMP/pf-successor-reviewed-code"
-          trap 'echo "Independent native rebuild failed (private output withheld)" >&2' ERR
+          trap 'stage="$(cat "$RUNNER_TEMP/pf-successor-rebuild-stage" 2>/dev/null || true)"; case "$stage" in select|assemble|observe|assets|pack|copy) printf "Independent native rebuild refused at reviewed stage: %s (private output withheld)\n" "$stage" >&2 ;; *) echo "Independent native rebuild refused before stage selection (private output withheld)" >&2 ;; esac' ERR
           (
+            printf '%s\n' select > "$RUNNER_TEMP/pf-successor-rebuild-stage"
             python3 -I -B -c 'import runpy,sys; from pathlib import Path; entry=sys.argv.pop(1); sys.path.insert(0,str(Path(entry).parent)); runpy.run_path(entry,run_name="__main__")' "$reviewed/tools/npm/select_native_stable.py" --monorepo "$RUNNER_TEMP/pf-successor-private-source" \
               --previous-receipt "$RUNNER_TEMP/pf-successor-prior-receipt.json" \
               --previous-receipt-sha256 "$PREVIOUS_RECEIPT_SHA" --target-version "$TARGET_VERSION" \
               --source-sha "$SOURCE_SHA" --output "$RUNNER_TEMP/pf-successor-manifest.json"
+            printf '%s\n' assemble > "$RUNNER_TEMP/pf-successor-rebuild-stage"
             python3 -I -B -c 'import runpy,sys; from pathlib import Path; entry=sys.argv.pop(1); sys.path.insert(0,str(Path(entry).parent)); runpy.run_path(entry,run_name="__main__")' "$reviewed/tools/npm/assemble_selected_stable.py" --monorepo "$RUNNER_TEMP/pf-successor-private-source" \
               --manifest "$RUNNER_TEMP/pf-successor-manifest.json" --manifest-sha256 "$MANIFEST_SHA" \
               --source-sha "$SOURCE_SHA" --output "$RUNNER_TEMP/pf-successor-stage" > "$RUNNER_TEMP/pf-successor-assembly.json"
+            printf '%s\n' observe > "$RUNNER_TEMP/pf-successor-rebuild-stage"
             python3 -I -B - <<'PY'
           import json, os, sys
           from pathlib import Path
@@ -151,11 +154,14 @@ jobs:
               "shellTree": tree_id(root, head), "componentDigests": current_digests,
               "coreVersion": current_meta["components"]["core"]["version"]}))
           PY
+            printf '%s\n' assets > "$RUNNER_TEMP/pf-successor-rebuild-stage"
             node scripts/native-successor-admission-preview.mjs verify-assets "$RUNNER_TEMP/pf-successor-stage"
+            printf '%s\n' pack > "$RUNNER_TEMP/pf-successor-rebuild-stage"
             (
               cd "$RUNNER_TEMP/pf-successor-stage"
               npm pack --ignore-scripts --offline --userconfig /dev/null --globalconfig /dev/null --json --pack-destination "$RUNNER_TEMP"
             )
+            printf '%s\n' copy > "$RUNNER_TEMP/pf-successor-rebuild-stage"
             cp "$RUNNER_TEMP/mriekki-project-forge-$TARGET_VERSION.tgz" "$RUNNER_TEMP/pf-successor-candidate.tgz"
           ) > "$RUNNER_TEMP/pf-successor-private-build.log" 2>&1
           trap - ERR

@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {resolveSuccessorPreview} from '../scripts/native-successor-admission-preview.mjs';
 const r={sourceCommit:'a'.repeat(40),workflowRunId:123,runAttempt:1,previousVersion:'4.36.0',
   previousReceiptSha256:'b'.repeat(64),version:'4.36.1',manifestSha256:'c'.repeat(64),candidateSha256:'d'.repeat(64)};
@@ -39,4 +41,29 @@ test('protected preview defaults off, uses no publisher permission and isolates 
   if(process.platform!=='win32')for(const match of body.matchAll(/^        run: \|\n((?:^          .*\n|^\n)+)/gm)){
     execFileSync('bash',['-n'],{input:match[1].split('\n').map(l=>l.startsWith('          ')?l.slice(10):l).join('\n')});
   }
+});
+
+test('rebuild diagnostics expose only a single allowlisted stage value',()=>{
+  const body=fs.readFileSync(new URL('../.github/workflows/native-successor-admission-preview.yml',import.meta.url),'utf8');
+  const rebuild=body.slice(body.indexOf('      - name: Independently derive selection'),body.indexOf('      - name: Recheck authenticated private'));
+  const trap=rebuild.split('\n').find(line=>line.trim().startsWith("trap '"))?.trim();
+  assert.ok(trap,'expected reviewed ERR trap');
+  assert.equal((trap.match(/cat "\$RUNNER_TEMP\/pf-successor-rebuild-stage"/g)||[]).length,1,'do not reread mutable diagnostics');
+  const scratch=fs.mkdtempSync(join(tmpdir(),'pf-stage-'));
+  try {
+    for(const [marker,exposed] of [
+      ['assemble',true],
+      ['pack',true],
+      ['select\nPRIVATE_SOURCE_TOKEN=DO_NOT_LOG',false],
+      ['$(echo PRIVATE_SOURCE_TOKEN=DO_NOT_LOG)',false]
+    ]){
+      fs.writeFileSync(join(scratch,'pf-successor-rebuild-stage'),marker);
+      const result=spawnSync('bash',['-c',['set -e',trap,'false'].join('\n')],{
+        env:{...process.env,RUNNER_TEMP:scratch},encoding:'utf8'});
+      assert.equal(result.status,1);
+      assert.doesNotMatch(result.stderr,/PRIVATE_SOURCE_TOKEN|DO_NOT_LOG/);
+      if(exposed)assert.match(result.stderr,new RegExp('reviewed stage: '+marker));
+      else assert.match(result.stderr,/before stage selection/);
+    }
+  } finally {fs.rmSync(scratch,{recursive:true,force:true});}
 });
