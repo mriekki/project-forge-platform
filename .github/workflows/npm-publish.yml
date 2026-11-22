@@ -764,17 +764,34 @@ jobs:
           PREVIEW_COMMIT: ${{ steps.request.outputs.previewCommit }}
           PREVIEW_RUN: ${{ steps.request.outputs.previewRunId }}
           PREVIEW_ATTEMPT: ${{ steps.request.outputs.previewAttempt }}
+          ORIGINAL_PLATFORM_SHA: ${{ steps.request.outputs.platformCommit }}
+          REQUEST_MODE: ${{ steps.request.outputs.mode }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" = "$GITHUB_SHA"
           git merge-base --is-ancestor "$PREVIEW_COMMIT" HEAD
+          [[ "$ORIGINAL_PLATFORM_SHA" =~ ^[0-9a-f]{40}$ ]]
+          if [ "$REQUEST_MODE" = 'verify' ]; then
+            # Signed original publication remains source of truth after a
+            # reviewed workflow-only recovery fix advances current main.
+            git merge-base --is-ancestor "$ORIGINAL_PLATFORM_SHA" HEAD
+            node scripts/check-package-release-drift.mjs --baseline "$ORIGINAL_PLATFORM_SHA" --json > "$RUNNER_TEMP/pf-successor-recovery-drift.json"
+            node -e 'const fs=require("node:fs");const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(x.baseline!==process.env.ORIGINAL_PLATFORM_SHA||x.head!==process.env.GITHUB_SHA||x.releaseNeeded||(x.payloadChanges??[]).length)process.exit(2)' "$RUNNER_TEMP/pf-successor-recovery-drift.json"
+          else
+            test "$REQUEST_MODE" = 'publish'
+            test "$ORIGINAL_PLATFORM_SHA" = "$GITHUB_SHA"
+          fi
           node scripts/native-successor-publication.mjs code-paths > "$RUNNER_TEMP/code-paths"
           mapfile -t paths < "$RUNNER_TEMP/code-paths"
           git diff --exit-code "$PREVIEW_COMMIT" HEAD -- "${paths[@]}"
           gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$PREVIEW_RUN/attempts/$PREVIEW_ATTEMPT" > "$RUNNER_TEMP/pf-successor-preview-run.json"
           gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$PREVIEW_RUN/attempts/$PREVIEW_ATTEMPT/jobs?per_page=100" > "$RUNNER_TEMP/pf-successor-preview-jobs.json"
-          gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=$GITHUB_SHA&per_page=20" > "$RUNNER_TEMP/pf-successor-platform-ci.json"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=$ORIGINAL_PLATFORM_SHA&per_page=20" > "$RUNNER_TEMP/pf-successor-platform-ci.json"
+          if [ "$REQUEST_MODE" = 'verify' ]; then
+            gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=$GITHUB_SHA&per_page=20" > "$RUNNER_TEMP/pf-successor-current-ci.json"
+            node -e 'const fs=require("node:fs");const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(!(x.workflow_runs||[]).some(r=>r.head_sha===process.env.GITHUB_SHA&&r.head_branch==="main"&&r.event==="push"&&r.status==="completed"&&r.conclusion==="success"))process.exit(2)' "$RUNNER_TEMP/pf-successor-current-ci.json"
+          fi
       - name: Identify exact completed admission job
         id: preview_job
         run: node scripts/native-successor-publication.mjs preview-job
