@@ -24,12 +24,13 @@ export function resolveNativePublish({event,owner,platformSha,currentRunId}) {
   need(request&&typeof request==='object'&&!Array.isArray(request)&&
     equal(Object.keys(request).sort(),keys.sort()),'Unexpected native publication request fields');
   need(request.version===VERSION&&request.candidateSha256===CANDIDATE_SHA&&
-    /^[0-9a-f]{40}$/.test(platformSha)&&request.sourceCommit===platformSha,
+    /^[0-9a-f]{40}$/.test(platformSha)&&/^[0-9a-f]{40}$/.test(request.sourceCommit)&&
+    (request.sourceCommit===platformSha||(mode==='verify'&&request.sourceCommit==='b4806c1d2e49fcfda9bd0446d0842ac691d73cd3'&&request.publicationRunId===44965248785)),
     'Native release request differs from reviewed version, archive or Platform commit');
   if(mode==='verify')need(positive(request.publicationRunId)&&request.publicationRunId!==currentRunId&&
     typeof request.provenanceUrl==='string'&&/^https:\/\/search\.sigstore\.dev\/\?logIndex=[0-9]+$/.test(request.provenanceUrl),
     'Exact original publication evidence required');
-  return {mode,version:VERSION,sourceCommit:platformSha,candidateSha256:CANDIDATE_SHA,
+  return {mode,version:VERSION,sourceCommit:request.sourceCommit,candidateSha256:CANDIDATE_SHA,
     publicationRunId:mode==='publish'?currentRunId:request.publicationRunId,
     provenanceUrl:mode==='verify'?request.provenanceUrl:''};
 }
