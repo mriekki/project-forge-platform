@@ -27,6 +27,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test "$(npm view npm@11.21.0 dist.integrity --registry=https://registry.npmjs.org/)" = 'sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=='
+          curl --fail --silent --show-error --max-time 60 --proto '=https' https://registry.npmjs.org/npm/-/npm-11.21.0.tgz > "$RUNNER_TEMP/npm-publisher.tgz"
+          node -e 'const fs=require("fs"),c=require("crypto");const b=fs.readFileSync(process.argv[1]);if("sha512-"+c.createHash("sha512").update(b).digest("base64")!=="sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg==")process.exit(2)' "$RUNNER_TEMP/npm-publisher.tgz"
+          mkdir "$RUNNER_TEMP/pinned-npm-test"
+          tar -xzf "$RUNNER_TEMP/npm-publisher.tgz" -C "$RUNNER_TEMP/pinned-npm-test" --no-same-owner --no-same-permissions
+          test "$(node "$RUNNER_TEMP/pinned-npm-test/package/bin/npm-cli.js" --version)" = 11.21.0
           npm install --prefix "$RUNNER_TEMP/pf-signature-client" npm@11.21.0 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
           test "$(node "$RUNNER_TEMP/pf-signature-client/node_modules/npm/bin/npm-cli.js" --version)" = 11.21.0
           mkdir "$RUNNER_TEMP/neutral"

@@ -8,11 +8,11 @@ const sha='a'.repeat(40),digest='b'.repeat(64),version='4.36.1';
 function fixture(){
  const selection={schemaVersion:1,kind:'project-forge-reviewed-native-successor-selection',
  source:{sourceCommit:sha,workflowRunId:12,runAttempt:1,previousVersion:'4.36.0',previousReceiptSha256:digest,version,manifestSha256:digest,candidateSha256:digest},
- preview:{platformCommit:sha,workflowId:13,runId:14,runAttempt:1}};
+ preview:{platformCommit:sha,workflowId:13,runId:14,runAttempt:1},authorization:{issueNumber:44,issueId:55}};
  const selectionBytes=Buffer.from(JSON.stringify(selection));
  const event={action:'opened',sender:{login:'owner'},issue:{state:'open',user:{login:'owner'},title:'[project-forge-native-successor-publish] '+version,
  body:JSON.stringify({version,platformCommit:sha,selectionSha256:createHash('sha256').update(selectionBytes).digest('hex')})}};
- return {selection,selectionBytes,event,owner:'owner',platformSha:sha,currentRunId:15};
+ return {selection,selectionBytes,event,owner:'owner',platformSha:sha,currentRunId:15,currentRunAttempt:1};
 }
 test('successor owner issue binds exact reviewed selection and separates verify mode',()=>{
  const x=fixture();assert.equal(resolveSuccessorPublication(x).mode,'publish');
@@ -20,7 +20,7 @@ test('successor owner issue binds exact reviewed selection and separates verify 
  x.event.issue.title='[project-forge-native-successor-publish-verify] '+version;
  x.event.issue.body=JSON.stringify({...body,publicationRunId:16,publicationRunAttempt:1,provenanceUrl:'https://search.sigstore.dev/?logIndex=17'});
  assert.equal(resolveSuccessorPublication(x).mode,'verify');
- for(const mutate of [x=>x.event.sender.login='other',x=>x.platformSha='f'.repeat(40),x=>x.event.issue.body=JSON.stringify({...body,extra:1}),
+ for(const mutate of [x=>x.event.sender.login='other',x=>x.currentRunAttempt=2,x=>x.platformSha='f'.repeat(40),x=>x.event.issue.body=JSON.stringify({...body,extra:1}),
  x=>x.event.issue.body=x.event.issue.body.slice(0,-1)+',"version":"4.36.1"}',x=>x.selectionBytes=Buffer.from('{}')]){
   const y=fixture();mutate(y);assert.throws(()=>resolveSuccessorPublication(y));
  }
@@ -39,7 +39,11 @@ test('successor publisher privilege and shell boundaries',()=>{
  assert.match(pre,/PF_NATIVE_SUCCESSOR_PUBLISH_ENABLED == 'true'/);
  assert.match(pre,/git diff --exit-code/);assert.match(pre,/verify-native-publication-provenance\.mjs/);
  assert.doesNotMatch(pre,/id-token: write/);
- assert.match(publish,/id-token: write/);assert.match(publish,/outputs.mode == 'publish'/);
+ assert.match(publish,/id-token: write/);assert.match(publish,/outputs.mode == 'publish'/);assert.match(publish,/github.run_attempt == 1/);
+ assert.equal((workflow.match(/id-token: write/g)||[]).length,1);
+ assert.match(publish,/sha512-Zov8KhamNneiLdEL/);
+ assert.match(publish,/npm_config_userconfig=\/dev\/null/);
+ assert.match(pre,/needs: native-successor-claim/);
  assert.doesNotMatch(publish,/secrets\.|npm run|npm ci/);
  assert.match(publish,/publish "\$archive" --access public --provenance --ignore-scripts/);
  assert.match(verify,/outputs.mode == 'verify'/);

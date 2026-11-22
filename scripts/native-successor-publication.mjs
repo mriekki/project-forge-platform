@@ -67,17 +67,19 @@ function selectedSource(s){
  return s;
 }
 export function validateSelection(s){
- fields(s,['schemaVersion','kind','source','preview'],'reviewed publication selection');
+ fields(s,['schemaVersion','kind','source','preview','authorization'],'reviewed publication selection');
  need(s.schemaVersion===1&&s.kind==='project-forge-reviewed-native-successor-selection','Invalid selection kind');
  selectedSource(s.source);
  fields(s.preview,['platformCommit','workflowId','runId','runAttempt'],'preview identity');
  need(exact(s.preview.platformCommit,SHA)&&[s.preview.workflowId,s.preview.runId,s.preview.runAttempt].every(positive),
  'Invalid exact admission run selection');
+ fields(s.authorization,['issueNumber','issueId'],'one-use owner authorization');
+ need(positive(s.authorization.issueNumber)&&positive(s.authorization.issueId),'Exact authorization issue identity required');
  return s;
 }
-export function resolveSuccessorPublication({event,owner,platformSha,currentRunId,selectionBytes}){
+export function resolveSuccessorPublication({event,owner,platformSha,currentRunId,currentRunAttempt,selectionBytes}){
  need(typeof owner==='string'&&owner.length>0&&event?.action==='opened'&&event.issue?.state==='open'&&
- event.issue.user?.login===owner&&event.sender?.login===owner&&positive(currentRunId)&&exact(platformSha,SHA),
+ event.issue.user?.login===owner&&event.sender?.login===owner&&positive(currentRunId)&&positive(currentRunAttempt)&&exact(platformSha,SHA),
  'Exact owner publication issue required');
  need(Buffer.isBuffer(selectionBytes)&&selectionBytes.length>0&&selectionBytes.length<=64*1024,
  'Reviewed selection missing');
@@ -87,6 +89,7 @@ export function resolveSuccessorPublication({event,owner,platformSha,currentRunI
  const mode=title==='[project-forge-native-successor-publish] '+version?'publish':
  title==='[project-forge-native-successor-publish-verify] '+version?'verify':null;
  need(mode,'Unknown successor publication request');
+ need(mode==='verify'||currentRunAttempt===1,'Publish requests cannot be rerun');
  const r=parse(event.issue.body);
  fields(r,['version','platformCommit','selectionSha256',...(mode==='verify'?['publicationRunId','publicationRunAttempt','provenanceUrl']:[])],
  'exact owner publication request');
@@ -233,7 +236,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
     need(exact(version,VERSION),'Exact stable mirror version required');
     const r=resolveSuccessorPublication({event:JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,'utf8')),
       owner:process.env.REPOSITORY_OWNER,platformSha:process.env.GITHUB_SHA,
-      currentRunId:Number(process.env.GITHUB_RUN_ID),selectionBytes:fs.readFileSync('release/native-selections/'+version+'.json')});
+      currentRunId:Number(process.env.GITHUB_RUN_ID),currentRunAttempt:Number(process.env.GITHUB_RUN_ATTEMPT),selectionBytes:fs.readFileSync('release/native-selections/'+version+'.json')});
     save('pf-successor-publish-request.json',r);
     output({mode:r.mode,version:r.version,platformCommit:r.platformCommit,publicationRunId:r.publicationRunId,
       publicationRunAttempt:r.publicationRunAttempt??'',provenanceUrl:r.provenanceUrl,
