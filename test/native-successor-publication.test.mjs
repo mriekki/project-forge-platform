@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
+import {execFileSync,spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {resolveSuccessorPublication,requireRegistryState,verifyAdmissionWitness,decodeAdmissionWitnessPayload} from '../scripts/native-successor-publication.mjs';
 const sha='a'.repeat(40),digest='b'.repeat(64),version='4.36.1';
 function fixture(){
@@ -115,4 +116,29 @@ test('successor one-use npm 11 dispatch is regression-tested without publication
  assert.match(probe,/double-loading config/);
  assert.match(probe,/node "\$cli" config list --json/);
  assert.doesNotMatch(probe,/node "\$cli" publish |npm publish |id-token: write/);
+});
+
+test('regression: successor preflight import does not execute legacy 4.36.0 CLI',()=>{
+ const root=fileURLToPath(new URL('../',import.meta.url));
+ for (const mode of ['prepare','finalize','check-recovery','check-absence']) {
+  const source=`process.argv[2]=${JSON.stringify(mode)}; await import('./scripts/native-successor-publication.mjs'); console.log('SUCCESSOR_IMPORT_SAFE')`;
+  const child=spawnSync(process.execPath,['--input-type=module','--eval',source],{
+   cwd:root,encoding:'utf8',timeout:15000,env:{...process.env,RUNNER_TEMP:'/nonexistent-pf-import-test'}});
+  assert.equal(child.status,0,`successor import with ${mode} unexpectedly executed old entrypoint: ${child.stderr}`);
+  assert.match(child.stdout,/SUCCESSOR_IMPORT_SAFE/);
+  assert.doesNotMatch(child.stderr,/pf-source-release-run\\.json|ENOENT/);
+ }
+});
+
+test('historical publisher remains directly invokable but cannot run from import',()=>{
+ const root=fileURLToPath(new URL('../',import.meta.url));
+ const imported=spawnSync(process.execPath,['--input-type=module','--eval',
+  "process.argv[2]='prepare'; await import('./scripts/first-native-publication.mjs'); console.log('LEGACY_IMPORT_SAFE')"],{
+  cwd:root,encoding:'utf8',timeout:15000,env:{...process.env,RUNNER_TEMP:'/nonexistent-pf-import-test'}});
+ assert.equal(imported.status,0,imported.stderr);
+ assert.match(imported.stdout,/LEGACY_IMPORT_SAFE/);
+ const direct=spawnSync(process.execPath,['scripts/first-native-publication.mjs','prepare'],{
+  cwd:root,encoding:'utf8',timeout:15000,env:{...process.env,RUNNER_TEMP:'/nonexistent-pf-import-test'}});
+ assert.notEqual(direct.status,0,'historical direct entrypoint was unintentionally disabled');
+ assert.match(direct.stderr,/ENOENT|ERR_INVALID_ARG_TYPE/);
 });
