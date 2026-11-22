@@ -38,6 +38,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+      - name: Use pinned npm client for predecessor signature verification
+        run: npm install --global npm@11.21.0 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
       - name: Resolve exact owner-selected nonpublishing successor
         id: request
         env:
