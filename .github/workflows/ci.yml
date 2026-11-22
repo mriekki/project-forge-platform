@@ -51,3 +51,21 @@ jobs:
       - name: Require the complete CI matrix
         shell: bash
         run: test "${{ needs.test.result }}" = "success"
+
+  diagnose-native-release-variable:
+    # Disposable read-only PR probe. Never merge this diagnostic into main.
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show exact repo-variable comparison only (never reveal raw value)
+        env:
+          RELEASE_VAR_PRESENT: ${{ vars.PF_NATIVE_SUCCESSOR_PUBLISH_ENABLED != '' }}
+          RELEASE_VAR_EXACT_TRUE: ${{ vars.PF_NATIVE_SUCCESSOR_PUBLISH_ENABLED == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PF_NATIVE_SUCCESSOR_PUBLISH_ENABLED_PRESENT=$RELEASE_VAR_PRESENT"
+          echo "PF_NATIVE_SUCCESSOR_PUBLISH_ENABLED_EXACT_TRUE=$RELEASE_VAR_EXACT_TRUE"
+          test "$RELEASE_VAR_EXACT_TRUE" = 'true'
