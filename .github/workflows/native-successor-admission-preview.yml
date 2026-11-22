@@ -1,0 +1,163 @@
+name: Native Successor Admission Preview (NO RELEASE)
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0-public-private-source-preview
+  cancel-in-progress: false
+
+jobs:
+  successor-preview-only:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      vars.PF_MONOREPO_SOURCE_PREVIEW_ENABLED == 'true' &&
+      vars.PF_NATIVE_SUCCESSOR_PREVIEW_ENABLED == 'true' &&
+      github.event.issue.title == '[project-forge-native-successor-preview]' &&
+      github.event.issue.user.login == github.repository_owner &&
+      github.event.sender.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Checkout exact reviewed public Platform
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Resolve exact owner-selected nonpublishing successor
+        id: request
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: node scripts/native-successor-admission-preview.mjs request
+      - name: Collect authenticated source CI run and pinned code
+        id: source
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          SOURCE_ID: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY_ID }}
+          SOURCE_WORKFLOW_ID: ${{ vars.PF_NATIVE_SUCCESSOR_WORKFLOW_ID }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+        run: node scripts/native-successor-admission-preview.mjs collect
+      - name: Checkout independently compared exact private source (read only)
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.source.outputs.repository }}
+          ref: ${{ steps.request.outputs.sourceCommit }}
+          path: .private-source
+          fetch-depth: 0
+          token: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Verify reviewed assembly code and clean exact checkout
+        run: node scripts/native-successor-admission-preview.mjs verify-checkout .private-source
+      - name: Verify exact predecessor receipt and public registry signature
+        shell: bash
+        env:
+          PREVIOUS_VERSION: ${{ steps.request.outputs.previousVersion }}
+          RECEIPT_SHA: ${{ steps.request.outputs.previousReceiptSha256 }}
+          TARGET_VERSION: ${{ steps.request.outputs.version }}
+        run: |
+          set -euo pipefail
+          cp "release/receipts/$PREVIOUS_VERSION.json" "$RUNNER_TEMP/pf-successor-prior-receipt.json"
+          printf '%s  %s\n' "$RECEIPT_SHA" "$RUNNER_TEMP/pf-successor-prior-receipt.json" | sha256sum -c -
+          prior_commit="$(node -e 'const r=require(process.argv[1]);if(!/^[0-9a-f]{40}$/.test(r.platformSource))process.exit(2);process.stdout.write(r.platformSource)' "$RUNNER_TEMP/pf-successor-prior-receipt.json")"
+          git merge-base --is-ancestor "$prior_commit" HEAD
+          mkdir "$RUNNER_TEMP/pf-successor-registry"
+          (
+            cd "$RUNNER_TEMP/pf-successor-registry"
+            npm view "@mriekki/project-forge@$PREVIOUS_VERSION" --json --registry=https://registry.npmjs.org/ > "$RUNNER_TEMP/pf-successor-prior-registry.json"
+            npm pack "@mriekki/project-forge@$PREVIOUS_VERSION" --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json
+            test -f "mriekki-project-forge-$PREVIOUS_VERSION.tgz"
+            cp "mriekki-project-forge-$PREVIOUS_VERSION.tgz" "$RUNNER_TEMP/pf-successor-prior.tgz"
+            npm view @mriekki/project-forge dist-tags --json --registry=https://registry.npmjs.org/ > tags.json
+            node -e 'if(require(process.argv[1]).latest!==process.env.PREVIOUS_VERSION)process.exit(2)' "$PWD/tags.json"
+            status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' "https://registry.npmjs.org/@mriekki%2fproject-forge/$TARGET_VERSION")"
+            test "$status" = 404
+            npm init -y >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund --save-exact "@mriekki/project-forge@$PREVIOUS_VERSION" --registry=https://registry.npmjs.org/ > "$RUNNER_TEMP/pf-successor-install.log" 2>&1
+            npm audit signatures --registry=https://registry.npmjs.org/ > "$RUNNER_TEMP/pf-successor-signatures.log" 2>&1
+            grep -Ei 'verified attestations?' "$RUNNER_TEMP/pf-successor-signatures.log" >/dev/null
+            node -e 'const r=require(process.argv[1]);const l=require(process.argv[2]);if(l.packages["node_modules/@mriekki/project-forge"].integrity!==r.dist.integrity)process.exit(2)' "$RUNNER_TEMP/pf-successor-prior-registry.json" "$PWD/package-lock.json"
+          )
+          echo 'Exact predecessor registry and signed attestation checked (no release)'
+      - name: Independently derive selection, observations and candidate archive (NO PUBLISH)
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ steps.request.outputs.sourceCommit }}
+          PREVIOUS_RECEIPT_SHA: ${{ steps.request.outputs.previousReceiptSha256 }}
+          TARGET_VERSION: ${{ steps.request.outputs.version }}
+          MANIFEST_SHA: ${{ steps.request.outputs.manifestSha256 }}
+        run: |
+          set -euo pipefail
+          # No private credential or OIDC capability in this step. Never print
+          # private source, command output or file lists from the rebuild.
+          if ! (
+            python3 .private-source/tools/npm/select_native_stable.py --monorepo .private-source \
+              --previous-receipt "$RUNNER_TEMP/pf-successor-prior-receipt.json" \
+              --previous-receipt-sha256 "$PREVIOUS_RECEIPT_SHA" --target-version "$TARGET_VERSION" \
+              --source-sha "$SOURCE_SHA" --output "$RUNNER_TEMP/pf-successor-manifest.json"
+            python3 .private-source/tools/npm/assemble_selected_stable.py --monorepo .private-source \
+              --manifest "$RUNNER_TEMP/pf-successor-manifest.json" --manifest-sha256 "$MANIFEST_SHA" \
+              --source-sha "$SOURCE_SHA" --output "$RUNNER_TEMP/pf-successor-stage" > "$RUNNER_TEMP/pf-successor-assembly.json"
+            python3 - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          root = Path(".private-source").resolve()
+          scratch = Path(os.environ["RUNNER_TEMP"])
+          sys.path.insert(0, str(root / "tools/npm"))
+          from build_manifest_preview import observations, committed_json, MANIFEST, METADATA, tree_id
+          from native_revision_plan import ancestor
+          prior = json.loads((scratch / "pf-successor-prior-receipt.json").read_text())
+          historical = "827674a8658b45532b3565c2fa598d5ad036a039"
+          previous = prior["source"]["commit"]
+          head = os.environ["SOURCE_SHA"]
+          ancestor(root, historical, previous)
+          ancestor(root, previous, head)
+          old_manifest = committed_json(root, historical, MANIFEST)
+          old_meta = committed_json(root, historical, METADATA)
+          prior_meta, prior_digests = observations(root, previous, old_manifest, old_meta)
+          current_meta, current_digests = observations(root, head, old_manifest, old_meta)
+          assert prior_meta["components"]["core"]["version"] == prior["components"]["core"]["version"]
+          (scratch / "pf-successor-prior-observations.json").write_text(json.dumps({
+              "platformSource": prior["platformSource"], "componentDigests": prior_digests}))
+          (scratch / "pf-successor-observations.json").write_text(json.dumps({
+              "sourceCommit": head, "previousSourceCommit": previous, "historicalSourceCommit": historical,
+              "shellTree": tree_id(root, head), "componentDigests": current_digests,
+              "coreVersion": current_meta["components"]["core"]["version"]}))
+          PY
+            (
+              cd "$RUNNER_TEMP/pf-successor-stage"
+              npm run verify:assets
+              npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP"
+            )
+            cp "$RUNNER_TEMP/mriekki-project-forge-$TARGET_VERSION.tgz" "$RUNNER_TEMP/pf-successor-candidate.tgz"
+          ) > "$RUNNER_TEMP/pf-successor-private-build.log" 2>&1; then
+            echo 'Independent native rebuild failed (private output withheld)' >&2
+            exit 2
+          fi
+          node scripts/native-successor-admission-preview.mjs compare
+      - name: Recheck authenticated private and public main after preview
+        shell: bash
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+          EXPECTED_SHA: ${{ steps.request.outputs.sourceCommit }}
+        run: |
+          set -euo pipefail
+          live="$(gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" --jq '.object.sha' 2>/dev/null)"
+          test "$live" = "$EXPECTED_SHA"
+          public="$(git ls-remote https://github.com/$GITHUB_REPOSITORY.git refs/heads/main | cut -f1)"
+          test "$public" = "$GITHUB_SHA"
+          echo 'NATIVE_SUCCESSOR_PREVIEW_COMPLETE RELEASE_AUTHORIZED=false NPM_PUBLISHED=false PRODUCTION_CHANGED=false'
