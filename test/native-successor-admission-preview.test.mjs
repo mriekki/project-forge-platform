@@ -67,3 +67,36 @@ test('rebuild diagnostics expose only a single allowlisted stage value',()=>{
     }
   } finally {fs.rmSync(scratch,{recursive:true,force:true});}
 });
+
+
+test('npm pack uses isolated user and global configurations, outside assembled candidate',()=>{
+  const body=fs.readFileSync(new URL('../.github/workflows/native-successor-admission-preview.yml',import.meta.url),'utf8');
+  const rebuild=body.slice(body.indexOf('      - name: Independently derive selection'),body.indexOf('      - name: Recheck authenticated private'));
+  for(const required of ['user_config="$RUNNER_TEMP/pf-successor-pack-user.npmrc"',
+    'global_config="$RUNNER_TEMP/pf-successor-pack-global.npmrc"',
+    ': > "$user_config"',': > "$global_config"','umask 077',
+    '--ignore-scripts --offline --userconfig "$user_config" --globalconfig "$global_config"'])
+    assert.ok(rebuild.includes(required),required);
+  assert.doesNotMatch(rebuild,/--userconfig \/dev\/null --globalconfig \/dev\/null/);
+
+  const scratch=fs.mkdtempSync(join(tmpdir(),'pf-pack-config-'));
+  try{
+    const stage=join(scratch,'candidate');
+    fs.mkdirSync(stage);
+    fs.writeFileSync(join(stage,'package.json'),JSON.stringify({
+      name:'@mriekki/project-forge',version:'4.36.1',
+      files:['readme.txt'],publishConfig:{access:'public',provenance:true}
+    }));
+    fs.writeFileSync(join(stage,'readme.txt'),'synthetic package only\\n');
+    const userConfig=join(scratch,'user.npmrc'),globalConfig=join(scratch,'global.npmrc');
+    fs.writeFileSync(userConfig,'',{mode:0o600});
+    fs.writeFileSync(globalConfig,'',{mode:0o600});
+    const packed=spawnSync('npm',['pack','--ignore-scripts','--offline',
+      '--userconfig',userConfig,'--globalconfig',globalConfig,'--json',
+      '--pack-destination',scratch],{cwd:stage,encoding:'utf8'});
+    assert.equal(packed.status,0,'isolated empty npm configs must permit offline pack');
+    const result=JSON.parse(packed.stdout);
+    assert.equal(result[0].filename,'mriekki-project-forge-4.36.1.tgz');
+    assert.ok(fs.existsSync(join(scratch,result[0].filename)));
+  }finally{fs.rmSync(scratch,{recursive:true,force:true});}
+});

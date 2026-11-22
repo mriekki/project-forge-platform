@@ -159,7 +159,14 @@ jobs:
             printf '%s\n' pack > "$RUNNER_TEMP/pf-successor-rebuild-stage"
             (
               cd "$RUNNER_TEMP/pf-successor-stage"
-              npm pack --ignore-scripts --offline --userconfig /dev/null --globalconfig /dev/null --json --pack-destination "$RUNNER_TEMP"
+              # npm rejects loading the SAME file as user and global config.
+              # Keep distinct empty configs outside the private candidate tree.
+              umask 077
+              user_config="$RUNNER_TEMP/pf-successor-pack-user.npmrc"
+              global_config="$RUNNER_TEMP/pf-successor-pack-global.npmrc"
+              : > "$user_config"
+              : > "$global_config"
+              npm pack --ignore-scripts --offline --userconfig "$user_config" --globalconfig "$global_config" --json --pack-destination "$RUNNER_TEMP"
             )
             printf '%s\n' copy > "$RUNNER_TEMP/pf-successor-rebuild-stage"
             cp "$RUNNER_TEMP/mriekki-project-forge-$TARGET_VERSION.tgz" "$RUNNER_TEMP/pf-successor-candidate.tgz"
