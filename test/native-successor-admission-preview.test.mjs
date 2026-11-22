@@ -100,3 +100,16 @@ test('npm pack uses isolated user and global configurations, outside assembled c
     assert.ok(fs.existsSync(join(scratch,result[0].filename)));
   }finally{fs.rmSync(scratch,{recursive:true,force:true});}
 });
+
+
+test('successor witness is encoded before GitHub log masking and never logged as raw JSON',()=>{
+ const script=fs.readFileSync(new URL('../scripts/native-successor-admission-preview.mjs',import.meta.url),'utf8');
+ const start=script.indexOf('function finalizeWitness()');
+ const end=script.indexOf('if(process.argv[1]',start);
+ assert.ok(start>0&&end>start);
+ const finalize=script.slice(start,end);
+ assert.match(finalize,/PROJECT_FORGE_SUCCESSOR_ADMISSION_WITNESS_BEGIN/);
+ assert.match(finalize,/PROJECT_FORGE_SUCCESSOR_ADMISSION_WITNESS_END/);
+ assert.match(finalize,/Buffer\.from\(JSON\.stringify\(witness\),'utf8'\)\.toString\('base64url'\)/);
+ assert.doesNotMatch(finalize,/console\.log\(JSON\.stringify\(witness\)\)/);
+});
