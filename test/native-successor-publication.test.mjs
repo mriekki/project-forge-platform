@@ -42,7 +42,12 @@ test('successor publisher privilege and shell boundaries',()=>{
  assert.match(publish,/id-token: write/);assert.match(publish,/outputs.mode == 'publish'/);assert.match(publish,/github.run_attempt == 1/);
  assert.equal((workflow.match(/id-token: write/g)||[]).length,1);
  assert.match(publish,/sha512-Zov8KhamNneiLdEL/);
- assert.match(publish,/npm_config_userconfig=\/dev\/null/);
+ assert.match(publish,/unset NODE_AUTH_TOKEN NPM_TOKEN NPM_CONFIG_USERCONFIG npm_config_userconfig NPM_CONFIG_GLOBALCONFIG npm_config_globalconfig/);
+ assert.doesNotMatch(publish,/export npm_config_userconfig=\/dev\/null/);
+ assert.match(publish,/user_config="\$RUNNER_TEMP\/pf-successor-publish-user\.npmrc"/);
+ assert.match(publish,/global_config="\$RUNNER_TEMP\/pf-successor-publish-global\.npmrc"/);
+ assert.match(publish,/export npm_config_userconfig="\$user_config" npm_config_globalconfig="\$global_config"/);
+ assert.match(publish,/node "\$RUNNER_TEMP\/pf-publisher\/package\/bin\/npm-cli\.js" --version/);
  assert.match(pre,/needs: native-successor-claim/);
  assert.doesNotMatch(publish,/secrets\.|npm run|npm ci/);
  assert.match(publish,/publish "\$archive" --access public --provenance --ignore-scripts/);
@@ -69,4 +74,45 @@ test('admission witness survives GitHub masking without weakening exact identity
    'A', 'A'.repeat(24001),Buffer.from([0xff,0xfe]).toString('base64url'),
    Buffer.from('{"duplicate":1,"duplicate":2}').toString('base64url')
  ])assert.throws(()=>decodeAdmissionWitnessPayload(invalid));
+});
+
+test('all successor publisher preflight, publish and recovery repacks use distinct empty npm configs',()=>{
+ const workflow=fs.readFileSync(new URL('../.github/workflows/npm-publish.yml',import.meta.url),'utf8');
+ const pre=workflow.slice(workflow.indexOf('\n  native-successor-preflight:'),workflow.indexOf('\n  native-successor-publish:'));
+ const publish=workflow.slice(workflow.indexOf('\n  native-successor-publish:'),workflow.indexOf('\n  native-successor-verify:'));
+ const verify=workflow.slice(workflow.indexOf('\n  native-successor-verify:'),workflow.indexOf('\n  native-publish:'));
+ for(const [name,job] of [['preflight',pre],['publish',publish],['verify',verify]]){
+   assert.ok(job.length>0,name+' workflow job present');
+   assert.match(job,/umask 077/);
+   assert.match(job,/user_config="\$RUNNER_TEMP\/pf-native-user\.npmrc"/);
+   assert.match(job,/global_config="\$RUNNER_TEMP\/pf-native-global\.npmrc"/);
+   assert.match(job,/: > "\$user_config"/);
+   assert.match(job,/: > "\$global_config"/);
+   assert.match(job,/npm pack --ignore-scripts --offline --userconfig "\$user_config" --globalconfig "\$global_config" --json --pack-destination "\$RUNNER_TEMP"/);
+   assert.doesNotMatch(job,/npm pack[^\n]*--userconfig \/dev\/null --globalconfig \/dev\/null/);
+ }
+ assert.equal((workflow.match(/pf-native-user\.npmrc/g)||[]).length,3);
+ assert.equal((workflow.match(/pf-native-global\.npmrc/g)||[]).length,3);
+});
+
+test('successor one-use npm 11 dispatch is regression-tested without publication or credentials',()=>{
+ const workflow=fs.readFileSync(new URL('../.github/workflows/npm-publish.yml',import.meta.url),'utf8');
+ const publish=workflow.slice(workflow.indexOf('\n  native-successor-publish:'),workflow.indexOf('\n  native-successor-verify:'));
+ const after=publish.slice(publish.indexOf('Publish exact successor archive through existing trusted publisher'));
+ assert.match(after,/umask 077/);
+ assert.match(after,/: > "\$user_config"/);
+ assert.match(after,/: > "\$global_config"/);
+ assert.match(after,/test "\$user_config" != "\$global_config"/);
+ assert.match(after,/npm_config_userconfig="\$user_config" npm_config_globalconfig="\$global_config"/);
+ assert.doesNotMatch(after,/npm_config_(?:userconfig|globalconfig)=\/dev\/null/);
+ assert.match(after,/publish "\$archive" --access public --provenance --ignore-scripts --registry=https:\/\/registry\.npmjs\.org\//);
+ const ci=fs.readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8');
+ assert.match(ci,/matrix\.node == '22'/);
+ assert.match(ci,/bash test\/native-successor-pinned-publisher-npm11\.sh/);
+ const probe=fs.readFileSync(new URL('./native-successor-pinned-publisher-npm11.sh',import.meta.url),'utf8');
+ assert.match(probe,/npm-11\.21\.0\.tgz/);
+ assert.match(probe,/sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT\+7mGUU7wi79cO6RqivPg==/);
+ assert.match(probe,/double-loading config/);
+ assert.match(probe,/node "\$cli" config list --json/);
+ assert.doesNotMatch(probe,/node "\$cli" publish |npm publish |id-token: write/);
 });
