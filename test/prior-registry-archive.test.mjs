@@ -336,3 +336,39 @@ test('successor intent refuses stale, altered, incomplete and independently mism
     x=>x.selection.releaseAuthorized=true
   ]) {const input=successorFixture();mutate(input);assert.throws(()=>composeSuccessorIntent(input));}
 });
+
+import {verifyPreview} from '../scripts/native-successor-admission-preview.mjs';
+
+function previewFixture(changed=true) {
+  const x=successorFixture(changed);
+  const {manifestBytes,sourceCommit,previousSourceCommit,historicalSourceCommit,shellTree,componentDigests,coreVersion}=x.observed;
+  const {version,previousVersion,previousReceiptSha256,manifestSha256,candidateSha256}=x.selection;
+  return {selection:{version,previousVersion,previousReceiptSha256,manifestSha256,candidateSha256,sourceCommit,
+      workflowRunId:40,runAttempt:1},
+    prior:x.prior,manifestBytes,evidence:x.evidence,sourceProof:x.sourceProof,archiveBytes:x.rebuiltArchive,
+    observed:{sourceCommit,previousSourceCommit,historicalSourceCommit,shellTree,componentDigests,coreVersion}};
+}
+test('independent preview compares exact native predecessor, selection, assembly and source proof before a mirror exists',()=>{
+  for(const changed of [true,false]){
+    const x=previewFixture(changed);
+    const result=verifyPreview(x);
+    assert.equal(result.result,'NATIVE_SUCCESSOR_PREVIEW_MATCH');
+    assert.deepEqual(result.changedComponents,changed?['feedback']:[]);
+    assert.equal(result.candidateSha256,x.selection.candidateSha256);
+    for(const k of ['publicMirrorVerified','releaseAuthorized','publicationAuthorized','productionAuthorized'])
+      assert.equal(result[k],false);
+  }
+});
+test('independent preview rejects mismatched predecessor, manifest, source proof or candidate archive',()=>{
+  for(const mutate of [
+    x=>x.prior.registry.dist.integrity='wrong',
+    x=>x.selection.previousReceiptSha256='0'.repeat(64),
+    x=>x.observed.previousSourceCommit='0'.repeat(40),
+    x=>x.observed.componentDigests.feedback='0'.repeat(64),
+    x=>x.manifestBytes[0]^=1,
+    x=>x.evidence.releaseAuthorized=true,
+    x=>x.sourceProof.disposableGeneratedConsumers=false,
+    x=>x.sourceProof.candidateSha256='0'.repeat(64),
+    x=>x.archiveBytes[0]^=1
+  ]){const x=previewFixture();mutate(x);assert.throws(()=>verifyPreview(x));}
+});
