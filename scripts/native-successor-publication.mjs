@@ -93,11 +93,14 @@ export function resolveSuccessorPublication({event,owner,platformSha,currentRunI
  const r=parse(event.issue.body);
  fields(r,['version','platformCommit','selectionSha256',...(mode==='verify'?['publicationRunId','publicationRunAttempt','provenanceUrl']:[])],
  'exact owner publication request');
- need(r.version===version&&r.platformCommit===platformSha&&r.selectionSha256===hash(selectionBytes),
+ // Publication must use current main; read-only recovery must preserve the
+ // immutable ORIGINAL publication source even after safe non-payload fixes.
+ need(r.version===version&&exact(r.platformCommit,SHA)&&
+  (mode==='verify'||r.platformCommit===platformSha)&&r.selectionSha256===hash(selectionBytes),
  'Owner request differs from reviewed current selection');
  if(mode==='verify')need(positive(r.publicationRunId)&&positive(r.publicationRunAttempt)&&
  r.publicationRunId!==currentRunId&&exact(r.provenanceUrl,SIGSTORE),'Exact original publication required');
- return {mode,version,platformCommit:platformSha,selectionSha256:r.selectionSha256,
+ return {mode,version,platformCommit:r.platformCommit,selectionSha256:r.selectionSha256,
   publicationRunId:mode==='publish'?currentRunId:r.publicationRunId,
   publicationRunAttempt:mode==='publish'?null:r.publicationRunAttempt,
   provenanceUrl:mode==='verify'?r.provenanceUrl:'',selection};
