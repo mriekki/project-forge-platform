@@ -52,7 +52,7 @@ test('successor publisher privilege and shell boundaries',()=>{
  assert.match(pre,/needs: native-successor-claim/);
  assert.doesNotMatch(publish,/secrets\.|npm run|npm ci/);
  assert.match(publish,/publish "\$archive" --access public --provenance --ignore-scripts/);
- assert.match(verify,/outputs.mode == 'verify'/);
+ assert.match(verify,/if: >-\s*!cancelled\(\) &&\s*needs\.native-successor-preflight\.result == 'success' &&\s*needs\.native-successor-preflight\.outputs\.mode == 'verify'/);
  assert.doesNotMatch(verify,/id-token: write|secrets\.|npm publish /);
  assert.match(verify,/native-successor-publication\.mjs finalize/);
  if(process.platform!=='win32')for(const match of (pre+publish+verify).matchAll(/^        run: \|\n((?:^          .*\n|^\n)+)/gm)){

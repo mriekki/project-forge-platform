@@ -941,7 +941,12 @@ jobs:
 
   native-successor-verify:
     needs: native-successor-preflight
-    if: needs.native-successor-preflight.outputs.mode == 'verify'
+    # Explicit status function prevents an intentionally skipped publish claim
+    # from implicitly skipping safe verification-only recovery.
+    if: >-
+      !cancelled() &&
+      needs.native-successor-preflight.result == 'success' &&
+      needs.native-successor-preflight.outputs.mode == 'verify'
     permissions:
       contents: read
       actions: read
