@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.36.0",
+  "version": "4.36.1",
   "components": {
     "core": {
       "revision": "4cfab0a596d588fbfbb7560d6c56af441099ff0d",
