@@ -17,4 +17,4 @@ npm pack --ignore-scripts --offline --userconfig "$user_config" --globalconfig "
   --json --pack-destination "$scratch" > "$scratch/pack.json"
 node -e 'const fs=require("node:fs");const p=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(!Array.isArray(p)||p.length!==1||p[0].name!=="@mriekki/project-forge"||p[0].version!=="4.36.2"||p[0].filename!=="mriekki-project-forge-4.36.2.tgz")process.exit(2)' "$scratch/pack.json"
 printf '%s  %s\n' "$expected" "$scratch/mriekki-project-forge-4.36.2.tgz" | sha256sum -c - > /dev/null
-echo "PASS public 4.36.2 mirror matches independently admitted archive sha256 $expected (NO PUBLISH)"
+echo "PASS public 4.36.2 mirror matches independently Source-qualified archive sha256 $expected (NO PUBLISH)"
