@@ -27,6 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          npm view npm@11.21.0 dist.integrity --json --registry=https://registry.npmjs.org/
           npm install --prefix "$RUNNER_TEMP/pf-signature-client" npm@11.21.0 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
           test "$(node "$RUNNER_TEMP/pf-signature-client/node_modules/npm/bin/npm-cli.js" --version)" = 11.21.0
           mkdir "$RUNNER_TEMP/neutral"
