@@ -53,6 +53,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Refuse legacy preparation after native release cutover
+        shell: bash
+        run: |
+          echo 'Legacy component-source preparation is retired after native release 4.36.0. Use reviewed native source candidate admission.' >&2
+          exit 2
+
       - name: Setup Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
