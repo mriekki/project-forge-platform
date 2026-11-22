@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "project-forge-reviewed-native-successor-selection",
+  "source": {
+    "sourceCommit": "533b1159d8b6db83acae04f38050cada8365faf4",
+    "workflowRunId": 44974181775,
+    "runAttempt": 1,
+    "previousVersion": "4.36.0",
+    "previousReceiptSha256": "e47819a722a5923e4aaf7db1d75e96e4c54c327f08ed86fdb129c29772c0a4a2",
+    "version": "4.36.1",
+    "manifestSha256": "deb8315c8a9247a285c5a60480d92b6c6e21ebc30a64848faab68c46d0fd540b",
+    "candidateSha256": "699abf7b5071a34247847d9ea40a9048a8cbe4eebe3d9558a6648612ec852"
+  },
+  "preview": {
+    "platformCommit": "70dfec5b1de306fb9b1ba51de31386fcbf9900a5",
+    "workflowId": 426438852,
+    "runId": 45057030196,
+    "runAttempt": 1
+  },
+  "authorization": {
+    "issueNumber": 417,
+    "issueId": 6546751036
+  }
+}
