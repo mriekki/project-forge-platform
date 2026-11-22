@@ -133,10 +133,22 @@ function logLines(log){
  need(typeof log==='string'&&Buffer.byteLength(log)<=16*1024*1024,'Invalid exact job log');
  return log.split(/\r?\n/).map(l=>l.replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z /,''));
 }
+export function decodeAdmissionWitnessPayload(value){
+ // Base64url is a log-transport encoding, NOT proof or authorization.
+ // The verified GitHub run, step order, immutable code and exact witness
+ // values are still independently checked before any release.
+ need(typeof value==='string'&&/^[A-Za-z0-9_-]{8,24000}$/.test(value),
+  'Canonical redaction-safe admission witness required');
+ const data=Buffer.from(value,'base64url');
+ need(data.length>0&&data.length<=16*1024&&data.toString('base64url')===value,
+  'Malformed admission witness encoding');
+ const decoded=new TextDecoder('utf-8',{fatal:true}).decode(data);
+ return parse(decoded);
+}
 function uniqueBlock(log,begin,end){
  const lines=logLines(log),starts=lines.flatMap((l,i)=>l===begin?[i]:[]),stops=lines.flatMap((l,i)=>l===end?[i]:[]);
  need(starts.length===1&&stops.length===1&&stops[0]===starts[0]+2,'Unique exact witness required');
- return parse(lines[starts[0]+1]);
+ return decodeAdmissionWitnessPayload(lines[starts[0]+1]);
 }
 export function verifyAdmissionWitness({selection,run,jobs,log,unchangedReviewedCode}){
  validateSelection(selection);
