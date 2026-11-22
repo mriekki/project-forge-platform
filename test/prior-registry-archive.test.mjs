@@ -236,3 +236,103 @@ test('stable candidate verifier refuses rehearsal/private and inconsistent archi
     },
   ]) assert.throws(()=>verifyNativeStableCandidate(candidateFixture(change)));
 });
+
+import {composeSuccessorIntent} from '../scripts/native-successor-intent.mjs';
+import {classifyNativeIntentRecovery} from '../scripts/native-source-receipt.mjs';
+
+function successorFixture(changed=true) {
+  const predecessor=fixture(()=>{},true);
+  const receipt=JSON.parse(predecessor.receiptBytes);
+  const version='4.36.1', sourceCommit='d'.repeat(40);
+  const ids=Object.keys(receipt.components).sort();
+  const old=Object.fromEntries(ids.map(id=>{
+    const {version:ignored,...rest}=receipt.components[id];return [id,rest];
+  }));
+  const next=structuredClone(old);
+  if(changed) next.feedback={revision:sourceCommit,revisionKind:'private-monorepo-git-commit',
+    mappedInputSha256:'8'.repeat(64)};
+  const componentDigests=Object.fromEntries(ids.map(id=>[id,next[id].mappedInputSha256]));
+  const historicalSourceCommit='e'.repeat(40),shellTree='f'.repeat(40);
+  const manifestBytes=Buffer.from(JSON.stringify({
+    schemaVersion:2,kind:'project-forge-native-stable-candidate-assembly',package:receipt.package.name,
+    version,previousVersion:receipt.package.version,previousReceiptSha256:predecessor.expectedSha256,
+    sourceCommit,previousSourceCommit:receipt.source.commit,historicalSourceCommit,shellTree,
+    previousComponents:old,allowPublish:false,allowProduction:false
+  }));
+  const candidate=fixture(docs=>{
+    docs['package.json'].version=version;
+    for(const file of ['assets/components.json','assets/generated/ASSEMBLY.json']){
+      docs[file].version=version;
+      for(const id of ids) docs[file].components[id].revision=next[id].revision;
+    }
+  },true);
+  const selection={version,previousVersion:receipt.package.version,previousReceiptSha256:predecessor.expectedSha256,
+    sourceCommit,manifestSha256:hash('sha256',manifestBytes),
+    candidateSha256:hash('sha256',candidate.archiveBytes),platformSource:'c'.repeat(40),
+    qualificationEvent:'issues',nativeSourceMain:{result:'success',workflowRunId:40,runAttempt:1},
+    platformMain:{result:'success',workflowRunId:41,runAttempt:1}};
+  const changedComponents=changed?['feedback']:[];
+  const evidence={schemaVersion:2,kind:'project-forge-native-stable-candidate-evidence',
+    sourceCommit,manifestSha256:selection.manifestSha256,packageVersion:version,components:next,
+    changedComponents,previousVersion:selection.previousVersion,previousReceiptSha256:selection.previousReceiptSha256,
+    archiveForm:'public-stable',releaseAuthorized:false,previousAcceptanceAuthenticatedHere:false,
+    sourceOwnershipTransferred:false,published:false,productionAuthorized:false};
+  const sourceProof={schemaVersion:1,kind:'project-forge-offline-native-successor-proof',
+    sourceCommit,previousVersion:selection.previousVersion,previousReceiptSha256:selection.previousReceiptSha256,
+    version,manifestSha256:selection.manifestSha256,candidateSha256:selection.candidateSha256,
+    changedComponents:[...changedComponents],components:structuredClone(next),reproducibleArchive:true,
+    disposableAllComponents:true,disposableGeneratedConsumers:true,previousAcceptanceAuthenticatedHere:false,
+    releaseAuthorized:false,published:false,productionAuthorized:false,sourceOwnershipTransferred:false};
+  const observed={manifestBytes,sourceCommit,previousSourceCommit:receipt.source.commit,historicalSourceCommit,
+    shellTree,componentDigests,coreVersion:receipt.components.core.version,platformSource:selection.platformSource,
+    qualificationEvent:selection.qualificationEvent,nativeSourceMain:structuredClone(selection.nativeSourceMain),
+    platformMain:structuredClone(selection.platformMain)};
+  const prior={receiptBytes:predecessor.receiptBytes,archiveBytes:predecessor.archiveBytes,
+    registry:predecessor.registry,platformSource:predecessor.platformSource,
+    componentDigests:predecessor.componentDigests};
+  return {selection,prior,observed,evidence,sourceProof,rebuiltArchive:candidate.archiveBytes,
+    mirrorArchive:Buffer.from(candidate.archiveBytes)};
+}
+
+test('compose repeatable v2 successor intent from registry predecessor, dual archives and exact source proof',()=>{
+  for(const changed of [true,false]){
+    const input=successorFixture(changed);
+    const result=composeSuccessorIntent(input);
+    assert.equal(result.result,'NATIVE_SUCCESSOR_INTENT_EVIDENCE_MATCH');
+    assert.deepEqual(result.changedComponents,changed?['feedback']:[]);
+    const old=JSON.parse(input.prior.receiptBytes);
+    assert.equal(result.intent.components.feedback.revision,
+      changed?input.selection.sourceCommit:old.components.feedback.revision);
+    assert.deepEqual(result.intent.components.core,old.components.core);
+    assert.equal(result.intent.candidateSha256,input.selection.candidateSha256);
+    for(const key of ['releaseAuthorized','publicationAuthorized','productionAuthorized','sourceOwnershipTransferred',
+      'sourceEvidenceAuthenticatedHere','registrySignatureVerifiedHere']) assert.equal(result[key],false);
+    const recover=classifyNativeIntentRecovery({intent:result.intent,existingReceipt:null,registry:{
+      status:'present',package:result.intent.package,artifact:{releaseCandidateSha256:result.intent.candidateSha256,
+      registryShasum:hash('sha1',input.rebuiltArchive)}}});
+    assert.equal(recover.decision,'VERIFY_EXISTING_PUBLICATION_NO_REPUBLISH');
+    assert.equal(recover.publishAuthorized,false);
+  }
+});
+
+test('successor intent refuses stale, altered, incomplete and independently mismatched evidence',()=>{
+  for(const mutate of [
+    x=>x.selection.previousReceiptSha256='0'.repeat(64),
+    x=>x.prior.registry.dist.integrity='wrong',
+    x=>x.observed.previousSourceCommit='0'.repeat(40),
+    x=>x.observed.nativeSourceMain.runAttempt++,
+    x=>x.observed.platformMain.workflowRunId++,
+    x=>x.sourceProof.disposableAllComponents=false,
+    x=>x.sourceProof.reproducibleArchive=false,
+    x=>x.sourceProof.sourceCommit='0'.repeat(40),
+    x=>x.sourceProof.changedComponents=[],
+    x=>x.sourceProof.components.feedback.revision='0'.repeat(40),
+    x=>x.sourceProof.releaseAuthorized=true,
+    x=>x.evidence.components.authentication.revision='0'.repeat(40),
+    x=>x.mirrorArchive[0]^=1,
+    x=>x.rebuiltArchive[0]^=1,
+    x=>x.selection.candidateSha256='0'.repeat(64),
+    x=>x.observed.manifestBytes[0]^=1,
+    x=>x.selection.releaseAuthorized=true
+  ]) {const input=successorFixture();mutate(input);assert.throws(()=>composeSuccessorIntent(input));}
+});
