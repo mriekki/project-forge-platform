@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "project-forge-native-selection-abort-incident",
+  "version": "4.36.1",
+  "disposition": "aborted-before-authorization-consumption",
+  "releaseAuthority": false,
+  "reason": "immutable selection candidate SHA-256 length is 61, not 64",
+  "platformSelectionCommit": "7b5022e71519401c889a6f07588534e1a1f61fa7",
+  "frozenSourceCommit": "533b1159d8b6db83acae04f38050cada8365faf4",
+  "originalAuthorization": {
+    "issueNumber": 417,
+    "issueId": 6546751036,
+    "notConsumedAtIncident": true
+  },
+  "attempts": [
+    {
+      "issueNumber": 419,
+      "workflowRunId": 45063851622,
+      "runAttempt": 1,
+      "outcome": "all-jobs-skipped"
+    },
+    {
+      "issueNumber": 420,
+      "workflowRunId": 45064480224,
+      "runAttempt": 1,
+      "outcome": "all-jobs-skipped"
+    },
+    {
+      "issueNumber": 422,
+      "workflowRunId": 45065003242,
+      "runAttempt": 1,
+      "outcome": "read-only-selection-validation-failed"
+    }
+  ],
+  "selectionCandidateSha256": "699abf7b5071a34247847d9ea40a9048a8cbe4eebe3d9558a6648612ec852",
+  "independentlyAdmittedCandidateSha256": "699abf7b5071a34247847d9ea40a9048a8cbe4eebe3d9558a6648612ec7ec852",
+  "admission": {
+    "issueNumber": 414,
+    "workflowRunId": 45057030196,
+    "runAttempt": 1
+  },
+  "incidentTracking": {
+    "repository": "mriekki/project-forge-source",
+    "issueNumber": 114
+  },
+  "rule": "Never edit/revert/reintroduce the original immutable selection, mutate owner issue #417 or retry 4.36.1; a newly qualified version requires separate Builder publication authority."
+}
