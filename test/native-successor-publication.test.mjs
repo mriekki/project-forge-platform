@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-import {resolveSuccessorPublication,requireRegistryState,verifyAdmissionWitness} from '../scripts/native-successor-publication.mjs';
+import {resolveSuccessorPublication,requireRegistryState,verifyAdmissionWitness,decodeAdmissionWitnessPayload} from '../scripts/native-successor-publication.mjs';
 const sha='a'.repeat(40),digest='b'.repeat(64),version='4.36.1';
 function fixture(){
  const selection={schemaVersion:1,kind:'project-forge-reviewed-native-successor-selection',
@@ -52,4 +52,21 @@ test('successor publisher privilege and shell boundaries',()=>{
  if(process.platform!=='win32')for(const match of (pre+publish+verify).matchAll(/^        run: \|\n((?:^          .*\n|^\n)+)/gm)){
   execFileSync('bash',['-n'],{input:match[1].split('\n').map(s=>s.startsWith('          ')?s.slice(10):s).join('\n')});
  }
+});
+
+
+test('admission witness survives GitHub masking without weakening exact identity checks',()=>{
+ const source={
+   schemaVersion:1,kind:'project-forge-successor-admission-witness',
+   selection:{sourceCommit:'a'.repeat(40),version:'4.36.1',
+     candidateSha256:'b'.repeat(64)},releaseAuthorized:false,published:false
+ };
+ const text=JSON.stringify(source),encoded=Buffer.from(text,'utf8').toString('base64url');
+ assert.doesNotMatch(encoded,/[{}]/);
+ assert.deepEqual(decodeAdmissionWitnessPayload(encoded),source);
+ for(const invalid of [
+   text,'***"schemaVersion":1***','',encoded+'=',encoded+'*',encoded+'\\n',
+   'A', 'A'.repeat(24001),Buffer.from([0xff,0xfe]).toString('base64url'),
+   Buffer.from('{"duplicate":1,"duplicate":2}').toString('base64url')
+ ])assert.throws(()=>decodeAdmissionWitnessPayload(invalid));
 });
