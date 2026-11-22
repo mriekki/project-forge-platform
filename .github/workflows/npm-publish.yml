@@ -794,7 +794,14 @@ jobs:
           test "$(npm --version)" = 10.9.9
           test ! -e "release/receipts/$TARGET_VERSION.json"
           test ! -e .npmrc
-          npm pack --ignore-scripts --offline --userconfig /dev/null --globalconfig /dev/null --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
+          # npm 10 refuses a duplicate user/global config file. Keep both
+          # scopes empty, distinct, private and outside the npm candidate.
+          umask 077
+          user_config="$RUNNER_TEMP/pf-native-user.npmrc"
+          global_config="$RUNNER_TEMP/pf-native-global.npmrc"
+          : > "$user_config"
+          : > "$global_config"
+          npm pack --ignore-scripts --offline --userconfig "$user_config" --globalconfig "$global_config" --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
           mv "$RUNNER_TEMP/mriekki-project-forge-$TARGET_VERSION.tgz" "$RUNNER_TEMP/pf-successor-mirror.tgz"
           cp "release/receipts/$PRIOR_VERSION.json" "$RUNNER_TEMP/pf-successor-prior-receipt.json"
           printf '%s  %s\n' "$PRIOR_SHA" "$RUNNER_TEMP/pf-successor-prior-receipt.json" | sha256sum -c -
@@ -875,7 +882,14 @@ jobs:
           test ! -e .npmrc
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{64}$ ]]
-          npm pack --ignore-scripts --offline --userconfig /dev/null --globalconfig /dev/null --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
+          # npm 10 refuses a duplicate user/global config file. Keep both
+          # scopes empty, distinct, private and outside the npm candidate.
+          umask 077
+          user_config="$RUNNER_TEMP/pf-native-user.npmrc"
+          global_config="$RUNNER_TEMP/pf-native-global.npmrc"
+          : > "$user_config"
+          : > "$global_config"
+          npm pack --ignore-scripts --offline --userconfig "$user_config" --globalconfig "$global_config" --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
           printf '%s  %s\n' "$CANDIDATE_SHA" "$RUNNER_TEMP/mriekki-project-forge-$VERSION.tgz" | sha256sum -c -
       - name: Install exact integrity-pinned existing trusted npm publisher
         shell: bash
@@ -940,7 +954,14 @@ jobs:
           set -euo pipefail
           test "$(npm --version)" = 10.9.9
           test ! -e .npmrc
-          npm pack --ignore-scripts --offline --userconfig /dev/null --globalconfig /dev/null --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
+          # npm 10 refuses a duplicate user/global config file. Keep both
+          # scopes empty, distinct, private and outside the npm candidate.
+          umask 077
+          user_config="$RUNNER_TEMP/pf-native-user.npmrc"
+          global_config="$RUNNER_TEMP/pf-native-global.npmrc"
+          : > "$user_config"
+          : > "$global_config"
+          npm pack --ignore-scripts --offline --userconfig "$user_config" --globalconfig "$global_config" --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
           mv "$RUNNER_TEMP/mriekki-project-forge-$VERSION.tgz" "$RUNNER_TEMP/pf-successor-mirror.tgz"
           printf '%s  %s\n' "$CANDIDATE_SHA" "$RUNNER_TEMP/pf-successor-mirror.tgz" | sha256sum -c -
           npm install --prefix "$RUNNER_TEMP/pf-signature-client" npm@11.21.0 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
