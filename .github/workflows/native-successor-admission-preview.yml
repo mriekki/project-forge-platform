@@ -103,20 +103,22 @@ jobs:
           set -euo pipefail
           # No private credential or OIDC capability in this step. Never print
           # private source, command output or file lists from the rebuild.
-          if ! (
-            python3 .private-source/tools/npm/select_native_stable.py --monorepo .private-source \
+          reviewed="$RUNNER_TEMP/pf-successor-reviewed-code"
+          trap 'echo "Independent native rebuild failed (private output withheld)" >&2' ERR
+          (
+            python3 -I -B -c 'import runpy,sys; from pathlib import Path; entry=sys.argv.pop(1); sys.path.insert(0,str(Path(entry).parent)); runpy.run_path(entry,run_name="__main__")' "$reviewed/tools/npm/select_native_stable.py" --monorepo .private-source \
               --previous-receipt "$RUNNER_TEMP/pf-successor-prior-receipt.json" \
               --previous-receipt-sha256 "$PREVIOUS_RECEIPT_SHA" --target-version "$TARGET_VERSION" \
               --source-sha "$SOURCE_SHA" --output "$RUNNER_TEMP/pf-successor-manifest.json"
-            python3 .private-source/tools/npm/assemble_selected_stable.py --monorepo .private-source \
+            python3 -I -B -c 'import runpy,sys; from pathlib import Path; entry=sys.argv.pop(1); sys.path.insert(0,str(Path(entry).parent)); runpy.run_path(entry,run_name="__main__")' "$reviewed/tools/npm/assemble_selected_stable.py" --monorepo .private-source \
               --manifest "$RUNNER_TEMP/pf-successor-manifest.json" --manifest-sha256 "$MANIFEST_SHA" \
               --source-sha "$SOURCE_SHA" --output "$RUNNER_TEMP/pf-successor-stage" > "$RUNNER_TEMP/pf-successor-assembly.json"
-            python3 - <<'PY'
+            python3 -I -B - <<'PY'
           import json, os, sys
           from pathlib import Path
           root = Path(".private-source").resolve()
           scratch = Path(os.environ["RUNNER_TEMP"])
-          sys.path.insert(0, str(root / "tools/npm"))
+          sys.path.insert(0, str(scratch / "pf-successor-reviewed-code/tools/npm"))
           from build_manifest_preview import observations, committed_json, MANIFEST, METADATA, tree_id
           from native_revision_plan import ancestor
           prior = json.loads((scratch / "pf-successor-prior-receipt.json").read_text())
@@ -137,16 +139,14 @@ jobs:
               "shellTree": tree_id(root, head), "componentDigests": current_digests,
               "coreVersion": current_meta["components"]["core"]["version"]}))
           PY
+            node scripts/native-successor-admission-preview.mjs verify-assets "$RUNNER_TEMP/pf-successor-stage"
             (
               cd "$RUNNER_TEMP/pf-successor-stage"
-              npm run verify:assets
-              npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP"
+              npm pack --ignore-scripts --offline --userconfig /dev/null --globalconfig /dev/null --json --pack-destination "$RUNNER_TEMP"
             )
             cp "$RUNNER_TEMP/mriekki-project-forge-$TARGET_VERSION.tgz" "$RUNNER_TEMP/pf-successor-candidate.tgz"
-          ) > "$RUNNER_TEMP/pf-successor-private-build.log" 2>&1; then
-            echo 'Independent native rebuild failed (private output withheld)' >&2
-            exit 2
-          fi
+          ) > "$RUNNER_TEMP/pf-successor-private-build.log" 2>&1
+          trap - ERR
           node scripts/native-successor-admission-preview.mjs compare
       - name: Recheck authenticated private and public main after preview
         shell: bash
