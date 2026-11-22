@@ -29,9 +29,8 @@ test('successor owner issue binds exact reviewed selection and separates verify 
  historical.event.issue.body=JSON.stringify({...JSON.parse(historical.event.issue.body),publicationRunId:16,publicationRunAttempt:1,provenanceUrl:'https://search.sigstore.dev/?logIndex=17'});
  assert.equal(resolveSuccessorPublication(historical).platformCommit,sha);
  historical.event.issue.title='[project-forge-native-successor-publish] '+version;
- historical.event.issue.body=JSON.stringify({...JSON.parse(historical.event.issue.body),version,platformCommit:sha,selectionSha256:createHash('sha256').update(historical.selectionBytes).digest('hex')});
- delete JSON.parse(historical.event.issue.body).publicationRunId;
- assert.throws(()=>resolveSuccessorPublication(historical));
+ historical.event.issue.body=JSON.stringify({version,platformCommit:sha,selectionSha256:createHash('sha256').update(historical.selectionBytes).digest('hex')});
+ assert.throws(()=>resolveSuccessorPublication(historical),/Owner request differs from reviewed current selection/);
  for(const mutate of [x=>x.event.sender.login='other',x=>x.currentRunAttempt=2,x=>x.platformSha='f'.repeat(40),x=>x.event.issue.body=JSON.stringify({...body,extra:1}),
  x=>x.event.issue.body=x.event.issue.body.slice(0,-1)+',"version":"4.36.1"}',x=>x.selectionBytes=Buffer.from('{}')]){
   const y=fixture();mutate(y);assert.throws(()=>resolveSuccessorPublication(y));
