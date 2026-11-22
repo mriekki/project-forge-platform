@@ -13,7 +13,7 @@ import {verifyAssets} from './verify-assets.mjs';
 import {loadPackageData} from '../src/package-data.mjs';
 
 const pins=Object.freeze({
-  ".github/workflows/native-successor-main-qualification.yml": "faa69960ffe8273b5840c32e76ef97d28edb949d",
+  ".github/workflows/native-successor-main-qualification.yml": "0cb137b10fea08bf6d461b659faaa638c54589cf",
   "tools/release/resolve_successor_request.py": "de3ed44e85b848ffd463102843fd5847e34791ce",
   "tools/release/verify_main_identity.py": "a7919cce83e31c11b506594481837dad5c86c10e",
   "tools/shared/verify_current_main_snapshot.py": "48158c418c4dacdd39206a5d8a068995d76f954b",
