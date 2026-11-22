@@ -94,7 +94,7 @@ export function resolveSuccessorPublication({event,owner,platformSha,currentRunI
  'Owner request differs from reviewed current selection');
  if(mode==='verify')need(positive(r.publicationRunId)&&positive(r.publicationRunAttempt)&&
  r.publicationRunId!==currentRunId&&exact(r.provenanceUrl,SIGSTORE),'Exact original publication required');
- return {mode,version,platformCommit,selectionSha256:r.selectionSha256,
+ return {mode,version,platformCommit:platformSha,selectionSha256:r.selectionSha256,
   publicationRunId:mode==='publish'?currentRunId:r.publicationRunId,
   publicationRunAttempt:mode==='publish'?null:r.publicationRunAttempt,
   provenanceUrl:mode==='verify'?r.provenanceUrl:'',selection};
