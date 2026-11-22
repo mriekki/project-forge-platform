@@ -697,6 +697,7 @@ jobs:
       previousVersion: ${{ steps.request.outputs.previousVersion }}
       candidateSha256: ${{ steps.request.outputs.candidateSha256 }}
       publicationRunId: ${{ steps.request.outputs.publicationRunId }}
+      publicationRunAttempt: ${{ steps.request.outputs.publicationRunAttempt }}
       provenanceUrl: ${{ steps.request.outputs.provenanceUrl }}
       intent: ${{ steps.prepare.outputs.intent }}
     steps:
@@ -1634,6 +1635,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INTENT: ${{ needs.native-successor-preflight.outputs.intent }}
           PUBLICATION_RUN_ID: ${{ needs.native-successor-preflight.outputs.publicationRunId }}
+          PUBLICATION_RUN_ATTEMPT: ${{ needs.native-successor-preflight.outputs.publicationRunAttempt }}
           PROVENANCE_URL: ${{ needs.native-successor-preflight.outputs.provenanceUrl }}
         run: node scripts/native-successor-publication.mjs finalize
 

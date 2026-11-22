@@ -280,9 +280,10 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
      registry:json('pf-successor-registry.json'),times:json('pf-successor-times.json'),
      publicationRunId:Number(process.env.PUBLICATION_RUN_ID),provenanceUrl:process.env.PROVENANCE_URL});
     const neutral=scratch('pf-successor-neutral');
-    await qualifyPriorProvenance({receipt,registry:json('pf-successor-registry.json'),archive:read('pf-successor-registry.tgz'),
+    const verified=await qualifyPriorProvenance({receipt,registry:json('pf-successor-registry.json'),archive:read('pf-successor-registry.tgz'),
       times:json('pf-successor-times.json'),lock:JSON.parse(fs.readFileSync(path.join(neutral,'package-lock.json'))),
       npmRoot:scratch('pf-signature-client/node_modules/npm')});
+    need(verified.runAttempt===Number(process.env.PUBLICATION_RUN_ATTEMPT),'Exact requested original publication attempt differs');
     // Execute package CLI only AFTER authentication; never pass credentials.
     const smokeEnv={PATH:process.env.PATH,HOME:neutral,LANG:'C',NODE_ENV:'production'};
     need(execFileSync(path.join(neutral,'node_modules/.bin/project-forge'),['version'],
