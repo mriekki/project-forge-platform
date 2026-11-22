@@ -877,11 +877,19 @@ jobs:
           [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{64}$ ]]
           npm pack --ignore-scripts --offline --userconfig /dev/null --globalconfig /dev/null --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
           printf '%s  %s\n' "$CANDIDATE_SHA" "$RUNNER_TEMP/mriekki-project-forge-$VERSION.tgz" | sha256sum -c -
-      - name: Install pinned existing trusted npm publisher
+      - name: Install exact integrity-pinned existing trusted npm publisher
+        shell: bash
         run: |
           set -euo pipefail
-          npm install --prefix "$RUNNER_TEMP/pf-publisher" npm@11.21.0 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
-          test "$(node "$RUNNER_TEMP/pf-publisher/node_modules/npm/bin/npm-cli.js" --version)" = 11.21.0
+          # Pin observed public npm@11.21.0 archive integrity; do not install
+          # floating dependencies or execute lifecycle scripts in this OIDC job.
+          mkdir "$RUNNER_TEMP/pf-npm-client" "$RUNNER_TEMP/pf-publisher"
+          cd "$RUNNER_TEMP/pf-npm-client"
+          curl --fail --silent --show-error --max-time 60 --retry 2 --proto '=https' \
+            https://registry.npmjs.org/npm/-/npm-11.21.0.tgz > npm-11.21.0.tgz
+          node -e 'const fs=require("fs"),c=require("crypto");const b=fs.readFileSync("npm-11.21.0.tgz");if("sha512-"+c.createHash("sha512").update(b).digest("base64")!=="sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg==")process.exit(2)'
+          tar -xzf npm-11.21.0.tgz -C "$RUNNER_TEMP/pf-publisher" --no-same-owner --no-same-permissions
+          test "$(node "$RUNNER_TEMP/pf-publisher/package/bin/npm-cli.js" --version)" = 11.21.0
       - name: Publish exact successor archive through existing trusted publisher
         env:
           GH_TOKEN: ${{ github.token }}
@@ -898,8 +906,10 @@ jobs:
           node -e 'if(require(process.argv[1]).version!==process.env.PRIOR_VERSION)process.exit(2)' "$RUNNER_TEMP/latest.json"
           archive="$RUNNER_TEMP/mriekki-project-forge-$VERSION.tgz"
           printf '%s  %s\n' "$CANDIDATE_SHA" "$archive" | sha256sum -c -
-          cd "$RUNNER_TEMP"
-          node "$RUNNER_TEMP/pf-publisher/node_modules/npm/bin/npm-cli.js" publish "$archive" --access public --provenance --ignore-scripts --registry=https://registry.npmjs.org/ 2>&1 | tee "$RUNNER_TEMP/publish.log"
+          cd "$RUNNER_TEMP/pf-npm-client"
+          unset NODE_AUTH_TOKEN NPM_TOKEN NPM_CONFIG_USERCONFIG npm_config_userconfig NPM_CONFIG_GLOBALCONFIG npm_config_globalconfig
+          export npm_config_userconfig=/dev/null npm_config_globalconfig=/dev/null
+          node "$RUNNER_TEMP/pf-publisher/package/bin/npm-cli.js" publish "$archive" --access public --provenance --ignore-scripts --registry=https://registry.npmjs.org/ 2>&1 | tee "$RUNNER_TEMP/publish.log"
           url="$(grep -Eo 'https://search\.sigstore\.dev/\?logIndex=[0-9]+' "$RUNNER_TEMP/publish.log" | tail -n1)"
           [[ "$url" =~ ^https://search\.sigstore\.dev/\?logIndex=[0-9]+$ ]]
           echo "NATIVE_SUCCESSOR_PUBLISHED_PROVENANCE_URL=$url"

@@ -39,7 +39,11 @@ test('successor publisher privilege and shell boundaries',()=>{
  assert.match(pre,/PF_NATIVE_SUCCESSOR_PUBLISH_ENABLED == 'true'/);
  assert.match(pre,/git diff --exit-code/);assert.match(pre,/verify-native-publication-provenance\.mjs/);
  assert.doesNotMatch(pre,/id-token: write/);
- assert.match(publish,/id-token: write/);assert.match(publish,/outputs.mode == 'publish'/);
+ assert.match(publish,/id-token: write/);assert.match(publish,/outputs.mode == 'publish'/);assert.match(publish,/github.run_attempt == 1/);
+ assert.equal((workflow.match(/id-token: write/g)||[]).length,1);
+ assert.match(publish,/sha512-Zov8KhamNneiLdEL/);
+ assert.match(publish,/npm_config_userconfig=\/dev\/null/);
+ assert.match(pre,/needs: native-successor-claim/);
  assert.doesNotMatch(publish,/secrets\.|npm run|npm ci/);
  assert.match(publish,/publish "\$archive" --access public --provenance --ignore-scripts/);
  assert.match(verify,/outputs.mode == 'verify'/);
