@@ -675,6 +675,968 @@ jobs:
           gh api --method POST "/repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" -F body=@"${RUNNER_TEMP}/publication-comment.md" >/dev/null
           gh api --method PATCH "/repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" -f state=closed -f state_reason=completed >/dev/null
 
+  # Default-disabled repeatable successor. Only the publish job receives OIDC;
+  # verification is a separate owner request after the original run completes.
+  native-successor-preflight:
+    if: >-
+      github.repository == 'mriekki/project-forge-platform' &&
+      github.ref == 'refs/heads/main' && github.event_name == 'issues' &&
+      github.event.issue.user.login == github.repository_owner &&
+      github.event.sender.login == github.repository_owner &&
+      vars.PF_NATIVE_SUCCESSOR_PUBLISH_ENABLED == 'true' &&
+      (startsWith(github.event.issue.title, '[project-forge-native-successor-publish] ') ||
+       startsWith(github.event.issue.title, '[project-forge-native-successor-publish-verify] '))
+    permissions:
+      contents: read
+      actions: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      mode: ${{ steps.request.outputs.mode }}
+      version: ${{ steps.request.outputs.version }}
+      previousVersion: ${{ steps.request.outputs.previousVersion }}
+      candidateSha256: ${{ steps.request.outputs.candidateSha256 }}
+      publicationRunId: ${{ steps.request.outputs.publicationRunId }}
+      provenanceUrl: ${{ steps.request.outputs.provenanceUrl }}
+      intent: ${{ steps.prepare.outputs.intent }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.5'
+          package-manager-cache: false
+      - name: Resolve exact owner-selected successor publication request
+        id: request
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: node scripts/native-successor-publication.mjs request
+      - name: Check exact current public main, reviewed admission code and CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_COMMIT: ${{ steps.request.outputs.previewCommit }}
+          PREVIEW_RUN: ${{ steps.request.outputs.previewRunId }}
+          PREVIEW_ATTEMPT: ${{ steps.request.outputs.previewAttempt }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$PREVIEW_COMMIT" HEAD
+          node scripts/native-successor-publication.mjs code-paths > "$RUNNER_TEMP/code-paths"
+          mapfile -t paths < "$RUNNER_TEMP/code-paths"
+          git diff --exit-code "$PREVIEW_COMMIT" HEAD -- "${paths[@]}"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$PREVIEW_RUN/attempts/$PREVIEW_ATTEMPT" > "$RUNNER_TEMP/pf-successor-preview-run.json"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$PREVIEW_RUN/attempts/$PREVIEW_ATTEMPT/jobs?per_page=100" > "$RUNNER_TEMP/pf-successor-preview-jobs.json"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=$GITHUB_SHA&per_page=20" > "$RUNNER_TEMP/pf-successor-platform-ci.json"
+      - name: Identify exact completed admission job
+        id: preview_job
+        run: node scripts/native-successor-publication.mjs preview-job
+      - name: Retrieve exact admission witness
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_ID: ${{ steps.preview_job.outputs.jobId }}
+        run: gh api --allow-escape-sequences "/repos/$GITHUB_REPOSITORY/actions/jobs/$JOB_ID/logs" > "$RUNNER_TEMP/pf-successor-preview.log"
+      - name: Check exact mirror and authenticate published predecessor
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_VERSION: ${{ steps.request.outputs.version }}
+          PRIOR_VERSION: ${{ steps.request.outputs.previousVersion }}
+          PRIOR_SHA: ${{ steps.request.outputs.previousReceiptSha256 }}
+        run: |
+          set -euo pipefail
+          test "$(npm --version)" = 10.9.9
+          test ! -e "release/receipts/$TARGET_VERSION.json"
+          test ! -e .npmrc
+          npm pack --ignore-scripts --offline --userconfig /dev/null --globalconfig /dev/null --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
+          mv "$RUNNER_TEMP/mriekki-project-forge-$TARGET_VERSION.tgz" "$RUNNER_TEMP/pf-successor-mirror.tgz"
+          cp "release/receipts/$PRIOR_VERSION.json" "$RUNNER_TEMP/pf-successor-prior-receipt.json"
+          printf '%s  %s\n' "$PRIOR_SHA" "$RUNNER_TEMP/pf-successor-prior-receipt.json" | sha256sum -c -
+          prior_commit="$(node -p 'require(process.argv[1]).platformSource' "$RUNNER_TEMP/pf-successor-prior-receipt.json")"
+          git merge-base --is-ancestor "$prior_commit" HEAD
+          npm install --prefix "$RUNNER_TEMP/pf-signature-client" npm@11.21.0 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
+          mkdir "$RUNNER_TEMP/neutral-prior"
+          (
+            cd "$RUNNER_TEMP/neutral-prior"
+            npm view "@mriekki/project-forge@$PRIOR_VERSION" --json --registry=https://registry.npmjs.org/ > "$RUNNER_TEMP/pf-successor-prior-registry.json"
+            npm view @mriekki/project-forge time --json --registry=https://registry.npmjs.org/ > "$RUNNER_TEMP/pf-successor-prior-times.json"
+            npm pack "@mriekki/project-forge@$PRIOR_VERSION" --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json
+            mv "mriekki-project-forge-$PRIOR_VERSION.tgz" "$RUNNER_TEMP/pf-successor-prior.tgz"
+            npm init -y >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund --save-exact "@mriekki/project-forge@$PRIOR_VERSION" --registry=https://registry.npmjs.org/
+            node "$RUNNER_TEMP/pf-signature-client/node_modules/npm/bin/npm-cli.js" audit signatures --registry=https://registry.npmjs.org/
+          )
+          node scripts/verify-native-publication-provenance.mjs \
+            "$RUNNER_TEMP/pf-successor-prior-receipt.json" "$RUNNER_TEMP/pf-successor-prior-registry.json" \
+            "$RUNNER_TEMP/pf-successor-prior.tgz" "$RUNNER_TEMP/pf-successor-prior-times.json" \
+            "$RUNNER_TEMP/neutral-prior/package-lock.json" "$RUNNER_TEMP/pf-signature-client/node_modules/npm"
+      - name: Derive exact verified successor intent
+        id: prepare
+        env:
+          TARGET_VERSION: ${{ steps.request.outputs.version }}
+          PREVIEW_CODE_IDENTICAL: 'true'
+        run: |
+          set -euo pipefail
+          export TARGET_HTTP_STATUS="$(curl --silent --show-error --max-time 45 --output /dev/null --write-out '%{http_code}' "https://registry.npmjs.org/@mriekki%2fproject-forge/$TARGET_VERSION")"
+          curl --fail --silent --show-error --max-time 45 'https://registry.npmjs.org/@mriekki%2fproject-forge/latest' > "$RUNNER_TEMP/pf-successor-latest.json"
+          node scripts/native-successor-publication.mjs prepare
+      - name: Recheck frozen private main using isolated read credential
+        if: steps.request.outputs.mode == 'publish'
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          SOURCE_ID: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY_ID }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+          SOURCE_SHA: ${{ steps.request.outputs.sourceCommit }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          [[ "$SOURCE_ID" =~ ^[1-9][0-9]*$ ]]
+          repo="$(gh api "/repos/$SOURCE_REPOSITORY" --jq '[.id,.private,.archived]|@tsv' 2>/dev/null)" || exit 2
+          [[ "$repo" == "$SOURCE_ID"    # Reuse the exact registered workflow identity, never a second trust root.
+    if: >-
+      github.repository == 'mriekki/project-forge-platform' &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'issues' &&
+      github.event.issue.user.login == github.repository_owner &&
+      github.event.sender.login == github.repository_owner &&
+      (github.event.issue.title == '[project-forge-native-publish] 4.36.0' ||
+       github.event.issue.title == '[project-forge-native-publish-verify] 4.36.0')
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      issues: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Checkout exact authorized public Platform commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve exact native publication request
+        id: native_request
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: node scripts/resolve-native-publish.mjs
+      - name: Set up exact reviewed assembly Node and Python
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.5'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13'
+      - name: Collect exact Platform main CI and independent admission run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ steps.native_request.outputs.sourceCommit }}
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]]
+          [[ "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" == "$GITHUB_SHA" ]]
+          if [[ "$EXPECTED_COMMIT" != "$GITHUB_SHA" ]]; then
+            git merge-base --is-ancestor "$EXPECTED_COMMIT" "$GITHUB_SHA"
+            while IFS= read -r changed; do
+              case "$changed" in
+                .github/workflows/npm-publish.yml|scripts/resolve-native-publish.mjs|test/first-native-publication.test.mjs) ;;
+                *) echo "Unapproved recovery drift" >&2; exit 2;;
+              esac
+            done < <(git diff --name-only "$EXPECTED_COMMIT" "$GITHUB_SHA")
+          fi
+          [[ "$(node -p "require('./package.json').version")" == '4.36.0' ]]
+          [[ "$(npm --version)" == '10.9.9' ]]
+          gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=$EXPECTED_COMMIT&per_page=20" > "$RUNNER_TEMP/pf-native-platform-ci.json"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/44962439172" > "$RUNNER_TEMP/pf-native-admission-run.json"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/44962439172/attempts/1/jobs?per_page=100" > "$RUNNER_TEMP/pf-native-admission-jobs.json"
+          npm ci --ignore-scripts
+          npm run verify:assets
+          mkdir "$RUNNER_TEMP/pf-native-mirror"
+          npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/pf-native-mirror" > "$RUNNER_TEMP/pf-native-mirror/pack.json"
+
+      - name: Collect authenticated private source and exact release CI evidence
+        id: evidence
+        shell: bash
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          SOURCE_ID: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY_ID }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+          EXPECTED_SHA: '14415666dd8b698f540f8f68f82971ea17884374'
+          SOURCE_RUN: '44954708158'
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid requested source SHA' >&2; exit 2; }
+          [[ "$SOURCE_RUN" =~ ^[1-9][0-9]*$ ]] || { echo 'Invalid source release qualification run ID' >&2; exit 2; }
+          [[ "$SOURCE_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Protected private repository mapping is missing or invalid' >&2; exit 2; }
+          [[ "$SOURCE_ID" =~ ^[1-9][0-9]*$ ]] || { echo 'Protected immutable private repository ID is missing or invalid' >&2; exit 2; }
+          [[ -n "$GH_TOKEN" ]] || { echo 'Protected read-only private source credential is unavailable' >&2; exit 2; }
+          echo "::add-mask::$SOURCE_REPOSITORY"
+          echo "::add-mask::$SOURCE_ID"
+          # Fail closed without printing private repository URLs or API response bodies.
+          gh api "/repos/$SOURCE_REPOSITORY" > "$RUNNER_TEMP/pf-source-repository.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source repository read denied' >&2; exit 2; }
+          gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" > "$RUNNER_TEMP/pf-source-main.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source main read denied' >&2; exit 2; }
+          gh api "/repos/$SOURCE_REPOSITORY/actions/runs/$SOURCE_RUN" > "$RUNNER_TEMP/pf-source-release-run.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source Actions:read is denied or the run is missing' >&2; exit 2; }
+          # Bind issue-triggered evidence to the exact run attempt and reviewed source
+          # qualification code. These metadata reads use the existing protected
+          # read-only credential; neither the raw responses nor private locator are logged.
+          source_event="$(node -e 'const fs=require("fs"); const r=JSON.parse(fs.readFileSync(process.argv[1])); if(!["workflow_dispatch","issues"].includes(r.event))process.exit(2);process.stdout.write(r.event)' "$RUNNER_TEMP/pf-source-release-run.json")"
+          extra=()
+          if [[ "$source_event" == 'issues' ]]; then
+            attempt="$(node -e 'const fs=require("fs"); const r=JSON.parse(fs.readFileSync(process.argv[1])); if(!Number.isSafeInteger(r.run_attempt)||r.run_attempt<1)process.exit(2);process.stdout.write(String(r.run_attempt))' "$RUNNER_TEMP/pf-source-release-run.json")"
+            gh api "/repos/$SOURCE_REPOSITORY/actions/runs/$SOURCE_RUN/attempts/$attempt/jobs?per_page=100" > "$RUNNER_TEMP/pf-source-jobs.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Exact source qualification job evidence unavailable' >&2; exit 2; }
+            gh api --method GET "/repos/$SOURCE_REPOSITORY/contents/.github/workflows/p0-main-release-qualification.yml" -f ref="$EXPECTED_SHA" --jq '{path,type,sha}' > "$RUNNER_TEMP/pf-source-workflow.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Reviewed qualification workflow metadata unavailable' >&2; exit 2; }
+            gh api --method GET "/repos/$SOURCE_REPOSITORY/contents/tools/release/verify_main_identity.py" -f ref="$EXPECTED_SHA" --jq '{path,type,sha}' > "$RUNNER_TEMP/pf-source-identity.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Reviewed identity verifier metadata unavailable' >&2; exit 2; }
+            extra=(--jobs-json "$RUNNER_TEMP/pf-source-jobs.json" --workflow-json "$RUNNER_TEMP/pf-source-workflow.json" --identity-json "$RUNNER_TEMP/pf-source-identity.json")
+          fi
+          PF_PROTECTED_SOURCE_REPOSITORY="$SOURCE_REPOSITORY" \
+          PF_PROTECTED_SOURCE_REPOSITORY_ID="$SOURCE_ID" \
+          node scripts/private-source-admission-preview.mjs \
+            --source-sha "$EXPECTED_SHA" \
+            --source-run-id "$SOURCE_RUN" \
+            --package-version 4.35.0 \
+            --repository-json "$RUNNER_TEMP/pf-source-repository.json" \
+            --main-json "$RUNNER_TEMP/pf-source-main.json" \
+            --run-json "$RUNNER_TEMP/pf-source-release-run.json" "${extra[@]}"
+          echo "repository=$SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact independently admitted private source (read only)
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.evidence.outputs.repository }}
+          ref: '14415666dd8b698f540f8f68f82971ea17884374'
+          path: .private-source
+          fetch-depth: 0
+          token: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+
+      - name: Retrieve reviewed stable selection (read only)
+        shell: bash
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+          EXPECTED_SHA: '14415666dd8b698f540f8f68f82971ea17884374'
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" == '14415666dd8b698f540f8f68f82971ea17884374' ]]
+          # This first admission requires the fully checked owner-Issue path.
+          node -e 'const r=require(process.argv[1]); if(r.event!=="issues")process.exit(2)' "$RUNNER_TEMP/pf-source-release-run.json"
+          gh api --method GET "/repos/$SOURCE_REPOSITORY/contents/config/selected-native-stable.json" \
+            -f ref='90d9cc28ff86c3c0c33690a764a3ff3826575c57' > "$RUNNER_TEMP/pf-stable-selection-response.json" 2> "$RUNNER_TEMP/pf-api-error" || {
+              echo 'Reviewed stable selection unavailable' >&2; exit 2;
+            }
+          node --input-type=module - "$RUNNER_TEMP" <<'NODE'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const dir=process.argv[2];
+          const r=JSON.parse(fs.readFileSync(dir+'/pf-stable-selection-response.json'));
+          if(r.type!=='file'||r.encoding!=='base64'||r.sha!=='792764b5790aaf2a8c9f807699e84bccfc88cdd8')process.exit(2);
+          const b=Buffer.from(r.content,'base64');
+          if(createHash('sha256').update(b).digest('hex')!=='af2a6dcb3c34d782828de3f28a149ad32379dd52c46585a9a8308bddcd32bf31')process.exit(2);
+          fs.writeFileSync(dir+'/pf-selected-stable-manifest.json',b,{flag:'wx',mode:0o600});
+          NODE
+
+      - name: Independently assemble and verify first stable candidate (NO PUBLISH)
+        id: selected_stable
+        shell: bash
+        env:
+          EXPECTED_SHA: '14415666dd8b698f540f8f68f82971ea17884374'
+          PYTHONDONTWRITEBYTECODE: '1'
+          GIT_CONFIG_NOSYSTEM: '1'
+          GIT_CONFIG_GLOBAL: /dev/null
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" == '14415666dd8b698f540f8f68f82971ea17884374' ]]
+          [[ "$(git -C .private-source rev-parse HEAD)" == "$EXPECTED_SHA" ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/assemble_selected_stable.py")" == 'f60247c196271d01f1e33d9437e58a1fa7da4380' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_manifest_preview.py")" == 'd9fccb28a4a6e15a4322579927f26e2021464317' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/preview_selected_manifest.py")" == 'c34134ce0b22bcc518dfbc6e44fc7fcc66be9a79' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/release/native_revision_plan.py")" == 'afa230b1a4961768be0d5e22a2ee14c953c290b7' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/release/plan_component_revisions.py")" == '3e93f443d4165b201a30c6aa717a9fa6f266ffae' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_candidate.py")" == 'e37c13c6f1166c8d9d9b58d468132c3218be5e9e' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_versioned_preview.py")" == 'be0e792bf9aa6bce49e6031cf7cd5740e876c997' ]]
+          python3 - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          root=Path('.private-source').resolve()
+          sys.path.insert(0,str(root/'tools/npm'))
+          from build_manifest_preview import observations
+          from native_revision_plan import historical_components
+          from plan_component_revisions import committed_json, MANIFEST, METADATA
+          historical='827674a8658b45532b3565c2fa598d5ad036a039'
+          scratch=Path(os.environ['RUNNER_TEMP'])
+          (scratch/'pf-prior-components.json').write_text(json.dumps(historical_components(root,historical)))
+          _, current=observations(root,os.environ['EXPECTED_SHA'],committed_json(root,historical,MANIFEST),committed_json(root,historical,METADATA))
+          (scratch/'pf-current-components.json').write_text(json.dumps(current))
+          PY
+          mkdir "$RUNNER_TEMP/pf-prior-registry"
+          (
+            cd "$RUNNER_TEMP/pf-prior-registry"
+            npm view @mriekki/project-forge@4.35.0 --json --registry=https://registry.npmjs.org/ > registry.json
+            npm pack @mriekki/project-forge@4.35.0 --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json
+          )
+          curl --fail --silent --show-error --retry 2 --max-time 45 \
+            'https://api.github.com/repos/mriekki/project-forge-platform/actions/runs/44646438478' > "$RUNNER_TEMP/pf-prior-public-run.json"
+          curl --fail --silent --show-error --retry 2 --max-time 45 \
+            'https://api.github.com/repos/mriekki/project-forge-platform/actions/runs/44646438478/attempts/1/jobs?per_page=100' > "$RUNNER_TEMP/pf-prior-public-jobs.json"
+          python3 .private-source/tools/npm/assemble_selected_stable.py \
+            --monorepo .private-source --manifest "$RUNNER_TEMP/pf-selected-stable-manifest.json" \
+            --manifest-sha256 'af2a6dcb3c34d782828de3f28a149ad32379dd52c46585a9a8308bddcd32bf31' --source-sha "$EXPECTED_SHA" \
+            --output "$RUNNER_TEMP/pf-selected-stable" > "$RUNNER_TEMP/pf-selected-stable-evidence.json"
+          (
+            cd "$RUNNER_TEMP/pf-selected-stable"
+            npm run verify:assets > "$RUNNER_TEMP/pf-selected-stable-assets.log" 2>&1
+            npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pf-selected-stable-pack.json"
+          )
+          python3 scripts/verify-first-native-stable-content.py \
+            --prior "$RUNNER_TEMP/pf-prior-registry/mriekki-project-forge-4.35.0.tgz" \
+            --candidate "$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz" \
+            --prior-sha256 '2c84926e8baeec9870f3af8828da9e2321e36ecca840c5638870b2a33bc928aa' > "$RUNNER_TEMP/pf-first-stable-content.json"
+          node scripts/verify-selected-native-stable.mjs "$RUNNER_TEMP"
+          echo 'verified=true' >> "$GITHUB_OUTPUT"
+
+      - name: Verify exact selected native release intent and public mirror
+        shell: bash
+        env:
+          EXPECTED_COMMIT: ${{ steps.native_request.outputs.sourceCommit }}
+        run: node scripts/first-native-publication.mjs prepare
+
+      - name: Reverify native canonical and packaged Deployment recovery safety
+        shell: bash
+        env:
+          PYTHONPATH: .private-source/packages/deployment/src
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s .private-source/packages/deployment/tests -p 'test_auth_recovery_lifecycle.py' -v
+          python -m unittest discover -s .private-source/packages/deployment/tests -p 'test_auth_recovery_retention.py' -v
+          PROJECT_FORGE_PACKAGED_DEPLOYMENT_ROOT="$RUNNER_TEMP/pf-selected-stable/assets/generated/deployment/src" \
+          PYTHONPATH="$RUNNER_TEMP/pf-selected-stable/assets/generated/deployment/src" \
+            python -m unittest discover -s test/fixtures -p 'test_packaged_deployment_recovery_safety.py' -v
+
+      - name: Use pinned npm trusted publishing client
+        run: npm install --global npm@11.21.0
+
+      - name: Recheck exact source main without retaining its credential
+        shell: bash
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          live="$(gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" --jq '.object.sha' 2>/dev/null)" || exit 2
+          [[ "$live" == '14415666dd8b698f540f8f68f82971ea17884374' ]]
+
+      - name: Recheck public main and exact archive before publication or recovery
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ steps.native_request.outputs.sourceCommit }}
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]]
+          [[ "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" == "$GITHUB_SHA" ]]
+          if [[ "$EXPECTED_COMMIT" != "$GITHUB_SHA" ]]; then
+            git merge-base --is-ancestor "$EXPECTED_COMMIT" "$GITHUB_SHA"
+            while IFS= read -r changed; do
+              case "$changed" in
+                .github/workflows/npm-publish.yml|scripts/resolve-native-publish.mjs|test/first-native-publication.test.mjs) ;;
+                *) echo "Unapproved recovery drift" >&2; exit 2;;
+              esac
+            done < <(git diff --name-only "$EXPECTED_COMMIT" "$GITHUB_SHA")
+          fi
+          echo 'd098f7ff91e6c051f229961ea0458e9c4519f55b682bb1103ddb2fb27f8d46b4  '"$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz" | sha256sum -c -
+          test ! -e release/receipts/4.36.0.json
+
+      - name: Verify unused target release and exact previous registry latest
+        if: steps.native_request.outputs.mode == 'publish'
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --max-time 45 --output "$RUNNER_TEMP/pf-native-target.json" --write-out '%{http_code}' 'https://registry.npmjs.org/@mriekki%2fproject-forge/4.36.0')"
+          curl --fail --silent --show-error --max-time 45 'https://registry.npmjs.org/@mriekki%2fproject-forge/latest' > "$RUNNER_TEMP/pf-native-registry-latest.json"
+          TARGET_HTTP_STATUS="$status" node scripts/first-native-publication.mjs check-absence
+
+      - name: Verify exact original native publication run for recovery
+        if: steps.native_request.outputs.mode == 'verify'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLICATION_RUN_ID: ${{ steps.native_request.outputs.publicationRunId }}
+          EXPECTED_COMMIT: ${{ steps.native_request.outputs.sourceCommit }}
+          PROVENANCE_URL: ${{ steps.native_request.outputs.provenanceUrl }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$PUBLICATION_RUN_ID" > "$RUNNER_TEMP/pf-native-original-run.json"
+          attempt="$(node -p 'require(process.argv[1]).run_attempt' "$RUNNER_TEMP/pf-native-original-run.json")"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$PUBLICATION_RUN_ID/attempts/$attempt/jobs?per_page=100" > "$RUNNER_TEMP/pf-native-original-jobs.json"
+          node scripts/first-native-publication.mjs check-recovery
+          job="$(node -e 'const r=require(process.argv[1]);process.stdout.write(String(r.jobs.find(j=>j.name==="native-publish").id))' "$RUNNER_TEMP/pf-native-original-jobs.json")"
+          gh api --allow-escape-sequences "/repos/$GITHUB_REPOSITORY/actions/jobs/$job/logs" > "$RUNNER_TEMP/pf-native-original-log"
+          awk -v expected="NATIVE_PUBLISHED_PROVENANCE_URL=$PROVENANCE_URL" '$1 ~ /^[0-9TZ:.-]+$/ && $2 == expected && NF == 2 { matches++ } END { exit(matches == 1 ? 0 : 1) }' "$RUNNER_TEMP/pf-native-original-log"
+
+      - name: Publish verified native archive with existing npm trusted publisher
+        id: native_npm
+        if: steps.native_request.outputs.mode == 'publish'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm publish "$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz" --access public --provenance 2>&1 | tee "$RUNNER_TEMP/pf-native-publish.log"
+          url="$(grep -Eo 'https://search\.sigstore\.dev/\?logIndex=[0-9]+' "$RUNNER_TEMP/pf-native-publish.log" | tail -n 1 || true)"
+          [[ "$url" =~ ^https://search\.sigstore\.dev/\?logIndex=[0-9]+$ ]]
+          echo "NATIVE_PUBLISHED_PROVENANCE_URL=$url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Verify exact native registry bytes and neutral install with signed provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/pf-native-registry"
+          (
+            cd "$RUNNER_TEMP/pf-native-registry"
+            found=''
+            for delay in 1 2 4 8 16 30 30 30 30 30 30; do
+              if npm --prefer-online --cache "$RUNNER_TEMP/pf-native-cache-$RANDOM" view @mriekki/project-forge@4.36.0 --json --registry=https://registry.npmjs.org/ > registry.json &&
+                 npm --prefer-online --cache "$RUNNER_TEMP/pf-native-cache-$RANDOM" pack @mriekki/project-forge@4.36.0 --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json &&
+                 cmp -s mriekki-project-forge-4.36.0.tgz "$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz"; then
+                found=true; break
+              fi
+              sleep "$delay"
+            done
+            [[ "$found" == true ]]
+          )
+          smoke="$(mktemp -d)"
+          (
+            cd "$smoke"
+            npm init -y >/dev/null
+            found=''
+            for delay in 1 2 4 8 16 30 30 30 30 30 30; do
+              if npm_config_cache="$smoke/cache-$delay-$RANDOM" npm install --ignore-scripts --no-audit --no-fund --save-exact @mriekki/project-forge@4.36.0 &&
+                 [[ "$(./node_modules/.bin/project-forge version)" == '@mriekki/project-forge 4.36.0' ]] &&
+                 npm audit signatures > "$RUNNER_TEMP/pf-native-signatures.log" 2>&1 &&
+                 grep -Ei 'verified attestations?' "$RUNNER_TEMP/pf-native-signatures.log" >/dev/null; then
+                found=true; break
+              fi
+              sleep "$delay"
+            done
+            [[ "$found" == true ]]
+          )
+          npm view @mriekki/project-forge time --json > "$RUNNER_TEMP/pf-native-npm-time.json"
+
+      - name: Record native durable receipt evidence
+        shell: bash
+        env:
+          MODE: ${{ steps.native_request.outputs.mode }}
+          PUBLICATION_RUN_ID: ${{ steps.native_request.outputs.publicationRunId }}
+          PUBLISHED_URL: ${{ steps.native_npm.outputs.url }}
+          RECOVERY_URL: ${{ steps.native_request.outputs.provenanceUrl }}
+        run: |
+          set -euo pipefail
+          if [[ "$MODE" == publish ]]; then PROVENANCE_URL="$PUBLISHED_URL"; else PROVENANCE_URL="$RECOVERY_URL"; fi
+          [[ "$PROVENANCE_URL" =~ ^https://search\.sigstore\.dev/\?logIndex=[0-9]+$ ]]
+          export PROVENANCE_URL
+          node scripts/first-native-publication.mjs finalize
+
+      - name: Record verified native publication on the exact owner issue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'Verified native package publication evidence (receipt schema 2).'
+            echo
+            echo '```json'
+            cat "$RUNNER_TEMP/publication-evidence.json"
+            echo '```'
+          } > "$RUNNER_TEMP/pf-native-publication-comment.md"
+          gh api --method POST "/repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" -F body=@"$RUNNER_TEMP/pf-native-publication-comment.md" >/dev/null
+          gh api --method PATCH "/repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER" -f state=closed -f state_reason=completed >/dev/null
+\t'true    # Reuse the exact registered workflow identity, never a second trust root.
+    if: >-
+      github.repository == 'mriekki/project-forge-platform' &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'issues' &&
+      github.event.issue.user.login == github.repository_owner &&
+      github.event.sender.login == github.repository_owner &&
+      (github.event.issue.title == '[project-forge-native-publish] 4.36.0' ||
+       github.event.issue.title == '[project-forge-native-publish-verify] 4.36.0')
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      issues: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Checkout exact authorized public Platform commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve exact native publication request
+        id: native_request
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: node scripts/resolve-native-publish.mjs
+      - name: Set up exact reviewed assembly Node and Python
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.5'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13'
+      - name: Collect exact Platform main CI and independent admission run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ steps.native_request.outputs.sourceCommit }}
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]]
+          [[ "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" == "$GITHUB_SHA" ]]
+          if [[ "$EXPECTED_COMMIT" != "$GITHUB_SHA" ]]; then
+            git merge-base --is-ancestor "$EXPECTED_COMMIT" "$GITHUB_SHA"
+            while IFS= read -r changed; do
+              case "$changed" in
+                .github/workflows/npm-publish.yml|scripts/resolve-native-publish.mjs|test/first-native-publication.test.mjs) ;;
+                *) echo "Unapproved recovery drift" >&2; exit 2;;
+              esac
+            done < <(git diff --name-only "$EXPECTED_COMMIT" "$GITHUB_SHA")
+          fi
+          [[ "$(node -p "require('./package.json').version")" == '4.36.0' ]]
+          [[ "$(npm --version)" == '10.9.9' ]]
+          gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=$EXPECTED_COMMIT&per_page=20" > "$RUNNER_TEMP/pf-native-platform-ci.json"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/44962439172" > "$RUNNER_TEMP/pf-native-admission-run.json"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/44962439172/attempts/1/jobs?per_page=100" > "$RUNNER_TEMP/pf-native-admission-jobs.json"
+          npm ci --ignore-scripts
+          npm run verify:assets
+          mkdir "$RUNNER_TEMP/pf-native-mirror"
+          npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/pf-native-mirror" > "$RUNNER_TEMP/pf-native-mirror/pack.json"
+
+      - name: Collect authenticated private source and exact release CI evidence
+        id: evidence
+        shell: bash
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          SOURCE_ID: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY_ID }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+          EXPECTED_SHA: '14415666dd8b698f540f8f68f82971ea17884374'
+          SOURCE_RUN: '44954708158'
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid requested source SHA' >&2; exit 2; }
+          [[ "$SOURCE_RUN" =~ ^[1-9][0-9]*$ ]] || { echo 'Invalid source release qualification run ID' >&2; exit 2; }
+          [[ "$SOURCE_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo 'Protected private repository mapping is missing or invalid' >&2; exit 2; }
+          [[ "$SOURCE_ID" =~ ^[1-9][0-9]*$ ]] || { echo 'Protected immutable private repository ID is missing or invalid' >&2; exit 2; }
+          [[ -n "$GH_TOKEN" ]] || { echo 'Protected read-only private source credential is unavailable' >&2; exit 2; }
+          echo "::add-mask::$SOURCE_REPOSITORY"
+          echo "::add-mask::$SOURCE_ID"
+          # Fail closed without printing private repository URLs or API response bodies.
+          gh api "/repos/$SOURCE_REPOSITORY" > "$RUNNER_TEMP/pf-source-repository.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source repository read denied' >&2; exit 2; }
+          gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" > "$RUNNER_TEMP/pf-source-main.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source main read denied' >&2; exit 2; }
+          gh api "/repos/$SOURCE_REPOSITORY/actions/runs/$SOURCE_RUN" > "$RUNNER_TEMP/pf-source-release-run.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Private source Actions:read is denied or the run is missing' >&2; exit 2; }
+          # Bind issue-triggered evidence to the exact run attempt and reviewed source
+          # qualification code. These metadata reads use the existing protected
+          # read-only credential; neither the raw responses nor private locator are logged.
+          source_event="$(node -e 'const fs=require("fs"); const r=JSON.parse(fs.readFileSync(process.argv[1])); if(!["workflow_dispatch","issues"].includes(r.event))process.exit(2);process.stdout.write(r.event)' "$RUNNER_TEMP/pf-source-release-run.json")"
+          extra=()
+          if [[ "$source_event" == 'issues' ]]; then
+            attempt="$(node -e 'const fs=require("fs"); const r=JSON.parse(fs.readFileSync(process.argv[1])); if(!Number.isSafeInteger(r.run_attempt)||r.run_attempt<1)process.exit(2);process.stdout.write(String(r.run_attempt))' "$RUNNER_TEMP/pf-source-release-run.json")"
+            gh api "/repos/$SOURCE_REPOSITORY/actions/runs/$SOURCE_RUN/attempts/$attempt/jobs?per_page=100" > "$RUNNER_TEMP/pf-source-jobs.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Exact source qualification job evidence unavailable' >&2; exit 2; }
+            gh api --method GET "/repos/$SOURCE_REPOSITORY/contents/.github/workflows/p0-main-release-qualification.yml" -f ref="$EXPECTED_SHA" --jq '{path,type,sha}' > "$RUNNER_TEMP/pf-source-workflow.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Reviewed qualification workflow metadata unavailable' >&2; exit 2; }
+            gh api --method GET "/repos/$SOURCE_REPOSITORY/contents/tools/release/verify_main_identity.py" -f ref="$EXPECTED_SHA" --jq '{path,type,sha}' > "$RUNNER_TEMP/pf-source-identity.json" 2> "$RUNNER_TEMP/pf-api-error" || { echo 'Reviewed identity verifier metadata unavailable' >&2; exit 2; }
+            extra=(--jobs-json "$RUNNER_TEMP/pf-source-jobs.json" --workflow-json "$RUNNER_TEMP/pf-source-workflow.json" --identity-json "$RUNNER_TEMP/pf-source-identity.json")
+          fi
+          PF_PROTECTED_SOURCE_REPOSITORY="$SOURCE_REPOSITORY" \
+          PF_PROTECTED_SOURCE_REPOSITORY_ID="$SOURCE_ID" \
+          node scripts/private-source-admission-preview.mjs \
+            --source-sha "$EXPECTED_SHA" \
+            --source-run-id "$SOURCE_RUN" \
+            --package-version 4.35.0 \
+            --repository-json "$RUNNER_TEMP/pf-source-repository.json" \
+            --main-json "$RUNNER_TEMP/pf-source-main.json" \
+            --run-json "$RUNNER_TEMP/pf-source-release-run.json" "${extra[@]}"
+          echo "repository=$SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact independently admitted private source (read only)
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.evidence.outputs.repository }}
+          ref: '14415666dd8b698f540f8f68f82971ea17884374'
+          path: .private-source
+          fetch-depth: 0
+          token: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+
+      - name: Retrieve reviewed stable selection (read only)
+        shell: bash
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+          EXPECTED_SHA: '14415666dd8b698f540f8f68f82971ea17884374'
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" == '14415666dd8b698f540f8f68f82971ea17884374' ]]
+          # This first admission requires the fully checked owner-Issue path.
+          node -e 'const r=require(process.argv[1]); if(r.event!=="issues")process.exit(2)' "$RUNNER_TEMP/pf-source-release-run.json"
+          gh api --method GET "/repos/$SOURCE_REPOSITORY/contents/config/selected-native-stable.json" \
+            -f ref='90d9cc28ff86c3c0c33690a764a3ff3826575c57' > "$RUNNER_TEMP/pf-stable-selection-response.json" 2> "$RUNNER_TEMP/pf-api-error" || {
+              echo 'Reviewed stable selection unavailable' >&2; exit 2;
+            }
+          node --input-type=module - "$RUNNER_TEMP" <<'NODE'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const dir=process.argv[2];
+          const r=JSON.parse(fs.readFileSync(dir+'/pf-stable-selection-response.json'));
+          if(r.type!=='file'||r.encoding!=='base64'||r.sha!=='792764b5790aaf2a8c9f807699e84bccfc88cdd8')process.exit(2);
+          const b=Buffer.from(r.content,'base64');
+          if(createHash('sha256').update(b).digest('hex')!=='af2a6dcb3c34d782828de3f28a149ad32379dd52c46585a9a8308bddcd32bf31')process.exit(2);
+          fs.writeFileSync(dir+'/pf-selected-stable-manifest.json',b,{flag:'wx',mode:0o600});
+          NODE
+
+      - name: Independently assemble and verify first stable candidate (NO PUBLISH)
+        id: selected_stable
+        shell: bash
+        env:
+          EXPECTED_SHA: '14415666dd8b698f540f8f68f82971ea17884374'
+          PYTHONDONTWRITEBYTECODE: '1'
+          GIT_CONFIG_NOSYSTEM: '1'
+          GIT_CONFIG_GLOBAL: /dev/null
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" == '14415666dd8b698f540f8f68f82971ea17884374' ]]
+          [[ "$(git -C .private-source rev-parse HEAD)" == "$EXPECTED_SHA" ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/assemble_selected_stable.py")" == 'f60247c196271d01f1e33d9437e58a1fa7da4380' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_manifest_preview.py")" == 'd9fccb28a4a6e15a4322579927f26e2021464317' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/preview_selected_manifest.py")" == 'c34134ce0b22bcc518dfbc6e44fc7fcc66be9a79' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/release/native_revision_plan.py")" == 'afa230b1a4961768be0d5e22a2ee14c953c290b7' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/release/plan_component_revisions.py")" == '3e93f443d4165b201a30c6aa717a9fa6f266ffae' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_candidate.py")" == 'e37c13c6f1166c8d9d9b58d468132c3218be5e9e' ]]
+          [[ "$(git -C .private-source rev-parse "HEAD:tools/npm/build_versioned_preview.py")" == 'be0e792bf9aa6bce49e6031cf7cd5740e876c997' ]]
+          python3 - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          root=Path('.private-source').resolve()
+          sys.path.insert(0,str(root/'tools/npm'))
+          from build_manifest_preview import observations
+          from native_revision_plan import historical_components
+          from plan_component_revisions import committed_json, MANIFEST, METADATA
+          historical='827674a8658b45532b3565c2fa598d5ad036a039'
+          scratch=Path(os.environ['RUNNER_TEMP'])
+          (scratch/'pf-prior-components.json').write_text(json.dumps(historical_components(root,historical)))
+          _, current=observations(root,os.environ['EXPECTED_SHA'],committed_json(root,historical,MANIFEST),committed_json(root,historical,METADATA))
+          (scratch/'pf-current-components.json').write_text(json.dumps(current))
+          PY
+          mkdir "$RUNNER_TEMP/pf-prior-registry"
+          (
+            cd "$RUNNER_TEMP/pf-prior-registry"
+            npm view @mriekki/project-forge@4.35.0 --json --registry=https://registry.npmjs.org/ > registry.json
+            npm pack @mriekki/project-forge@4.35.0 --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json
+          )
+          curl --fail --silent --show-error --retry 2 --max-time 45 \
+            'https://api.github.com/repos/mriekki/project-forge-platform/actions/runs/44646438478' > "$RUNNER_TEMP/pf-prior-public-run.json"
+          curl --fail --silent --show-error --retry 2 --max-time 45 \
+            'https://api.github.com/repos/mriekki/project-forge-platform/actions/runs/44646438478/attempts/1/jobs?per_page=100' > "$RUNNER_TEMP/pf-prior-public-jobs.json"
+          python3 .private-source/tools/npm/assemble_selected_stable.py \
+            --monorepo .private-source --manifest "$RUNNER_TEMP/pf-selected-stable-manifest.json" \
+            --manifest-sha256 'af2a6dcb3c34d782828de3f28a149ad32379dd52c46585a9a8308bddcd32bf31' --source-sha "$EXPECTED_SHA" \
+            --output "$RUNNER_TEMP/pf-selected-stable" > "$RUNNER_TEMP/pf-selected-stable-evidence.json"
+          (
+            cd "$RUNNER_TEMP/pf-selected-stable"
+            npm run verify:assets > "$RUNNER_TEMP/pf-selected-stable-assets.log" 2>&1
+            npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pf-selected-stable-pack.json"
+          )
+          python3 scripts/verify-first-native-stable-content.py \
+            --prior "$RUNNER_TEMP/pf-prior-registry/mriekki-project-forge-4.35.0.tgz" \
+            --candidate "$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz" \
+            --prior-sha256 '2c84926e8baeec9870f3af8828da9e2321e36ecca840c5638870b2a33bc928aa' > "$RUNNER_TEMP/pf-first-stable-content.json"
+          node scripts/verify-selected-native-stable.mjs "$RUNNER_TEMP"
+          echo 'verified=true' >> "$GITHUB_OUTPUT"
+
+      - name: Verify exact selected native release intent and public mirror
+        shell: bash
+        env:
+          EXPECTED_COMMIT: ${{ steps.native_request.outputs.sourceCommit }}
+        run: node scripts/first-native-publication.mjs prepare
+
+      - name: Reverify native canonical and packaged Deployment recovery safety
+        shell: bash
+        env:
+          PYTHONPATH: .private-source/packages/deployment/src
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s .private-source/packages/deployment/tests -p 'test_auth_recovery_lifecycle.py' -v
+          python -m unittest discover -s .private-source/packages/deployment/tests -p 'test_auth_recovery_retention.py' -v
+          PROJECT_FORGE_PACKAGED_DEPLOYMENT_ROOT="$RUNNER_TEMP/pf-selected-stable/assets/generated/deployment/src" \
+          PYTHONPATH="$RUNNER_TEMP/pf-selected-stable/assets/generated/deployment/src" \
+            python -m unittest discover -s test/fixtures -p 'test_packaged_deployment_recovery_safety.py' -v
+
+      - name: Use pinned npm trusted publishing client
+        run: npm install --global npm@11.21.0
+
+      - name: Recheck exact source main without retaining its credential
+        shell: bash
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          live="$(gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" --jq '.object.sha' 2>/dev/null)" || exit 2
+          [[ "$live" == '14415666dd8b698f540f8f68f82971ea17884374' ]]
+
+      - name: Recheck public main and exact archive before publication or recovery
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ steps.native_request.outputs.sourceCommit }}
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]]
+          [[ "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" == "$GITHUB_SHA" ]]
+          if [[ "$EXPECTED_COMMIT" != "$GITHUB_SHA" ]]; then
+            git merge-base --is-ancestor "$EXPECTED_COMMIT" "$GITHUB_SHA"
+            while IFS= read -r changed; do
+              case "$changed" in
+                .github/workflows/npm-publish.yml|scripts/resolve-native-publish.mjs|test/first-native-publication.test.mjs) ;;
+                *) echo "Unapproved recovery drift" >&2; exit 2;;
+              esac
+            done < <(git diff --name-only "$EXPECTED_COMMIT" "$GITHUB_SHA")
+          fi
+          echo 'd098f7ff91e6c051f229961ea0458e9c4519f55b682bb1103ddb2fb27f8d46b4  '"$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz" | sha256sum -c -
+          test ! -e release/receipts/4.36.0.json
+
+      - name: Verify unused target release and exact previous registry latest
+        if: steps.native_request.outputs.mode == 'publish'
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --max-time 45 --output "$RUNNER_TEMP/pf-native-target.json" --write-out '%{http_code}' 'https://registry.npmjs.org/@mriekki%2fproject-forge/4.36.0')"
+          curl --fail --silent --show-error --max-time 45 'https://registry.npmjs.org/@mriekki%2fproject-forge/latest' > "$RUNNER_TEMP/pf-native-registry-latest.json"
+          TARGET_HTTP_STATUS="$status" node scripts/first-native-publication.mjs check-absence
+
+      - name: Verify exact original native publication run for recovery
+        if: steps.native_request.outputs.mode == 'verify'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLICATION_RUN_ID: ${{ steps.native_request.outputs.publicationRunId }}
+          EXPECTED_COMMIT: ${{ steps.native_request.outputs.sourceCommit }}
+          PROVENANCE_URL: ${{ steps.native_request.outputs.provenanceUrl }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$PUBLICATION_RUN_ID" > "$RUNNER_TEMP/pf-native-original-run.json"
+          attempt="$(node -p 'require(process.argv[1]).run_attempt' "$RUNNER_TEMP/pf-native-original-run.json")"
+          gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$PUBLICATION_RUN_ID/attempts/$attempt/jobs?per_page=100" > "$RUNNER_TEMP/pf-native-original-jobs.json"
+          node scripts/first-native-publication.mjs check-recovery
+          job="$(node -e 'const r=require(process.argv[1]);process.stdout.write(String(r.jobs.find(j=>j.name==="native-publish").id))' "$RUNNER_TEMP/pf-native-original-jobs.json")"
+          gh api --allow-escape-sequences "/repos/$GITHUB_REPOSITORY/actions/jobs/$job/logs" > "$RUNNER_TEMP/pf-native-original-log"
+          awk -v expected="NATIVE_PUBLISHED_PROVENANCE_URL=$PROVENANCE_URL" '$1 ~ /^[0-9TZ:.-]+$/ && $2 == expected && NF == 2 { matches++ } END { exit(matches == 1 ? 0 : 1) }' "$RUNNER_TEMP/pf-native-original-log"
+
+      - name: Publish verified native archive with existing npm trusted publisher
+        id: native_npm
+        if: steps.native_request.outputs.mode == 'publish'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm publish "$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz" --access public --provenance 2>&1 | tee "$RUNNER_TEMP/pf-native-publish.log"
+          url="$(grep -Eo 'https://search\.sigstore\.dev/\?logIndex=[0-9]+' "$RUNNER_TEMP/pf-native-publish.log" | tail -n 1 || true)"
+          [[ "$url" =~ ^https://search\.sigstore\.dev/\?logIndex=[0-9]+$ ]]
+          echo "NATIVE_PUBLISHED_PROVENANCE_URL=$url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Verify exact native registry bytes and neutral install with signed provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/pf-native-registry"
+          (
+            cd "$RUNNER_TEMP/pf-native-registry"
+            found=''
+            for delay in 1 2 4 8 16 30 30 30 30 30 30; do
+              if npm --prefer-online --cache "$RUNNER_TEMP/pf-native-cache-$RANDOM" view @mriekki/project-forge@4.36.0 --json --registry=https://registry.npmjs.org/ > registry.json &&
+                 npm --prefer-online --cache "$RUNNER_TEMP/pf-native-cache-$RANDOM" pack @mriekki/project-forge@4.36.0 --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json &&
+                 cmp -s mriekki-project-forge-4.36.0.tgz "$RUNNER_TEMP/mriekki-project-forge-4.36.0.tgz"; then
+                found=true; break
+              fi
+              sleep "$delay"
+            done
+            [[ "$found" == true ]]
+          )
+          smoke="$(mktemp -d)"
+          (
+            cd "$smoke"
+            npm init -y >/dev/null
+            found=''
+            for delay in 1 2 4 8 16 30 30 30 30 30 30; do
+              if npm_config_cache="$smoke/cache-$delay-$RANDOM" npm install --ignore-scripts --no-audit --no-fund --save-exact @mriekki/project-forge@4.36.0 &&
+                 [[ "$(./node_modules/.bin/project-forge version)" == '@mriekki/project-forge 4.36.0' ]] &&
+                 npm audit signatures > "$RUNNER_TEMP/pf-native-signatures.log" 2>&1 &&
+                 grep -Ei 'verified attestations?' "$RUNNER_TEMP/pf-native-signatures.log" >/dev/null; then
+                found=true; break
+              fi
+              sleep "$delay"
+            done
+            [[ "$found" == true ]]
+          )
+          npm view @mriekki/project-forge time --json > "$RUNNER_TEMP/pf-native-npm-time.json"
+
+      - name: Record native durable receipt evidence
+        shell: bash
+        env:
+          MODE: ${{ steps.native_request.outputs.mode }}
+          PUBLICATION_RUN_ID: ${{ steps.native_request.outputs.publicationRunId }}
+          PUBLISHED_URL: ${{ steps.native_npm.outputs.url }}
+          RECOVERY_URL: ${{ steps.native_request.outputs.provenanceUrl }}
+        run: |
+          set -euo pipefail
+          if [[ "$MODE" == publish ]]; then PROVENANCE_URL="$PUBLISHED_URL"; else PROVENANCE_URL="$RECOVERY_URL"; fi
+          [[ "$PROVENANCE_URL" =~ ^https://search\.sigstore\.dev/\?logIndex=[0-9]+$ ]]
+          export PROVENANCE_URL
+          node scripts/first-native-publication.mjs finalize
+
+      - name: Record verified native publication on the exact owner issue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'Verified native package publication evidence (receipt schema 2).'
+            echo
+            echo '```json'
+            cat "$RUNNER_TEMP/publication-evidence.json"
+            echo '```'
+          } > "$RUNNER_TEMP/pf-native-publication-comment.md"
+          gh api --method POST "/repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" -F body=@"$RUNNER_TEMP/pf-native-publication-comment.md" >/dev/null
+          gh api --method PATCH "/repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER" -f state=closed -f state_reason=completed >/dev/null
+\t'false ]]
+          live="$(gh api "/repos/$SOURCE_REPOSITORY/git/ref/heads/main" --jq '.object.sha' 2>/dev/null)" || exit 2
+          test "$live" = "$SOURCE_SHA"
+      - name: Check current authorized public main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" = "$GITHUB_SHA"
+
+  native-successor-publish:
+    needs: native-successor-preflight
+    if: needs.native-successor-preflight.outputs.mode == 'publish'
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.5'
+          package-manager-cache: false
+      - name: Repack admitted archive without package code execution
+        env:
+          VERSION: ${{ needs.native-successor-preflight.outputs.version }}
+          CANDIDATE_SHA: ${{ needs.native-successor-preflight.outputs.candidateSha256 }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(npm --version)" = 10.9.9
+          test ! -e .npmrc
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{64}$ ]]
+          npm pack --ignore-scripts --offline --userconfig /dev/null --globalconfig /dev/null --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
+          printf '%s  %s\n' "$CANDIDATE_SHA" "$RUNNER_TEMP/mriekki-project-forge-$VERSION.tgz" | sha256sum -c -
+      - name: Install pinned existing trusted npm publisher
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/pf-publisher" npm@11.21.0 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
+          test "$(node "$RUNNER_TEMP/pf-publisher/node_modules/npm/bin/npm-cli.js" --version)" = 11.21.0
+      - name: Publish exact successor archive through existing trusted publisher
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.native-successor-preflight.outputs.version }}
+          PRIOR_VERSION: ${{ needs.native-successor-preflight.outputs.previousVersion }}
+          CANDIDATE_SHA: ${{ needs.native-successor-preflight.outputs.candidateSha256 }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "/repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" = "$GITHUB_SHA"
+          unset GH_TOKEN
+          status="$(curl --silent --show-error --max-time 45 --output /dev/null --write-out '%{http_code}' "https://registry.npmjs.org/@mriekki%2fproject-forge/$VERSION")"
+          test "$status" = 404
+          curl --fail --silent --show-error --max-time 45 'https://registry.npmjs.org/@mriekki%2fproject-forge/latest' > "$RUNNER_TEMP/latest.json"
+          node -e 'if(require(process.argv[1]).version!==process.env.PRIOR_VERSION)process.exit(2)' "$RUNNER_TEMP/latest.json"
+          archive="$RUNNER_TEMP/mriekki-project-forge-$VERSION.tgz"
+          printf '%s  %s\n' "$CANDIDATE_SHA" "$archive" | sha256sum -c -
+          cd "$RUNNER_TEMP"
+          node "$RUNNER_TEMP/pf-publisher/node_modules/npm/bin/npm-cli.js" publish "$archive" --access public --provenance --ignore-scripts --registry=https://registry.npmjs.org/ 2>&1 | tee "$RUNNER_TEMP/publish.log"
+          url="$(grep -Eo 'https://search\.sigstore\.dev/\?logIndex=[0-9]+' "$RUNNER_TEMP/publish.log" | tail -n1)"
+          [[ "$url" =~ ^https://search\.sigstore\.dev/\?logIndex=[0-9]+$ ]]
+          echo "NATIVE_SUCCESSOR_PUBLISHED_PROVENANCE_URL=$url"
+          echo 'Separate verification-only owner request required for receipt.'
+
+  native-successor-verify:
+    needs: native-successor-preflight
+    if: needs.native-successor-preflight.outputs.mode == 'verify'
+    permissions:
+      contents: read
+      actions: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.5'
+          package-manager-cache: false
+      - name: Repack mirror and download exact published successor
+        env:
+          VERSION: ${{ needs.native-successor-preflight.outputs.version }}
+          CANDIDATE_SHA: ${{ needs.native-successor-preflight.outputs.candidateSha256 }}
+        run: |
+          set -euo pipefail
+          test "$(npm --version)" = 10.9.9
+          test ! -e .npmrc
+          npm pack --ignore-scripts --offline --userconfig /dev/null --globalconfig /dev/null --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
+          mv "$RUNNER_TEMP/mriekki-project-forge-$VERSION.tgz" "$RUNNER_TEMP/pf-successor-mirror.tgz"
+          printf '%s  %s\n' "$CANDIDATE_SHA" "$RUNNER_TEMP/pf-successor-mirror.tgz" | sha256sum -c -
+          npm install --prefix "$RUNNER_TEMP/pf-signature-client" npm@11.21.0 --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
+          mkdir "$RUNNER_TEMP/pf-successor-neutral"
+          (
+            cd "$RUNNER_TEMP/pf-successor-neutral"
+            npm view "@mriekki/project-forge@$VERSION" --json --registry=https://registry.npmjs.org/ > "$RUNNER_TEMP/pf-successor-registry.json"
+            npm view @mriekki/project-forge time --json --registry=https://registry.npmjs.org/ > "$RUNNER_TEMP/pf-successor-times.json"
+            npm pack "@mriekki/project-forge@$VERSION" --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json
+            mv "mriekki-project-forge-$VERSION.tgz" "$RUNNER_TEMP/pf-successor-registry.tgz"
+            cmp "$RUNNER_TEMP/pf-successor-mirror.tgz" "$RUNNER_TEMP/pf-successor-registry.tgz"
+            npm init -y >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund --save-exact "@mriekki/project-forge@$VERSION" --registry=https://registry.npmjs.org/
+            node "$RUNNER_TEMP/pf-signature-client/node_modules/npm/bin/npm-cli.js" audit signatures --registry=https://registry.npmjs.org/
+          )
+      - name: Verify original completed publish and exact registry provenance before receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTENT: ${{ needs.native-successor-preflight.outputs.intent }}
+          PUBLICATION_RUN_ID: ${{ needs.native-successor-preflight.outputs.publicationRunId }}
+          PROVENANCE_URL: ${{ needs.native-successor-preflight.outputs.provenanceUrl }}
+        run: node scripts/native-successor-publication.mjs finalize
+
   native-publish:
     # Reuse the exact registered workflow identity, never a second trust root.
     if: >-
