@@ -37,6 +37,13 @@ jobs:
           npm init -y >/dev/null
           npm install --ignore-scripts --no-audit --no-fund --save-exact @mriekki/project-forge@4.36.0 --registry=https://registry.npmjs.org/
           node "$RUNNER_TEMP/pf-signature-client/node_modules/npm/bin/npm-cli.js" audit signatures --registry=https://registry.npmjs.org/
+      - name: Inspect public Fulcio certificate extension inventory (diagnostic only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 30 "https://registry.npmjs.org/-/npm/v1/attestations/@mriekki%2fproject-forge@4.36.0" > "$RUNNER_TEMP/pf-public-attestations.json"
+          node -e 'const fs=require("fs");const b=JSON.parse(fs.readFileSync(process.argv[1])).attestations.find(x=>x.predicateType==="https://slsa.dev/provenance/v1").bundle.verificationMaterial;fs.writeFileSync(process.argv[2],Buffer.from((b.certificate??b.x509CertificateChain.certificates[0]).rawBytes,"base64"))' "$RUNNER_TEMP/pf-public-attestations.json" "$RUNNER_TEMP/pf-public-cert.der"
+          openssl x509 -inform DER -in "$RUNNER_TEMP/pf-public-cert.der" -noout -text
       - name: Verify actual signed predecessor and exact historical publication run
         shell: bash
         env:
