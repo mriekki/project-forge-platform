@@ -9,7 +9,13 @@ disable-model-invocation: true
 
 `/release-project-forge` owns the Platform package transport workflow. Canonical component sources own reusable behavior; the public package exposes logical component IDs plus exact opaque revisions without publishing private repository topology.
 
-Release preparation has two first-class execution modes:
+## Native release transition (4.36.0 onward)
+
+The first stable native-source release, 4.36.0, is published, verified and stable-aligned. The former multi-repository cloud preparation workflow now refuses execution before credentials or release-branch writes; legacy new publication is disabled. Do not invoke the legacy local preparation script for a new release either. The legacy cloud/local instructions below are retained only as historical reference until the repeatable native release workflow is qualified. The exact 4.36.0 native publisher is version-specific, not authority for subsequent versions. For a new release, report `NATIVE RELEASE QUALIFICATION REQUIRED` and use the reviewed native-source selection, qualification and independent public rebuild process; do not stage a new version with the historical path. Existing publication identity and receipt history remain intact. No consumer update or Production deployment is implied.
+
+### Historical preparation modes
+
+Release preparation had two first-class execution modes:
 
 - **Cloud preparation** — a GitHub-connected cloud agent resolves authoritative component `main` revisions and CI, then uses `.github/workflows/prepare-package-release.yml` to materialize exact protected sources and prepare a release branch without relying on the Developer's local working copies.
 - **Local preparation** — a Developer uses clean canonical local component checkouts and `scripts/prepare-package-update.mjs` directly.
