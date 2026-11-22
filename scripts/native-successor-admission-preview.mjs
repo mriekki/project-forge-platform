@@ -9,6 +9,8 @@ import {verifySuccessorRunEvidence,extractSuccessorProof,REQUIRED_CODE_PATHS} fr
 import {verifyPriorRegistryArchive,readReleaseArchiveProjection} from './prior-registry-archive.mjs';
 import {compareSuccessorEvidence} from './verify-native-successor-evidence.mjs';
 import {validateNativeReceipt} from './native-source-receipt.mjs';
+import {verifyAssets} from './verify-assets.mjs';
+import {loadPackageData} from '../src/package-data.mjs';
 
 const pins=Object.freeze({
   ".github/workflows/native-successor-main-qualification.yml": "faa69960ffe8273b5840c32e76ef97d28edb949d",
@@ -95,8 +97,29 @@ function localPins(root,head){
     {encoding:'utf8',timeout:30000,stdio:['ignore','pipe','pipe']}).trim();
   need(git('rev-parse','HEAD')===head&&!git('status','--porcelain','--untracked-files=all'),
     'Exact clean source checkout required');
-  for(const [file,oid] of Object.entries(pins))
+  const codeRoot=at('pf-successor-reviewed-code');
+  fs.mkdirSync(codeRoot,{mode:0o700});
+  for(const [file,oid] of Object.entries(pins)){
     need(git('rev-parse','HEAD:'+file)===oid,'Local reviewed source code differs');
+    // Import only exact reviewed Python blobs, never adjacent unreviewed
+    // modules, checkout-local sitecustomize or candidate shell code.
+    if(!file.endsWith('.py'))continue;
+    need(/^100(?:644|755) blob [0-9a-f]{40}\t/.test(git('ls-tree','HEAD','--',file)),
+      'Reviewed code must be regular Git data');
+    const bytes=execFileSync('git',['-C',root,'show','HEAD:'+file],
+      {timeout:30000,maxBuffer:2*1024*1024,stdio:['ignore','pipe','pipe']});
+    const blob=createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
+    need(blob===oid,'Reviewed code blob bytes differ');
+    const destination=path.join(codeRoot,file);
+    fs.mkdirSync(path.dirname(destination),{recursive:true,mode:0o700});
+    fs.writeFileSync(destination,bytes,{flag:'wx',mode:0o600});
+  }
+}
+function verifyStagedAssets(root){
+  // Use the independently reviewed PUBLIC verifier, not npm run from the
+  // candidate's package shell. Lifecycle scripts are also disabled at pack.
+  need(!fs.existsSync(path.join(root,'.npmrc')),'Candidate npm configuration refused');
+  verifyAssets(loadPackageData(root));
 }
 export function verifyPreview({selection,prior,observed,manifestBytes,evidence,sourceProof,archiveBytes}){
   const previous=verifyPriorRegistryArchive({...prior,expectedVersion:selection.previousVersion,
@@ -146,6 +169,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
       }
       case 'collect':collect();break;
       case 'verify-checkout':localPins(process.argv[3],json('pf-successor-request.json').sourceCommit);break;
+      case 'verify-assets':verifyStagedAssets(process.argv[3]);break;
       case 'compare':compare();break;
       default:throw new Error('Unknown read-only preview operation');
     }
