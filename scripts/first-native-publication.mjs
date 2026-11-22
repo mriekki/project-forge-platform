@@ -1,6 +1,7 @@
 /** Exact 4.36.0 cutover: compare independently observed candidate and run data. */
 import fs from 'node:fs';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual as equal} from 'node:util';
 import {readVerifiedStableCandidate} from './verify-selected-native-stable.mjs';
@@ -77,11 +78,15 @@ function finalize() {
   console.log(JSON.stringify(receipt));
   console.log('PROJECT_FORGE_NATIVE_PUBLICATION_EVIDENCE_END');
 }
-if(process.argv[2]==='prepare')prepare();
-else if(process.argv[2]==='finalize')finalize();
-else if(process.argv[2]==='check-recovery'){
-  verifyOriginalNativeRun(json('pf-native-original-run.json'),json('pf-native-original-jobs.json'),{
-    publicationRunId:Number(process.env.PUBLICATION_RUN_ID),sourceCommit:process.env.EXPECTED_COMMIT});
+// This module also exports read-only helpers imported by the native successor.
+// Never execute the historical 4.36.0 CLI when a successor command is importing it.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  if(process.argv[2]==='prepare')prepare();
+  else if(process.argv[2]==='finalize')finalize();
+  else if(process.argv[2]==='check-recovery'){
+    verifyOriginalNativeRun(json('pf-native-original-run.json'),json('pf-native-original-jobs.json'),{
+      publicationRunId:Number(process.env.PUBLICATION_RUN_ID),sourceCommit:process.env.EXPECTED_COMMIT});
+  }
+  else if(process.argv[2]==='check-absence')requireNewVersion({
+    targetStatus:Number(process.env.TARGET_HTTP_STATUS),latest:json('pf-native-registry-latest.json').version});
 }
-else if(process.argv[2]==='check-absence')requireNewVersion({
-  targetStatus:Number(process.env.TARGET_HTTP_STATUS),latest:json('pf-native-registry-latest.json').version});
