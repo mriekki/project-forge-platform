@@ -221,7 +221,10 @@ function finalizeWitness(){
   need(witness.platformCommit===process.env.GITHUB_SHA&&witness.previewRunId===Number(process.env.GITHUB_RUN_ID)&&
     witness.previewRunAttempt===Number(process.env.GITHUB_RUN_ATTEMPT),'Preview context differs');
   console.log('PROJECT_FORGE_SUCCESSOR_ADMISSION_WITNESS_BEGIN');
-  console.log(JSON.stringify(witness));
+  // JSON delimiters can be masked by GitHub's log redactor. Emit a canonical
+  // ASCII transport encoding; the protected publisher still authenticates
+  // the exact run/job/commit and strictly validates decoded witness fields.
+  console.log(Buffer.from(JSON.stringify(witness),'utf8').toString('base64url'));
   console.log('PROJECT_FORGE_SUCCESSOR_ADMISSION_WITNESS_END');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
