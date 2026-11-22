@@ -11,6 +11,7 @@ import {compareSuccessorEvidence} from './verify-native-successor-evidence.mjs';
 import {validateNativeReceipt} from './native-source-receipt.mjs';
 import {verifyAssets} from './verify-assets.mjs';
 import {loadPackageData} from '../src/package-data.mjs';
+import {strictJson} from './strict-json.mjs';
 
 const pins=Object.freeze({
   ".github/workflows/native-successor-main-qualification.yml": "0cb137b10fea08bf6d461b659faaa638c54589cf",
@@ -48,7 +49,7 @@ export function resolveSuccessorPreview(event,owner){
     event.issue.user?.login===owner&&event.sender?.login===owner,'Owner-opened preview required');
   const raw=event.issue.body;
   need(typeof raw==='string'&&raw.length<=4096,'Bounded preview request required');
-  const r=JSON.parse(raw);
+  const r=strictJson(raw,4096);
   need(r&&typeof r==='object'&&!Array.isArray(r)&&equal(Object.keys(r).sort(),
     ['sourceCommit','workflowRunId','runAttempt','previousVersion','previousReceiptSha256',
      'version','manifestSha256','candidateSha256'].sort()),'Unexpected preview request fields');
@@ -74,6 +75,25 @@ function collect(){
   // Mask only the protected locator/id; do not expose raw results.
   console.log('::add-mask::'+repository);console.log('::add-mask::'+repositoryId);
   const prefix='/repos/'+repository, query=e=>JSON.parse(gh(prefix+e));
+  // This protected review is bound to the exact private commit/tree, test
+  // harness run/attempt, and reviewed source issue/predecessor selection.
+  // It cannot be derived from the issue, candidate logs or source tree.
+  const review=strictJson(process.env.PF_REVIEWED_HARNESS??'',8192);
+  need(equal(Object.keys(review).sort(),['sourceCommit','tree','workflowRunId','runAttempt','qualificationIssue',
+    'previousPlatformCommit','manifestSha256','candidateSha256'].sort())&&
+    review.sourceCommit===r.sourceCommit&&exact(review.tree,sha)&&positive(review.qualificationIssue)&&
+    exact(review.previousPlatformCommit,sha)&&review.workflowRunId===r.workflowRunId&&review.runAttempt===r.runAttempt&&
+    review.manifestSha256===r.manifestSha256&&review.candidateSha256===r.candidateSha256,
+    'Independent exact source tree/harness and run review required');
+  const selectedCommit=query('/git/commits/'+r.sourceCommit);
+  need(selectedCommit.sha===r.sourceCommit&&selectedCommit.tree?.sha===review.tree,'Reviewed exact source tree differs');
+  const issue=query('/issues/'+review.qualificationIssue);
+  need(issue.number===review.qualificationIssue&&issue.user?.id===12054121&&
+    issue.title==='[project-forge-native-successor-qualify]'&&
+    equal(strictJson(issue.body,4096),{exactSourceSha:r.sourceCommit,previousVersion:r.previousVersion,
+      previousReceiptSha256:r.previousReceiptSha256,previousPlatformCommit:review.previousPlatformCommit,
+      targetVersion:r.version}),'Reviewed exact qualification request differs');
+  save('pf-successor-reviewed-harness.json',review);
   const repo=query(''),mainRef=query('/git/ref/heads/main'),
     run=query('/actions/runs/'+r.workflowRunId),
     jobs=query('/actions/runs/'+r.workflowRunId+'/attempts/'+r.runAttempt+'/jobs?per_page=100');
@@ -89,8 +109,36 @@ function collect(){
     proof.candidateSha256===r.candidateSha256&&proof.version===r.version&&
     proof.previousVersion===r.previousVersion&&proof.previousReceiptSha256===r.previousReceiptSha256,
     'Source proof does not match reviewed request');
-  fs.appendFileSync(process.env.GITHUB_OUTPUT,'repository='+repository+'\n');
+  // Protected locator stays in the secret, not in step outputs.
   console.log('Exact source run, reviewed code and final proof compared (read-only).');
+}
+function fetchPrivateSource(){
+  const r=json('pf-successor-request.json'),review=json('pf-successor-reviewed-harness.json');
+  const repository=process.env.SOURCE_REPOSITORY,repositoryId=Number(process.env.SOURCE_ID),token=process.env.GH_TOKEN;
+  need(exact(repository,/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/)&&positive(repositoryId)&&
+    typeof token==='string'&&/^[A-Za-z0-9_-]{16,512}$/.test(token),'Protected read policy missing');
+  const repo=JSON.parse(gh('/repos/'+repository));
+  need(repo.id===repositoryId&&repo.full_name===repository&&repo.private===true&&repo.archived===false&&
+    Number.isSafeInteger(repo.size)&&repo.size>0&&repo.size<=512*1024,'Protected repo identity/size refused');
+  const root=at('pf-successor-private-source');
+  fs.mkdirSync(root,{mode:0o700});
+  const env=Object.fromEntries(['PATH','HOME','LANG','LC_ALL','SSL_CERT_FILE'].filter(k=>process.env[k]).map(k=>[k,process.env[k]]));
+  Object.assign(env,{GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_GLOBAL:'/dev/null',GIT_TERMINAL_PROMPT:'0',GIT_LFS_SKIP_SMUDGE:'1'});
+  const git=(args,e=env)=>execFileSync('git',['-C',root,'-c','core.hooksPath=/dev/null','-c','protocol.file.allow=never',
+    '-c','credential.helper=','-c','http.followRedirects=false',...args],{env:e,timeout:300000,
+    maxBuffer:1024*1024,stdio:['ignore','pipe','pipe'],encoding:'utf8'}).trim();
+  git(['init','-q']);
+  const auth={...env,GIT_CONFIG_COUNT:'1',GIT_CONFIG_KEY_0:'http.https://github.com/.extraheader',
+    GIT_CONFIG_VALUE_0:'AUTHORIZATION: basic '+Buffer.from('x-access-token:'+token).toString('base64')};
+  // Full ancestry of main is necessary to independently compare historical
+  // and predecessor Git objects. No other branch, tag, submodule or redirect.
+  git(['fetch','--quiet','--no-tags','--no-recurse-submodules','https://github.com/'+repository+'.git','refs/heads/main'],auth);
+  need(git(['rev-parse','FETCH_HEAD'])===r.sourceCommit,'Fetched main differs');
+  git(['checkout','--quiet','--detach','--no-recurse-submodules',r.sourceCommit]);
+  need(git(['rev-parse','HEAD^{tree}'])===review.tree,'Fetched reviewed tree differs');
+  const after=JSON.parse(gh('/repos/'+repository));
+  need(after.id===repositoryId&&after.full_name===repository&&after.private===true&&!after.archived,'Source identity changed');
+  console.log('Exact reviewed source tree fetched with private output suppressed.');
 }
 function localPins(root,head){
   const git=(...args)=>execFileSync('git',['-C',root,...args],
@@ -191,6 +239,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
         break;
       }
       case 'collect':collect();break;
+      case 'fetch-source':fetchPrivateSource();break;
       case 'verify-checkout':localPins(process.argv[3],json('pf-successor-request.json').sourceCommit);break;
       case 'verify-assets':verifyStagedAssets(process.argv[3]);break;
       case 'compare':compare();break;

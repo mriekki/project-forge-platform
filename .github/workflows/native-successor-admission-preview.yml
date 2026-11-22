@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: p0-public-private-source-preview
@@ -56,25 +57,24 @@ jobs:
           SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
           SOURCE_ID: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY_ID }}
           SOURCE_WORKFLOW_ID: ${{ vars.PF_NATIVE_SUCCESSOR_WORKFLOW_ID }}
+          PF_REVIEWED_HARNESS: ${{ vars.PF_NATIVE_SUCCESSOR_REVIEWED_HARNESS }}
           GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
         run: node scripts/native-successor-admission-preview.mjs collect
       - name: Checkout independently compared exact private source (read only)
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          repository: ${{ steps.source.outputs.repository }}
-          ref: ${{ steps.request.outputs.sourceCommit }}
-          path: .private-source
-          fetch-depth: 0
-          token: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
-          persist-credentials: false
+        env:
+          SOURCE_REPOSITORY: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY }}
+          SOURCE_ID: ${{ secrets.PF_MONOREPO_SOURCE_REPOSITORY_ID }}
+          GH_TOKEN: ${{ secrets.PF_MONOREPO_SOURCE_READ_TOKEN }}
+        run: node scripts/native-successor-admission-preview.mjs fetch-source
       - name: Verify reviewed assembly code and clean exact checkout
-        run: node scripts/native-successor-admission-preview.mjs verify-checkout .private-source
+        run: node scripts/native-successor-admission-preview.mjs verify-checkout "$RUNNER_TEMP/pf-successor-private-source"
       - name: Verify exact predecessor receipt and public registry signature
         shell: bash
         env:
           PREVIOUS_VERSION: ${{ steps.request.outputs.previousVersion }}
           RECEIPT_SHA: ${{ steps.request.outputs.previousReceiptSha256 }}
           TARGET_VERSION: ${{ steps.request.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           cp "release/receipts/$PREVIOUS_VERSION.json" "$RUNNER_TEMP/pf-successor-prior-receipt.json"
@@ -98,6 +98,11 @@ jobs:
             grep -Ei 'verified attestations?' "$RUNNER_TEMP/pf-successor-signatures.log" >/dev/null
             node -e 'const r=require(process.argv[1]);const l=require(process.argv[2]);if(l.packages["node_modules/@mriekki/project-forge"].integrity!==r.dist.integrity)process.exit(2)' "$RUNNER_TEMP/pf-successor-prior-registry.json" "$PWD/package-lock.json"
           )
+          npm view @mriekki/project-forge time --json --registry=https://registry.npmjs.org/ > "$RUNNER_TEMP/pf-successor-prior-times.json"
+          node scripts/verify-native-publication-provenance.mjs \
+            "$RUNNER_TEMP/pf-successor-prior-receipt.json" "$RUNNER_TEMP/pf-successor-prior-registry.json" \
+            "$RUNNER_TEMP/pf-successor-prior.tgz" "$RUNNER_TEMP/pf-successor-prior-times.json" \
+            "$RUNNER_TEMP/pf-successor-registry/package-lock.json" "$RUNNER_TEMP/pf-signature-client/node_modules/npm"
           echo 'Exact predecessor registry and signed attestation checked (no release)'
       - name: Independently derive selection, observations and candidate archive (NO PUBLISH)
         shell: bash
@@ -113,17 +118,17 @@ jobs:
           reviewed="$RUNNER_TEMP/pf-successor-reviewed-code"
           trap 'echo "Independent native rebuild failed (private output withheld)" >&2' ERR
           (
-            python3 -I -B -c 'import runpy,sys; from pathlib import Path; entry=sys.argv.pop(1); sys.path.insert(0,str(Path(entry).parent)); runpy.run_path(entry,run_name="__main__")' "$reviewed/tools/npm/select_native_stable.py" --monorepo .private-source \
+            python3 -I -B -c 'import runpy,sys; from pathlib import Path; entry=sys.argv.pop(1); sys.path.insert(0,str(Path(entry).parent)); runpy.run_path(entry,run_name="__main__")' "$reviewed/tools/npm/select_native_stable.py" --monorepo "$RUNNER_TEMP/pf-successor-private-source" \
               --previous-receipt "$RUNNER_TEMP/pf-successor-prior-receipt.json" \
               --previous-receipt-sha256 "$PREVIOUS_RECEIPT_SHA" --target-version "$TARGET_VERSION" \
               --source-sha "$SOURCE_SHA" --output "$RUNNER_TEMP/pf-successor-manifest.json"
-            python3 -I -B -c 'import runpy,sys; from pathlib import Path; entry=sys.argv.pop(1); sys.path.insert(0,str(Path(entry).parent)); runpy.run_path(entry,run_name="__main__")' "$reviewed/tools/npm/assemble_selected_stable.py" --monorepo .private-source \
+            python3 -I -B -c 'import runpy,sys; from pathlib import Path; entry=sys.argv.pop(1); sys.path.insert(0,str(Path(entry).parent)); runpy.run_path(entry,run_name="__main__")' "$reviewed/tools/npm/assemble_selected_stable.py" --monorepo "$RUNNER_TEMP/pf-successor-private-source" \
               --manifest "$RUNNER_TEMP/pf-successor-manifest.json" --manifest-sha256 "$MANIFEST_SHA" \
               --source-sha "$SOURCE_SHA" --output "$RUNNER_TEMP/pf-successor-stage" > "$RUNNER_TEMP/pf-successor-assembly.json"
             python3 -I -B - <<'PY'
           import json, os, sys
           from pathlib import Path
-          root = Path(".private-source").resolve()
+          root = (Path(os.environ["RUNNER_TEMP"]) / "pf-successor-private-source").resolve()
           scratch = Path(os.environ["RUNNER_TEMP"])
           sys.path.insert(0, str(scratch / "pf-successor-reviewed-code/tools/npm"))
           from build_manifest_preview import observations, committed_json, MANIFEST, METADATA, tree_id

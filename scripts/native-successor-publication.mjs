@@ -9,6 +9,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual as equal} from 'node:util';
 import {pathToFileURL} from 'node:url';
+import {strictJson} from './strict-json.mjs';
 import {validateNativeReceipt,constructNativeIntent,validateNativeIntent,constructNativeReceiptFromIntent} from './native-source-receipt.mjs';
 import {readReleaseArchiveProjection} from './prior-registry-archive.mjs';
 import {verifyNativeStableCandidate} from './native-stable-candidate-verifier.mjs';
@@ -26,6 +27,7 @@ export const PREVIEW_CODE_PATHS=Object.freeze([
  PREVIEW_PATH,'scripts/native-successor-admission-preview.mjs','scripts/native-successor-run-evidence.mjs',
  'scripts/prior-registry-archive.mjs','scripts/prior-release-projection.mjs','scripts/release-receipt.mjs',
  'scripts/native-source-receipt.mjs','scripts/verify-native-successor-evidence.mjs','scripts/verify-assets.mjs',
+ 'scripts/verify-native-publication-provenance.mjs','scripts/strict-json.mjs',
  'src/package-data.mjs','src/engine.mjs','src/passkey-capability.mjs'
 ]);
 const PREVIEW_STEPS=[
@@ -49,7 +51,7 @@ const scratch=n=>path.join(process.env.RUNNER_TEMP,n);
 const read=n=>fs.readFileSync(scratch(n));
 const json=n=>JSON.parse(read(n));
 const save=(n,x)=>fs.writeFileSync(scratch(n),JSON.stringify(x)+'\n',{flag:'wx',mode:0o600});
-function parse(raw){need(typeof raw==='string'&&Buffer.byteLength(raw)<=64*1024,'Bounded JSON required');return JSON.parse(raw);}
+function parse(raw){need(typeof raw==='string'&&Buffer.byteLength(raw)<=64*1024,'Bounded JSON required');return strictJson(raw,64*1024);}
 function advances(a,b){if(!exact(a,VERSION)||!exact(b,VERSION))return false;
  const x=a.split('.').map(Number),y=b.split('.').map(Number);
  for(let i=0;i<3;i++)if(x[i]!==y[i])return x[i]>y[i];return false;}
