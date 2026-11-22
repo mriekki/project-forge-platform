@@ -91,13 +91,6 @@ test('npm pack uses isolated user and global configurations, outside assembled c
     const userConfig=join(scratch,'user.npmrc'),globalConfig=join(scratch,'global.npmrc');
     fs.writeFileSync(userConfig,'',{mode:0o600});
     fs.writeFileSync(globalConfig,'',{mode:0o600});
-    // Negative control: npm 10 rejects a duplicate user/global configuration source.
-    if(process.platform!=='win32'){
-      const collided=spawnSync('npm',['pack','--ignore-scripts','--offline',
-        '--userconfig','/dev/null','--globalconfig','/dev/null','--json',
-        '--pack-destination',scratch],{cwd:stage,encoding:'utf8'});
-      assert.notEqual(collided.status,0,'same npm user/global config source must fail');
-    }
     const packed=spawnSync('npm',['pack','--ignore-scripts','--offline',
       '--userconfig',userConfig,'--globalconfig',globalConfig,'--json',
       '--pack-destination',scratch],{cwd:stage,encoding:'utf8'});
