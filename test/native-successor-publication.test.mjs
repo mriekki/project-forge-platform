@@ -21,6 +21,17 @@ test('successor owner issue binds exact reviewed selection and separates verify 
  x.event.issue.title='[project-forge-native-successor-publish-verify] '+version;
  x.event.issue.body=JSON.stringify({...body,publicationRunId:16,publicationRunAttempt:1,provenanceUrl:'https://search.sigstore.dev/?logIndex=17'});
  assert.equal(resolveSuccessorPublication(x).mode,'verify');
+ // Verification of a signed original publish must remain possible after an
+ // unrelated workflow-only recovery fix advances current Platform main.
+ const historical=fixture();
+ historical.platformSha='c'.repeat(40);
+ historical.event.issue.title='[project-forge-native-successor-publish-verify] '+version;
+ historical.event.issue.body=JSON.stringify({...JSON.parse(historical.event.issue.body),publicationRunId:16,publicationRunAttempt:1,provenanceUrl:'https://search.sigstore.dev/?logIndex=17'});
+ assert.equal(resolveSuccessorPublication(historical).platformCommit,sha);
+ historical.event.issue.title='[project-forge-native-successor-publish] '+version;
+ historical.event.issue.body=JSON.stringify({...JSON.parse(historical.event.issue.body),version,platformCommit:sha,selectionSha256:createHash('sha256').update(historical.selectionBytes).digest('hex')});
+ delete JSON.parse(historical.event.issue.body).publicationRunId;
+ assert.throws(()=>resolveSuccessorPublication(historical));
  for(const mutate of [x=>x.event.sender.login='other',x=>x.currentRunAttempt=2,x=>x.platformSha='f'.repeat(40),x=>x.event.issue.body=JSON.stringify({...body,extra:1}),
  x=>x.event.issue.body=x.event.issue.body.slice(0,-1)+',"version":"4.36.1"}',x=>x.selectionBytes=Buffer.from('{}')]){
   const y=fixture();mutate(y);assert.throws(()=>resolveSuccessorPublication(y));
@@ -39,6 +50,10 @@ test('successor publisher privilege and shell boundaries',()=>{
  const verify=workflow.slice(workflow.indexOf('\n  native-successor-verify:'),workflow.indexOf('\n  native-publish:'));
  assert.match(pre,/PF_NATIVE_SUCCESSOR_PUBLISH_ENABLED == 'true'/);
  assert.match(pre,/git diff --exit-code/);assert.match(pre,/verify-native-publication-provenance\.mjs/);
+ assert.match(pre,/check-package-release-drift\.mjs --baseline "\$ORIGINAL_PLATFORM_SHA"/);
+ assert.match(pre,/git merge-base --is-ancestor "\$ORIGINAL_PLATFORM_SHA" HEAD/);
+ assert.match(pre,/head_sha=\$ORIGINAL_PLATFORM_SHA/);
+ assert.match(pre,/pf-successor-current-ci\.json/);
  assert.doesNotMatch(pre,/id-token: write/);
  assert.match(publish,/id-token: write/);assert.match(publish,/outputs.mode == 'publish'/);assert.match(publish,/github.run_attempt == 1/);
  assert.equal((workflow.match(/id-token: write/g)||[]).length,1);
