@@ -338,13 +338,21 @@ New Project
 
 Use the same New Project modes and normal discovery/approval flow. When the Builder needs authenticated application users, review optional capabilities as meaningful decisions, not a separate creation mode. The standard profile is the default. The stable descriptor's `generation.optionalProfiles` advertises optional **generation** support for its exact Bootstrap revision and published package version; the Control Plane independently requires the same qualified tuple. If absent or unqualified, do not claim remote availability. This exact-release qualification supersedes older catalog statements that these profiles cannot yet be generated; it does not change their runtime/provider qualification.
 
-For the supported .NET / React / SQLite recipe:
+For the supported .NET / React / SQLite recipe, present Authentication and Feedback as separate optional capability decisions, not a bundled profile picker:
 
-- Standard: `greenfield-project`; no automatically selected household Auth or Feedback.
-- Household Authentication: `greenfield-household-project`; Google invite-only, explicit per-Project account authority and admin approval.
-- Household Authentication + GitHub Feedback: `greenfield-household-feedback-project`; the same Auth foundation, plus opt-in Feedback targeting exactly the owning Project repository. Feedback-only generation is not supported by this route.
+- Authentication: Google invite-only household Auth, with explicit per-Project account authority and admin approval.
+- Feedback: GitHub Issues Feedback targeting exactly the owning Project repository, with authenticated application users and explicit submitter/admin permissions.
 
-Present only applicable advertised choices, a concise reasoned recommendation when evidence supports one, and a free-form option. Explicitly confirm the capability selection before including it in the normal generation proposal. No platform maintainer access or per-Project platform PR is required for an authorized Builder using an advertised, qualified profile. Do not silently enable Auth, infer household membership, or treat a Builder role as application administrator.
+Explain that the current remote generation route requires Project Forge household Auth for Feedback. Feedback is a distinct capability, not an inherent feature of Auth; integration with other compatible authentication implementations is a future possibility, not supported by this generation route. If Feedback is requested without compatible Auth selected, explain the dependency and let the Builder explicitly approve Auth or defer Feedback. Never silently select Auth or Feedback. Auth alone remains valid.
+
+Present only applicable advertised choices, a concise reasoned recommendation when evidence supports one, and a free-form option. Confirm each capability decision before including it in the normal generation proposal. Resolve the approved selections to the underlying exact generation profile (implementation detail, not a user-facing creation mode):
+
+- Neither optional capability: `greenfield-project`.
+- Authentication only: `greenfield-household-project`.
+- Authentication and Feedback: `greenfield-household-feedback-project`.
+- Feedback without Auth: unsupported by this route; resolve or defer, never silently substitute a profile.
+
+No platform maintainer access or per-Project platform PR is required for an authorized Builder using an advertised, qualified profile. Do not infer household membership or treat a Builder role as application administrator.
 
 For household Auth, collect the actual reviewed household identifier, exact HTTPS Registry origin, stable Registry instance ID and intended exact HTTPS application origin. The approved private manifest uses `generation.householdAuth` with `mode: "google-invite-only"`, `householdId`, `registryOrigin`, `registryInstanceId`, `applicationOrigin`, `accountAuthority: "per-project"` and `enrollment: "invite-only"`. Never invent live provider/Registry identity or substitute a synthetic fixture for a real Project. If binding facts cannot be established, record the gap and defer this profile or resolve the missing facts with the Builder. The generated setup intent requires separately reviewed provider configuration; Registry is not required for application login. Explicitly approved administrator subject and protected per-Project credentials belong to later operational setup, not the manifest. Never include secrets.
 
