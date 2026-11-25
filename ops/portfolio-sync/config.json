@@ -1,0 +1,18 @@
+{
+  "owner": "mriekki",
+  "project_number": 1,
+  "project_name": "Project Forge Portfolio",
+  "repositories": [
+    "mriekki/project-forge-platform",
+    "mriekki/project-forge-core",
+    "mriekki/project-forge-deployment-kit",
+    "mriekki/project-forge-auth-kit",
+    "mriekki/project-forge-feedback-kit",
+    "mriekki/project-forge-bootstrap",
+    "mriekki/family-meal-planner-mark-pwa"
+  ],
+  "exclude_title_prefixes": [
+    "[project-forge-release]",
+    "[project-forge-publish]"
+  ]
+}

@@ -1,0 +1,31 @@
+[Unit]
+Description=Project Forge Portfolio - GitHub Issues reconciliation
+Documentation=https://github.com/users/mriekki/projects/1
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=pf-portfolio-sync
+Group=pf-portfolio-sync
+Environment=HOME=/var/lib/project-forge-portfolio-sync
+Environment=GH_CONFIG_DIR=/var/lib/project-forge-portfolio-sync/.config/gh
+Environment=GH_PROMPT_DISABLED=1
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 /usr/local/libexec/project-forge-portfolio-sync/sync.py --once
+WorkingDirectory=/var/lib/project-forge-portfolio-sync
+StateDirectory=project-forge-portfolio-sync
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/project-forge-portfolio-sync
+TimeoutStartSec=6min
