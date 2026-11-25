@@ -134,6 +134,10 @@ Different workstations may work on independent work items/branches concurrently.
 
 If work is delivery-complete and deployment is the next useful action, identify the exact project-defined environment; do not assume Staging unless topology/policy says so.
 
+### Material upstream dependencies
+
+Only when the current work item actually depends on shared platform work, reconstruct its dependency state from the existing work-item authority and observed upstream Issue/PR/CI, published exact package and consumer verification evidence. Use the `/upstream-fix` dependency states; distinguish pending upstream, waiting for release, update available, verify integration and ready to resume. Show independent work that can continue and the owner of the next action. Keep private evidence private; unavailable evidence is NOT EVIDENCED, not PASS. This is read-only; do not promise monitoring or change status.
+
 ## 8. Environment capabilities are topology-driven
 
 Enumerate exact names from current project topology rather than a fixed Local/Staging/Production list.

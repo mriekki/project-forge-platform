@@ -102,6 +102,10 @@ Do not add a separate final-PR-acceptance state when the PR still exactly matche
 
 Do not add learning- or documentation-only states. Optional coaching, labs, and project documentation do not change engineering delivery state unless the approved work item explicitly makes documentation acceptance evidence.
 
+### Material upstream dependency
+
+When the current work item has a recorded or newly evidenced platform dependency, use the `/upstream-fix` role-aware routing and dependency-state guidance. If blocked, identify independent consumer work and who must act; do not recommend repeated discovery or speculative patches. If a compatible exact released version contains the needed fix, recommend the existing `/project-forge-update <exact-version>` preview; after accepted update, recommend original reproduction/baseline/integration verification. Only verified success supports resuming the original `/start-work` item. Ordinary consumer-only flow remains unchanged. This command remains read-only.
+
 ## 4. Output
 
 ```text

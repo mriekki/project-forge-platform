@@ -30,6 +30,10 @@ Begin conversationally and proportionally: intended user outcome, problem, affec
 
 Distinguish **Builder-confirmed decisions**, **recommendations**, and **open questions**. Never silently interpret a recommendation or placeholder as acceptance. Ask one material question at a time when human input is truly required. Brainstorming alone does not create an Issue, code, or production changes.
 
+### Reusable platform capability requests
+
+For a material missing or changed shared capability discovered in consumer work, reuse the role-aware routing, public intake privacy/approval and dependency tracking rules in `/upstream-fix`. Verify the current reusable owner and actual authenticated access; ordinary Builders can request changes publicly without private source access. Separate app scope and shared capability scope. A request or planning choice never authorizes upstream implementation, release or deployment.
+
 ## 3. Scope and plan
 
 For a substantial initiative, prepare one readable Markdown design/implementation plan, normally under the **natural owning repository** at `docs/initiatives/<topic>/IMPLEMENTATION_PLAN.md` or the repository's established docs convention. If an Issue already owns an existing `docs/work-items/<ID>-.../implementation-plan.md` or approved requirements path, use that established document rather than creating a second plan; link Issue and document reciprocally. A small idea can remain a short Issue without a plan.

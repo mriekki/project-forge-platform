@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Microsoft.Data.Sqlite;
 
 namespace ProjectForge.Auth.Runtime;
@@ -27,32 +28,108 @@ public sealed record ProjectAuthResult(
 public sealed partial class ProjectAuthStore
 {
     private readonly string _connString;
+    private readonly string _databasePath;
+    private readonly ProjectAuthRecoveryAdmission? _recovery;
+    // Sticky per-object enrollment/unknown observation. Once the store sees
+    // protected or unreadable metadata, no subsequent deletion/replacement
+    // may resurrect an old direct instance as a legacy writer.
+    private int _enrollmentBlocked;
     private const string GoogleIssuer = "https://accounts.google.com";
     private static readonly Regex Email = new(
         @"^[^@\s]{1,100}@[^@\s]{1,180}$", RegexOptions.CultureInvariant);
     private static readonly Regex TokenPattern = new(
         @"^[0-9a-f]{64}$", RegexOptions.CultureInvariant);
 
-    public ProjectAuthStore(string databasePath)
+    public ProjectAuthStore(string databasePath,
+        ProjectAuthRecoveryAdmission? recovery = null)
     {
         if (string.IsNullOrWhiteSpace(databasePath))
             throw new ArgumentException("App-owned SQLite database path is required.");
+        _databasePath = Path.GetFullPath(databasePath);
+        _recovery = recovery;
         _connString = new SqliteConnectionStringBuilder
         {
-            DataSource = databasePath,
+            DataSource = _databasePath,
             Mode = SqliteOpenMode.ReadWriteCreate,
             Pooling = false
         }.ToString();
+        // A public direct constructor must not bypass a preexisting recovery
+        // enrollment simply by omitting the optional DI-injected admission.
+        // Corrupt/unreadable legacy stores are constructible for health
+        // diagnostics, but become permanently non-writable (fail closed).
+        if (_recovery is null && ObserveEnrollmentOrUncertainty())
+            throw new InvalidOperationException(
+                "Recovery-enrolled Auth DB requires protected admission.");
+    }
+
+    private bool ObserveEnrollmentOrUncertainty()
+    {
+        if (Volatile.Read(ref _enrollmentBlocked) != 0) return true;
+        try
+        {
+            if (!ProjectAuthRecoveryAdmission.LegacyDatabaseHasRecoveryMarker(_databasePath))
+                return false;
+        }
+        catch (Exception ex) when (ex is SqliteException or IOException
+            or UnauthorizedAccessException)
+        {
+            // No caller can treat an unreadable/ambiguous enrollment probe
+            // as positive authority to create/open a legacy writer.
+            Volatile.Write(ref _enrollmentBlocked, 1);
+            return false;
+        }
+        Volatile.Write(ref _enrollmentBlocked, 1);
+        return true;
+    }
+
+    private void RefuseWhileHeld()
+    {
+        if (_recovery is not null || Volatile.Read(ref _enrollmentBlocked) != 0 ||
+            ObserveEnrollmentOrUncertainty() ||
+            Volatile.Read(ref _enrollmentBlocked) != 0)
+            throw new InvalidOperationException(
+                "Project Auth recovery is held or enrollment is uncertain.");
     }
 
     private SqliteConnection Open()
     {
+        // Security boundary against bypassing only the middleware via direct
+        // store calls, including session issuance/revocation and passkeys.
+        RefuseWhileHeld();
         var db = new SqliteConnection(_connString);
-        db.Open();
-        using var pragma = db.CreateCommand();
-        pragma.CommandText = "PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;";
-        pragma.ExecuteNonQuery();
-        return db;
+        try
+        {
+            db.Open();
+            using (var pragma = db.CreateCommand())
+            {
+                pragma.CommandText = "PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;";
+                pragma.ExecuteNonQuery();
+            }
+            // Repeat within the actual connection to reject a mirror that
+            // appeared between path-level probing and the SQLite open.
+            using (var marker = db.CreateCommand())
+            {
+                marker.CommandText = """
+                    SELECT COUNT(*) FROM sqlite_master
+                    WHERE type='table' AND name='auth_recovery_mirror';
+                    """;
+                if (Convert.ToInt32(marker.ExecuteScalar(), CultureInfo.InvariantCulture) != 0)
+                {
+                    Volatile.Write(ref _enrollmentBlocked, 1);
+                    throw new InvalidOperationException(
+                        "Recovery-enrolled Auth DB cannot be opened by a direct legacy store.");
+                }
+            }
+            if (Volatile.Read(ref _enrollmentBlocked) != 0)
+                throw new InvalidOperationException(
+                    "Recovery enrollment was observed during direct store opening.");
+            return db;
+        }
+        catch
+        {
+            db.Dispose();
+            throw;
+        }
     }
 
     private static SqliteCommand Sql(SqliteConnection db, SqliteTransaction? tx, string sql,
@@ -98,6 +175,10 @@ public sealed partial class ProjectAuthStore
     /// </summary>
     public bool IsReadableAndCurrent()
     {
+        // A direct stale instance is not a health/readiness escape hatch.
+        // Probe enrollment again, even if constructed before operator HOLD.
+        try { RefuseWhileHeld(); }
+        catch (InvalidOperationException) { return false; }
         try
         {
             var options = new SqliteConnectionStringBuilder(_connString)
@@ -430,6 +511,9 @@ public sealed partial class ProjectAuthStore
 
     public void Backup(string destination)
     {
+        // Backup reserves the destination path before Open(), so refuse
+        // protected recovery before even creating a candidate file.
+        RefuseWhileHeld();
         if (string.IsNullOrWhiteSpace(destination) ||
             !Directory.Exists(Path.GetDirectoryName(Path.GetFullPath(destination))))
             throw new ArgumentException("A new protected backup destination is required.");

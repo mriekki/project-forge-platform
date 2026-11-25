@@ -55,6 +55,10 @@
       "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForgeAuthRuntimeExtensions.cs"
     },
     {
+      "source": "src/ProjectForge.Auth.Runtime/ProjectAuthRecoveryAdmission.cs",
+      "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthRecoveryAdmission.cs"
+    },
+    {
       "source": "tools/household_connect.py",
       "destination": "tools/project-forge-auth-kit/household_connect.py"
     },
