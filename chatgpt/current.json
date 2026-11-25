@@ -1,36 +1,36 @@
 {
   "schemaVersion": 1,
   "channel": "stable",
-  "contractVersion": 19,
-  "snapshotPath": "chatgpt/contracts/v19",
+  "contractVersion": 20,
+  "snapshotPath": "chatgpt/contracts/v20",
   "documents": [
     {
-      "path": "chatgpt/contracts/v19/ADMIN.md",
+      "path": "chatgpt/contracts/v20/ADMIN.md",
       "sha256": "199f92e2b001911d605f72d06ef921d2bf6c445854b25602d75e2a819a8e8e14"
     },
     {
-      "path": "chatgpt/contracts/v19/EXISTING_PROJECT.md",
+      "path": "chatgpt/contracts/v20/EXISTING_PROJECT.md",
       "sha256": "b67c95fb46ce600f3e44898184f67b44697a23f13037bc748aaaf877dab20a12"
     },
     {
-      "path": "chatgpt/contracts/v19/NEW_PROJECT.md",
-      "sha256": "2a161c669eca8e815b2fa69126bbccb89b9f3bdf376ef8957d924efdb323ba4e"
+      "path": "chatgpt/contracts/v20/NEW_PROJECT.md",
+      "sha256": "f0016ec2f8610af94885e29c58dd81e0c1e78a534d2ea5c34261bf4c43a94a13"
     },
     {
-      "path": "chatgpt/contracts/v19/ONBOARDING.md",
+      "path": "chatgpt/contracts/v20/ONBOARDING.md",
       "sha256": "647a1abd74722b5a884261b38de96991fe4c4989aaabec497d6853879622cb00"
     },
     {
-      "path": "chatgpt/contracts/v19/PROJECT_INSTRUCTIONS.md",
+      "path": "chatgpt/contracts/v20/PROJECT_INSTRUCTIONS.md",
       "sha256": "325249ccba9d874c42b434530f13eed5001e11b7b5791d2eb94d5075363dcd47"
     },
     {
-      "path": "chatgpt/contracts/v19/PROJECT_RULES.md",
+      "path": "chatgpt/contracts/v20/PROJECT_RULES.md",
       "sha256": "47956f493b29338fb80717b2a12f18e4a65e8f52cfe2f409cf6962c42c259fec"
     },
     {
-      "path": "chatgpt/contracts/v19/USER_PROFILE.schema.json",
-      "sha256": "6a0115ea82b3d66e9a8bb40b8e20a4d2d8626c8a92ae63402104e7e4575b99c2"
+      "path": "chatgpt/contracts/v20/USER_PROFILE.schema.json",
+      "sha256": "9e30fd4f55d63a2f7ee179eac82e2b5c57dd6294e1e372dee80b53bfa425dd4a"
     }
   ],
   "controlPlane": {
@@ -68,7 +68,11 @@
     "package": "@mriekki/project-forge",
     "packageVersion": "4.36.3",
     "profile": "greenfield-project",
-    "bootstrapProtocolVersion": 12
+    "bootstrapProtocolVersion": 12,
+    "optionalProfiles": [
+      "greenfield-household-project",
+      "greenfield-household-feedback-project"
+    ]
   },
   "adoption": {
     "manifestFilename": "PROJECT_ADOPTION.json",
