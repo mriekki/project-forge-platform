@@ -45,12 +45,12 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-test('public ChatGPT descriptor resolves immutable Project Forge contract v19', async () => {
+test('public ChatGPT descriptor resolves immutable Project Forge contract v20', async () => {
   const value = await descriptor();
   assert.equal(value.schemaVersion, 1);
   assert.equal(value.channel, 'stable');
-  assert.equal(value.contractVersion, 19);
-  assert.equal(value.snapshotPath, 'chatgpt/contracts/v19');
+  assert.equal(value.contractVersion, 20);
+  assert.equal(value.snapshotPath, 'chatgpt/contracts/v20');
   assert.deepEqual(value.documents.map((item) => path.basename(item.path)), requiredDocuments);
 
   const actual = {};
@@ -64,7 +64,7 @@ test('public ChatGPT descriptor resolves immutable Project Forge contract v19', 
     actual[document.path] = createHash('sha256').update(canonicalGitBlob(document.path)).digest('hex');
     declared[document.path] = document.sha256;
   }
-  assert.deepEqual(declared, actual, 'descriptor hashes must match immutable v19 document bytes');
+  assert.deepEqual(declared, actual, 'descriptor hashes must match immutable v20 document bytes');
 });
 
 test('descriptor keeps private foundational source topology out of the active public contract', async () => {
@@ -123,6 +123,20 @@ test('generation aligns the published package with the accepted Bootstrap revisi
   assert.equal(value.generation.profile, 'greenfield-project');
   assert.equal(value.generation.bootstrapProtocolVersion, 12);
   assert.equal(value.bootstrapUrl, 'https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json');
+});
+
+test('optional generation availability is explicit and bounded to the qualified stable release', async () => {
+  const value = await descriptor();
+  assert.equal(value.generation.profile, 'greenfield-project');
+  assert.deepEqual(value.generation.optionalProfiles, [
+    'greenfield-household-project', 'greenfield-household-feedback-project',
+  ]);
+  assert.equal(value.generation.packageVersion, '4.36.3');
+  assert.equal(value.generation.bootstrap.revision, 'ccffdc6ea46d14f1d0fd32483ad80be5c5499d4a');
+  const discovery = await text(contractPath(value, 'NEW_PROJECT.md'));
+  for (const marker of ['generation.optionalProfiles', 'google-invite-only', 'accountAuthority', 'generation.feedback.repository', 'runtime-disabled by default', 'No platform maintainer access', 'passkey-first']) {
+    assert.ok(discovery.includes(marker), marker);
+  }
 });
 
 test('adoption advertises exact manifest, kit and immutable public schema projections', async () => {
@@ -291,7 +305,7 @@ test('public contract makes one canonical instruction plus one personal profile 
   assert.equal(schema.title, 'Project Forge Developer Profile');
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.required, ['schemaVersion', 'githubOwner']);
-  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v19/);
+  assert.match(schema.$id, /mriekki\/project-forge-platform\/main\/chatgpt\/contracts\/v20/);
 
   for (const forbidden of ['password', 'token', 'secret', `${predecessorLower}State`, 'projectState', 'workItem', 'commitSha']) {
     assert.equal(Object.hasOwn(schema.properties, forbidden), false);
