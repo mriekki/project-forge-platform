@@ -67,6 +67,8 @@ def _preloaded_script(
 
 
 def _validate_plan(plan: dict[str, Any]) -> None:
+    if isinstance(plan, dict) and isinstance(plan.get("spec"), dict) and "protectedPlacement" in plan["spec"]:
+        raise DeploymentKitError("Protected service may not use the legacy workstation image-transfer/apply path; fail closed.")
     required = {
         "targetName",
         "action",

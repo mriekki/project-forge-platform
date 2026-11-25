@@ -83,6 +83,18 @@ Do not interpret words such as `required CI` or `required checks` as a mandate t
 
 Do not ask the human to open GitHub Settings and transcribe required-check names merely to proceed with `/start-work`. Stop and ask only when actual evidence conflicts or missing policy information creates a concrete unresolved decision that materially affects implementation or the later consequential action.
 
+### Conditional platform dependency assessment
+
+At readiness/plan assessment, and again only when material new evidence arises during implementation, check relevant installed package/component baselines, managed ownership, supported capabilities, actual release evidence and existing work. Stay silent for ordinary consumer-only work: no new mandatory artifact, question or command.
+
+- Consumer-only or already installed supported capability: continue the normal workflow or reuse the capability.
+- A compatible published fix already exists: recommend the exact-version `/project-forge-update` preview; do not create a duplicate upstream request.
+- Shared defect: use `/upstream-fix`; missing or materially changed reusable capability: use `/brainstorm` with the same upstream authority and safe intake rules.
+- Combined work: identify the consumer and upstream scopes separately; preserve independently useful consumer work and mark only actually dependent work blocked.
+- Unknown ownership, support or release: report the missing evidence; do not guess a canonical repository or version.
+
+When material, identify the exact dependency, owner evidence, affected work, independent work, risk and one recommended action. Follow the role-aware routing, public-intake and resume rules in `/upstream-fix`. Recommend ChatGPT for substantial cross-repository maintainer work when its actual access supports it; a safe separate canonical VS Code workspace is equally valid. Ordinary Builders use public request intake, never assumed private access. Assessment alone authorizes no issue submission, upstream write, update, implementation or new approval scope.
+
 ## 3. Classify risk
 
 ### LIGHT

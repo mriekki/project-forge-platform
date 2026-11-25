@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from typing import Any
 
-from .access_diagnosis import diagnose_target_access
+from .access_diagnosis import diagnose_target_access, guided_access_report
 from .errors import DeploymentKitError
 
 
@@ -45,6 +46,8 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     diagnose.add_argument("--json", action="store_true")
+    diagnose.add_argument("--guided", action="store_true",
+                          help="Show sanitized stage guidance and read-only console handoff")
     return parser
 
 
@@ -53,11 +56,21 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "diagnose":
             result = diagnose_target_access(args.name, temporary_address=args.address)
+            if args.guided:
+                result = guided_access_report(result)
             _print(result, as_json=args.json)
             return 0 if result.get("state") == "verified" else 2
         raise DeploymentKitError("Unsupported access command.")
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError, KeyError) as error:
+        if args.command != "diagnose" or not args.guided:
+            raise
+        print("ERROR: Guided diagnosis unavailable. Check the existing target profile and local prerequisites; inspect details privately.", file=sys.stderr)
+        return 2
     except DeploymentKitError as error:
-        print(f"ERROR: {error}", file=sys.stderr)
+        if args.command == "diagnose" and args.guided:
+            print("ERROR: Guided diagnosis unavailable. Check the existing target profile and local prerequisites; inspect details privately.", file=sys.stderr)
+        else:
+            print(f"ERROR: {error}", file=sys.stderr)
         return 2
 
 

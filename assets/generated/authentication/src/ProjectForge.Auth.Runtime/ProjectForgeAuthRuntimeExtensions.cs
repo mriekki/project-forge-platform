@@ -83,8 +83,15 @@ public static class ProjectForgeAuthRuntimeExtensions
             peer.Equals(IPAddress.IPv6Any))
             throw new InvalidOperationException(
                 "Exact Project-owned SQLite path, OIDC credentials and reviewed public origin/proxy are required.");
-        var store = new ProjectAuthStore(path);
-        store.Initialize();
+        // Once an operator has installed an Auth DB recovery marker, absence
+        // of the opt-in flag cannot silently resume the legacy writer. The
+        // protected mode performs NO application DB initialization at startup.
+        var recovery = ProjectAuthRecoveryAdmission.FromConfiguration(configuration, path);
+        var store = new ProjectAuthStore(path, recovery);
+        if (recovery is null)
+            store.Initialize();
+        else
+            services.AddSingleton(recovery);
         services.AddSingleton(store);
 
         var keysPath = configuration["ProjectForge:Authentication:DataProtectionKeysPath"];
@@ -98,12 +105,19 @@ public static class ProjectForgeAuthRuntimeExtensions
         if (keysDirectory.LinkTarget is not null)
             throw new InvalidOperationException(
                 "The per-Project OIDC key directory cannot be a symbolic link.");
-        Directory.CreateDirectory(keysPath);
-        keysDirectory.Refresh();
-        if (keysDirectory.LinkTarget is not null)
+        if (recovery is not null && !keysDirectory.Exists)
             throw new InvalidOperationException(
-                "The per-Project OIDC key directory cannot be a symbolic link.");
-        if (!OperatingSystem.IsWindows())
+                "A protected recovery must not initialize a missing OIDC keyring.");
+        if (recovery is null)
+            Directory.CreateDirectory(keysPath);
+        keysDirectory.Refresh();
+        if (keysDirectory.LinkTarget is not null || !keysDirectory.Exists)
+            throw new InvalidOperationException(
+                "The per-Project OIDC key directory is missing or linked.");
+        // Existing recovery key material must never be created/chmod-ed just
+        // because a hold-only process is started. B separately proves exact
+        // keyring material and mount identities before any recovery lifecycle.
+        if (recovery is null && !OperatingSystem.IsWindows())
             File.SetUnixFileMode(keysPath,
                 UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         services.AddDataProtection()
@@ -304,6 +318,12 @@ public static class ProjectForgeAuthRuntimeExtensions
         // Projects nor existing Production deployments auto-enable this path.
         if (configuration.GetValue<bool>("ProjectForge:Authentication:Passkeys:Enabled"))
         {
+            // The hold-only v1 deployment has no B-authorized traffic release
+            // or credential recovery yet. Do not mutate passkey schema or
+            // inadvertently activate passkey endpoints while it is staged.
+            if (recovery is not null)
+                throw new InvalidOperationException(
+                    "Passkey activation during hold-only recovery is prohibited.");
             var configuredRpId = configuration["ProjectForge:Authentication:Passkeys:RelyingPartyId"];
             if (!string.Equals(configuredRpId, origin.IdnHost, StringComparison.Ordinal))
                 throw new InvalidOperationException("Passkeys require the exact Project HTTPS host as RP ID.");
@@ -331,6 +351,13 @@ public static class ProjectForgeAuthRuntimeExtensions
             IPAddress.IsLoopback(reviewedPeer) ||
             reviewedPeer.Equals(IPAddress.Any) || reviewedPeer.Equals(IPAddress.IPv6Any))
             throw new InvalidOperationException("An exact reviewed transport peer is required.");
+        // Recovery needs this middleware ahead of OIDC, cookies, passkeys and
+        // static files. Refuse startup if a caller skipped AddProjectForgeProjectAuth
+        // rather than allowing a configuration-only bypass of the hold.
+        var recovery = app.ApplicationServices.GetService<ProjectAuthRecoveryAdmission>();
+        if (configuration[ProjectAuthRecoveryAdmission.Prefix + "Mode"] is not null &&
+            recovery is null)
+            throw new InvalidOperationException("Protected Auth recovery gate not registered.");
         // Validate raw Caddy transport and forwarded headers before any
         // auth processing. Never pre-run generic ForwardedHeaders here.
         app.Use(async (context, next) =>
@@ -338,6 +365,17 @@ public static class ProjectForgeAuthRuntimeExtensions
             if (!StrictPublicOriginTransport.TryApply(context, reviewedPeer, expected))
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return;
+            }
+            if (recovery is not null)
+            {
+                // A coherent external+Auth DB HOLD is evidence of isolation,
+                // NOT a traffic permit. B owns a separate independently
+                // reviewed release. No OIDC callback, session cookie, CSRF,
+                // passkey, health or static response can run in this mode.
+                _ = recovery.HasConsistentHold();
+                context.Response.Headers.CacheControl = "no-store";
+                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                 return;
             }
             // WebAuthn JSON envelopes contain bounded keys and authenticator

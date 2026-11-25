@@ -164,6 +164,10 @@
       "destination": "tools/project-forge-deployment/project_forge_deployment/portable_profile.py"
     },
     {
+      "source": "src/project_forge_deployment/private_image_publication.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/private_image_publication.py"
+    },
+    {
       "source": "src/project_forge_deployment/profile_migration.py",
       "destination": "tools/project-forge-deployment/project_forge_deployment/profile_migration.py"
     },
@@ -246,6 +250,10 @@
     {
       "source": "src/project_forge_deployment/sqlite_adapter_remote.py",
       "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_adapter_remote.py"
+    },
+    {
+      "source": "src/project_forge_deployment/sqlite_image_conformance.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_image_conformance.py"
     },
     {
       "source": "src/project_forge_deployment/sqlite_cli.py",

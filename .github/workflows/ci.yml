@@ -45,10 +45,10 @@ jobs:
         if: matrix.node == '22'
         shell: bash
         run: bash test/native-successor-pinned-publisher-npm11.sh
-      - name: Verify byte-exact 4.36.3 qualified public mirror (NO PUBLISH)
+      - name: Verify byte-exact 4.36.4 qualified public mirror (NO PUBLISH)
         if: matrix.node == '22'
         shell: bash
-        run: bash test/native-successor-mirror-4363.sh
+        run: bash test/native-successor-mirror-4364.sh
 
   required:
     name: required

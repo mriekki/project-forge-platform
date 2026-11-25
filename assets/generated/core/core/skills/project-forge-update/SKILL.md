@@ -73,18 +73,61 @@ Also inspect Git state. Preserve unrelated consumer work; never auto-stash, rese
 
 ## 3. Resolve one exact target package
 
-If the human supplied an exact version, use that exact version after confirming it exists.
-
-Otherwise resolve the registry's current published version first, then pin that exact value for the remainder of the operation. For the standard package, typical read-only evidence is:
+Resolve the supported stable package from the public Project Forge bootstrap
+descriptor, not the registry's publication channel:
 
 ```text
-npm view @mriekki/project-forge@latest version --json
-npm view @mriekki/project-forge@<resolved-version> dist.integrity --json
+https://raw.githubusercontent.com/mriekki/project-forge-platform/main/chatgpt/current.json
 ```
 
-Capture the target package's full exact `dist.integrity` together with the resolved version. For a Bootstrap-generated consumer, that exact integrity is part of the reviewed companion metadata update.
+Pin the public Platform default-branch commit used to retrieve the descriptor
+and its matching release receipt. Require the supported descriptor schema,
+channel `stable`, the exact `generation.package` matching the installed package,
+and an exact `generation.packageVersion`. Resolve and verify the immutable
+contract documents referenced by that descriptor as required by the Project
+Forge bootstrap contract. If these authorities cannot be verified, report
+`STABLE PACKAGE EVIDENCE UNAVAILABLE` and stop before target preview or apply.
 
-Do not use a moving `@latest` reference for the modifying apply after preview. Use the same exact package version for preview, apply, and final check.
+If the human supplied an exact version, it must equal this verified stable
+version for the normal Builder update. An explicitly requested different
+version is not implicitly supported merely because it exists in npm; report
+`REQUESTED PACKAGE IS NOT CURRENT STABLE` and stop. Candidate qualification
+or separately authorized historical-version recovery belongs to a separate
+reviewed maintainer/recovery workflow, not this ordinary update. Do not
+silently replace a supplied version with another.
+
+Publication and stable support are distinct: npm's `latest` may advance before
+the stable descriptor. Do not select the target from npm latest, even if that
+version is newer than the installed package.
+
+At the pinned public Platform commit, obtain
+`release/receipts/<target-version>.json` and validate it with the existing
+public Platform receipt validator (`scripts/release-receipt.mjs --version <target-version> --json`)
+from a trusted checkout of that exact commit. No private Platform implementation
+repository or additional credentials are needed. A missing, unsupported or
+conflicting receipt blocks the ordinary update. The validated receipt records
+historical publication evidence; its signed-provenance flag is not itself an
+independent cryptographic signature verification.
+
+Query the exact registry version without executing the target package:
+
+```text
+npm view @mriekki/project-forge@<target-version> version --json
+npm view @mriekki/project-forge@<target-version> dist.integrity --json
+npm view @mriekki/project-forge@<target-version> dist.shasum --json
+```
+
+Require the exact version, nonempty integrity and registry shasum matching the
+validated receipt. Capture the full exact `dist.integrity` for the reviewed
+generated-consumer companion metadata. If registry or receipt evidence
+conflicts or is unavailable, stop. Do not represent structural receipt
+validation or registry hash agreement as independent signed-provenance
+verification. Preserve the same pinned package identity, version, integrity
+and receipt throughout preview, apply and final check; recheck the stable
+selection and exact registry identity before apply and stop on material change.
+
+Do not use a moving `@latest` reference for the modifying apply after preview.
+Use the same exact package version for preview, apply, and final check.
 
 If the resolved version equals the installed version and the exact-version check passes, report `PROJECT FORGE ALREADY CURRENT` and stop without creating a branch or commit.
 
@@ -165,6 +208,7 @@ PROJECT FORGE UPDATE READY
 Installed: <package>@<installed-version>
 Target: <package>@<target-version>
 Target integrity: <exact dist.integrity>
+Stable authority: <pinned public Platform commit and validated receipt>
 Profile: <profile>
 Core: <old> → <new>
 Deployment: <old> → <new> / unchanged
@@ -246,11 +290,16 @@ If generated CI still embeds a different package version/integrity after the upd
 
 Present the meaningful diff for human review. After acceptance, recommend `/deliver` for normal commit/push/PR/CI mechanics.
 
+### Resume a consumer dependency after accepted adoption
+
+When the update was selected to resolve an upstream dependency, preserve the original work-item reference, approved scope and independent work. Verify the exact published target contains the required capability/fix before recommending the preview; do not assume the latest version resolves it. After normal update acceptance/delivery, rerun the original reproduction, managed baseline and affected consumer integration tests. A failed check, conflict or unavailable evidence leaves the dependency unresolved. Record the verified result in the existing work-item authority when authorized; recommend original `/start-work` only after successful verification, without restarting discovery or reapproving unchanged decisions. Do not silently widen the update or bypass normal gates.
+
 ## 8. Boundaries
 
 `/project-forge-update` never:
 
 - updates only Core or only Deployment when `PROJECT_FORGE_BASELINE.json` manages them together;
+- selects an ordinary update target from npm latest or an unsupported candidate;
 - uses a different package version for apply than the reviewed preview;
 - performs a downgrade/rollback as an ordinary update;
 - overwrites unexplained managed drift;

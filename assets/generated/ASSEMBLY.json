@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.36.3",
+  "version": "4.36.4",
   "components": {
     "core": {
-      "revision": "4cfab0a596d588fbfbb7560d6c56af441099ff0d",
+      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
       "distribution": "greenfield-workspace",
       "files": [
         {
@@ -50,7 +50,7 @@
         {
           "source": "core/skills/start-work/SKILL.md",
           "destination": ".github/skills/start-work/SKILL.md",
-          "sha256": "a0481888ae6687bdf6467621a31cceac341be88e3bd8474eba7452d7790bdf22"
+          "sha256": "c4424f6c8c622d4421be6149145f85348cd8314f072e9525f61d9f7aaceeac33"
         },
         {
           "source": "core/skills/setup/SKILL.md",
@@ -80,12 +80,12 @@
         {
           "source": "core/skills/progress/SKILL.md",
           "destination": ".github/skills/progress/SKILL.md",
-          "sha256": "6e78fff8d5e378bd755a119f9102d7649493c3ef8c1852dc6af8affebfcecbe2"
+          "sha256": "006bc452102b7fa39624606cbc0a353249f6fa04fefc119b46c519225b882d79"
         },
         {
           "source": "core/skills/next-step/SKILL.md",
           "destination": ".github/skills/next-step/SKILL.md",
-          "sha256": "7c24a15b9069dcc5218319ab7fb72231e48efd2ebd325d8ff250e142cb3aa813"
+          "sha256": "a40234b5d6439df0772eb396e298bbab6769f04162cabd0853acb6d6627f334f"
         },
         {
           "source": "core/skills/deliver/SKILL.md",
@@ -110,12 +110,12 @@
         {
           "source": "core/skills/project-forge-update/SKILL.md",
           "destination": ".github/skills/project-forge-update/SKILL.md",
-          "sha256": "ff7fb94ea2308dee51e6b46799bf8fb1e846774d3398d26a4fa0f465dc0fe859"
+          "sha256": "91af5dbc00c814d636b1b6e5a52087132f401fa1934a0b792cc7579afbef737a"
         },
         {
           "source": "core/skills/upstream-fix/SKILL.md",
           "destination": ".github/skills/upstream-fix/SKILL.md",
-          "sha256": "cec11a112840b37a5ff61e28281d26eb9490e9d7b05df99ae5fa152231316798"
+          "sha256": "3b65beafad9b8c65ae146997c250e4363dfe830a7fbe20491b0d59fa2b795f61"
         },
         {
           "source": "core/skills/wait-what/SKILL.md",
@@ -385,7 +385,7 @@
         {
           "source": "core/skills/brainstorm/SKILL.md",
           "destination": ".github/skills/brainstorm/SKILL.md",
-          "sha256": "9f499333a1fc0d2188d4568e7668631e4afeca58756c30839c0bda917c1a4557"
+          "sha256": "cef9d2543e1142072a923908c3155abbe8d1f56e01da963b235e488c2d75f433"
         },
         {
           "source": "core/instructions/project-forge-web-guidance.instructions.md",
@@ -435,7 +435,7 @@
         {
           "source": "core/skills/start-work/SKILL.md",
           "destination": ".agents/skills/start-work/SKILL.md",
-          "sha256": "a0481888ae6687bdf6467621a31cceac341be88e3bd8474eba7452d7790bdf22"
+          "sha256": "c4424f6c8c622d4421be6149145f85348cd8314f072e9525f61d9f7aaceeac33"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -495,7 +495,7 @@
         {
           "source": "core/skills/progress/SKILL.md",
           "destination": ".agents/skills/progress/SKILL.md",
-          "sha256": "6e78fff8d5e378bd755a119f9102d7649493c3ef8c1852dc6af8affebfcecbe2"
+          "sha256": "006bc452102b7fa39624606cbc0a353249f6fa04fefc119b46c519225b882d79"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -505,7 +505,7 @@
         {
           "source": "core/skills/next-step/SKILL.md",
           "destination": ".agents/skills/next-step/SKILL.md",
-          "sha256": "7c24a15b9069dcc5218319ab7fb72231e48efd2ebd325d8ff250e142cb3aa813"
+          "sha256": "a40234b5d6439df0772eb396e298bbab6769f04162cabd0853acb6d6627f334f"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -555,7 +555,7 @@
         {
           "source": "core/skills/project-forge-update/SKILL.md",
           "destination": ".agents/skills/project-forge-update/SKILL.md",
-          "sha256": "ff7fb94ea2308dee51e6b46799bf8fb1e846774d3398d26a4fa0f465dc0fe859"
+          "sha256": "91af5dbc00c814d636b1b6e5a52087132f401fa1934a0b792cc7579afbef737a"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -565,7 +565,7 @@
         {
           "source": "core/skills/upstream-fix/SKILL.md",
           "destination": ".agents/skills/upstream-fix/SKILL.md",
-          "sha256": "cec11a112840b37a5ff61e28281d26eb9490e9d7b05df99ae5fa152231316798"
+          "sha256": "3b65beafad9b8c65ae146997c250e4363dfe830a7fbe20491b0d59fa2b795f61"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -710,7 +710,7 @@
         {
           "source": "core/skills/brainstorm/SKILL.md",
           "destination": ".agents/skills/brainstorm/SKILL.md",
-          "sha256": "9f499333a1fc0d2188d4568e7668631e4afeca58756c30839c0bda917c1a4557"
+          "sha256": "cef9d2543e1142072a923908c3155abbe8d1f56e01da963b235e488c2d75f433"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -748,7 +748,7 @@
       }
     },
     "deployment": {
-      "revision": "0e4f4f7edefd8567f989824d2e6aa88c2b9d92eb",
+      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
       "distribution": "greenfield-project",
       "files": [
         {
@@ -769,7 +769,7 @@
         {
           "source": "src/project_forge_deployment/access_cli.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/access_cli.py",
-          "sha256": "007d01ae0c4e28e64f75fb96f9e8e7b99db5c4c8129698a78923baeac2f51953"
+          "sha256": "c03ae17f420db1a70e38f6574510bf2a07e63620453ffa685d12b7af884329fc"
         },
         {
           "source": "src/project_forge_deployment/agent_session.py",
@@ -779,7 +779,7 @@
         {
           "source": "src/project_forge_deployment/access_diagnosis.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/access_diagnosis.py",
-          "sha256": "92861e58a29b17758a927f7a527b089f172a1bc0c9725c79731ef07e00294af1"
+          "sha256": "8b0ed8a683ab19d67b52824465041b8b83913892befbeecf906c5b922ed83787"
         },
         {
           "source": "src/project_forge_deployment/app_cli.py",
@@ -794,7 +794,7 @@
         {
           "source": "src/project_forge_deployment/app_runtime.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime.py",
-          "sha256": "7796ab008de3002d41b81150de3efdc143c8bd9fdf2c07b05f04398e0aa11ff0"
+          "sha256": "90babbf87c8a16cbffd2aa4ef1132664755c32c95ede6abcd09d473701288207"
         },
         {
           "source": "src/project_forge_deployment/app_runtime_remote.py",
@@ -804,7 +804,7 @@
         {
           "source": "src/project_forge_deployment/app_runtime_workstation.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/app_runtime_workstation.py",
-          "sha256": "2eeeb507f8de4d8b5053ffec20fdbb51e7e79a0ab88fe4697f2b6646cbdd3af4"
+          "sha256": "94cb73a768a7356b301853ce6f916c0716ad98d959341ea8d712e3e5e9e0029d"
         },
         {
           "source": "src/project_forge_deployment/box_platform.py",
@@ -952,6 +952,11 @@
           "sha256": "604406f9eac914f8a7532593a51be304b9a6f09501cde11a9ba5b8d8519ef381"
         },
         {
+          "source": "src/project_forge_deployment/private_image_publication.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/private_image_publication.py",
+          "sha256": "1c4f39f34c85542d7f0bd48ebd928a6cf91212336ea0f3209fe11ea8eb73a9dc"
+        },
+        {
           "source": "src/project_forge_deployment/profile_migration.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/profile_migration.py",
           "sha256": "02e63ec3729d17c02fe654c8fedaa83f71b831d5d2435ec25d0aeaa95e2cc736"
@@ -1057,6 +1062,11 @@
           "sha256": "e327a079cb2fb1bec744c77684811ee3a6f382523484b70b430c9cdd73f730f1"
         },
         {
+          "source": "src/project_forge_deployment/sqlite_image_conformance.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_image_conformance.py",
+          "sha256": "a36ddac44d4f9d53b71218b04153bca71f0bdf54f38a3e3ebb955987af004e27"
+        },
+        {
           "source": "src/project_forge_deployment/sqlite_cli.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/sqlite_cli.py",
           "sha256": "37132cc141afe9196a96fd91db55597998886d037b2baded62526c08df148f5d"
@@ -1144,7 +1154,7 @@
       ]
     },
     "authentication": {
-      "revision": "d314285efefe53f069d158452cff080030ae78de",
+      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
       "distribution": "greenfield-project",
       "files": [
         {
@@ -1170,7 +1180,7 @@
         {
           "source": "src/ProjectForge.Auth.Runtime/ProjectAuthStore.cs",
           "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthStore.cs",
-          "sha256": "2615e8a2335b98ecf1ffe0f42308a1315f55e469a036b6f52c1616858f7bc1a8"
+          "sha256": "b04bd4ce751587b55fdba0c662f8e61422fba0f00b2488a21dd4b5dea99e395d"
         },
         {
           "source": "src/ProjectForge.Auth.Runtime/PasskeyVisibility.cs",
@@ -1205,7 +1215,12 @@
         {
           "source": "src/ProjectForge.Auth.Runtime/ProjectForgeAuthRuntimeExtensions.cs",
           "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectForgeAuthRuntimeExtensions.cs",
-          "sha256": "79a5e20e26fc3d47e086c124332cb75167a0eb76b7a22946379463f41e0bb383"
+          "sha256": "7b58a1552643c5c7157bb229606d735cb5af76f1f2d1fb1a2f98e3ad73afcd91"
+        },
+        {
+          "source": "src/ProjectForge.Auth.Runtime/ProjectAuthRecoveryAdmission.cs",
+          "destination": "tools/project-forge-auth-kit/src/ProjectForge.Auth.Runtime/ProjectAuthRecoveryAdmission.cs",
+          "sha256": "4b84fd27d1cf26825bdd8b81775eaf15d39ff4f13edab6ea0e50a89f17522929"
         },
         {
           "source": "tools/household_connect.py",
@@ -1275,7 +1290,7 @@
         {
           "source": "docs/AUTH_RECOVERY_RETENTION.md",
           "destination": "tools/project-forge-auth-kit/docs/AUTH_RECOVERY_RETENTION.md",
-          "sha256": "bc75171c05fdc3f454c67dcc3e2b7e226946ac32b5d02de62c9fc3b0b3bef0cf"
+          "sha256": "7b72e7412da094a4b199e7eb08b140882a56a3b08663a8135ec3330e479c2da8"
         },
         {
           "source": "docs/PASSKEY_SUPPORT.json",

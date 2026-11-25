@@ -99,3 +99,55 @@ is safe. All those remain independently proven acceptance requirements.
 This material is not permission to change any PWA Production service, use
 a household Provider credential, release the Authentication component to
 npm, or label a generated Project ready for Production.
+
+## Canonical Auth recovery admission precursor (draft, off by default)
+
+The recovery admission precursor introduces a **mapped Auth runtime** guard under
+`ProjectForge:Authentication:Recovery:Mode=hold-only-v1`. The default legacy
+mode remains unchanged only for Auth databases that were never enrolled in
+recovery. An existing `auth_recovery_mirror` table rejects disabling the
+recovery setting; opt-in never initializes a missing Auth DB.
+
+This first implementation deliberately **cannot** clear a hold, restore a DB,
+reconcile a credential, enable passkeys or release ingress. It returns HTTP
+503 for all requests after the strict physical proxy/origin check, including
+Google callbacks, session/cookie reads, CSRF, passkey requests, health and
+static responses. A coherent HOLD observation is *not* permission to answer.
+
+The operator-owned placement must supply all of these independently reviewed
+immutable values before even entering this deny-only mode:
+
+- `Recovery:OwnerRoot` — absolute protected directory with stable
+  `auth-recovery.lock` inode and owner-read-only `auth-recovery-control.sqlite`.
+- `Recovery:OwnerUid` — explicitly non-root local operator UID, different
+  from the Auth runtime effective UID.
+- `Recovery:LockInode`, `Recovery:LockDeviceMajor`,
+  `Recovery:LockDeviceMinor` — exact prequalified `statx` device/inode values
+  from B's protected placement; changed or linked inode must never inherit
+  authority.
+- `Recovery:EpochDbPath` — distinct, absolute runtime epoch store path,
+  outside the operator control root and Auth DB.
+- `Recovery:Scope` — exact lowercase `project/environment/instance` binding,
+  not arbitrary operator identity or confirmation text.
+
+The `auth_recovery_control` and `auth_recovery_mirror` v1 tables each
+must hold the same operation and scope with `HELD` phase, while the separate
+epoch table must bind the same scope. Missing, wrong or corrupt observations
+are DENIED. Linux `libc.open` + nonblocking `flock` and `statx` are used
+to compare the opened lock descriptor with the reviewed file pathname; an
+open file handle alone does not prohibit owner-side rename/replacement.
+
+**Not an installation guide or accepted state schema:** those records are
+read-only interoperability prerequisites in this initial mapped slice.
+Their creation, protected mount/UID configuration, durable owner HOLD and DB
+mirror commits, operator-only begin/reconcile, power-loss/sidecar semantics
+and consumed operation ledger require separately reviewed F implementation.
+Deployment B must implement the actual common lifecycle lock, stop/drain,
+old-image restart denial, exact verified backup copy and independent route
+release. In particular, normal Auth runtime must never create owner control
+records, and host operators must not attempt to work around HTTP 503.
+
+This source change is **branch-only** until independent E acceptance,
+changed-component native qualification and A's mapped-main merge gate. It is
+not a sign-off for any real restore, host deployment, Production data access,
+passkey activation or FMP change.

@@ -180,6 +180,7 @@ def normalize_app_spec(
     environment_variables: dict[str, str] | Iterable[tuple[str, str]],
     read_only_materials: Iterable[tuple[str, str]] | None = None,
     authentication_epoch_store: bool = False,
+    protected_placement: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if persistence_mode not in {"none", "directory"}:
         raise DeploymentKitError("persistenceMode must be 'none' or 'directory'.")
@@ -225,6 +226,31 @@ def normalize_app_spec(
 
     if materials:
         spec["readOnlyMaterials"] = materials
+    if protected_placement is not None:
+        # Source-only disposable fixture, deliberately excluded from consumer kits.
+        # Its owner binding remains unchanged. Never fall back to a legacy
+        # deployment or infer a new owner from the proposed specification.
+        try:
+            from .protected_service_v1 import ProtectedPlacementRefusal, normalize_no_network_candidate
+        except ModuleNotFoundError as error:
+            if error.name != __package__ + ".protected_service_v1":
+                raise
+            raise DeploymentKitError("Protected placement is not available in the consumer distribution.") from None
+        if spec["persistence"]["mode"] != "none" or materials or authentication_epoch_store or spec["environmentVariables"]:
+            raise DeploymentKitError("Protected no-network service may not use persistence, material, epoch or env mounts.")
+        try:
+            protected = normalize_no_network_candidate(protected_placement)
+        except ProtectedPlacementRefusal as error:
+            raise DeploymentKitError("Unsupported protected placement: " + str(error)) from error
+        for field, actual in (
+            ("ownerRepo", spec["ownerRepo"]), ("environment", spec["environment"]),
+            ("appSlug", spec["appSlug"]), ("containerName", spec["containerName"]),
+            ("imageRepoDigest", spec["image"]), ("runAs", spec["runAs"]),
+            ("runtimePort", spec["runtimePort"]), ("healthPath", spec["healthPath"]),
+        ):
+            if protected[field] != actual:
+                raise DeploymentKitError("Protected placement differs from application " + field)
+        spec["protectedPlacement"] = protected
     spec["specSha256"] = _spec_sha(spec)
     return spec
 
@@ -243,6 +269,8 @@ def _b64(value: str) -> str:
 def build_remote_script(
     spec: dict[str, Any] | None = None, *, expected_materials: dict[str, str] | None = None,
 ) -> str:
+    if spec is not None and "protectedPlacement" in spec:
+        raise DeploymentKitError("Protected service remote lifecycle is not implemented; fail closed.")
     env_keys: list[str] = []
     material_names: list[str] = []
     material_targets: list[str] = []
@@ -521,6 +549,8 @@ def observe_verified_app_release(name: str, spec: dict[str, Any]) -> dict[str, A
     authentication is inferred from this function. It is a callable adapter
     for a separately authorized Deployment Kit post-apply signer.
     """
+    if isinstance(spec, dict) and "protectedPlacement" in spec:
+        raise DeploymentKitError("Protected service cannot use shared-Caddy live release attestation.")
     if not isinstance(spec, dict) or not {
         "ownerRepo", "appSlug", "environment", "image", "specSha256"
     }.issubset(spec):
@@ -552,6 +582,8 @@ def _find_app(inventory: dict[str, Any], app_slug: str, environment: str) -> dic
 
 
 def plan_app_deploy(name: str, spec: dict[str, Any]) -> dict[str, Any]:
+    if "protectedPlacement" in spec:
+        raise DeploymentKitError("Protected placement requires a separate reviewed owner-bound plan; fail closed.")
     platform = platform_status(name)
     if platform["state"] != "ready":
         raise DeploymentKitError(
@@ -704,6 +736,8 @@ def render_locked_app_deploy_stage(
 
 
 def apply_app_deploy(plan: dict[str, Any]) -> dict[str, Any]:
+    if "protectedPlacement" in plan.get("spec", {}):
+        raise DeploymentKitError("Protected placement is not a legacy Kit deployment; fail closed.")
     required = {
         "targetName",
         "action",
