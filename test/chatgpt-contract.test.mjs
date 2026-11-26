@@ -131,7 +131,7 @@ test('optional generation availability is explicit and bounded to the qualified 
   assert.deepEqual(value.generation.optionalProfiles, [
     'greenfield-household-project', 'greenfield-household-feedback-project',
   ]);
-  assert.equal(value.generation.packageVersion, '4.36.3');
+  assert.equal(value.generation.packageVersion, '4.36.4');
   assert.equal(value.generation.bootstrap.revision, 'ccffdc6ea46d14f1d0fd32483ad80be5c5499d4a');
   const discovery = await text(contractPath(value, 'NEW_PROJECT.md'));
   for (const marker of ['generation.optionalProfiles', 'google-invite-only', 'accountAuthority', 'generation.feedback.repository', 'runtime-disabled by default', 'No platform maintainer access', 'passkey-first', 'separate optional capability decisions', 'Never silently select Auth or Feedback', 'Feedback without Auth: unsupported', 'implementation detail, not a user-facing creation mode']) {
