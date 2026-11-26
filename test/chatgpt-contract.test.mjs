@@ -73,7 +73,7 @@ test('descriptor keeps private foundational source topology out of the active pu
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'repository'), false);
   assert.equal(Object.hasOwn(value.generation.bootstrap, 'commit'), false);
   assert.match(value.generation.bootstrap.revision, /^[0-9a-f]{40}$/);
-  assert.equal(value.generation.bootstrap.revision, 'ccffdc6ea46d14f1d0fd32483ad80be5c5499d4a');
+  assert.equal(value.generation.bootstrap.revision, '40999197ec4e9cbf5b550d4045014bb4aea9cd85');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(Object.hasOwn(value.adoption.kit, 'repository'), false);
@@ -86,7 +86,7 @@ test('descriptor keeps private foundational source topology out of the active pu
 test('generation aligns the published package with the accepted Bootstrap revision', async () => {
   const value = await descriptor();
   assert.equal(value.generation.manifestFilename, 'PROJECT_BOOTSTRAP.json');
-  assert.equal(value.generation.bootstrap.revision, 'ccffdc6ea46d14f1d0fd32483ad80be5c5499d4a');
+  assert.equal(value.generation.bootstrap.revision, '40999197ec4e9cbf5b550d4045014bb4aea9cd85');
   assert.equal(value.generation.bootstrap.protocolVersion, 12);
   assert.equal(value.generation.bootstrap.catalogVersion, 13);
   assert.equal(value.generation.bootstrap.portableRequirements.bootstrapRevision, value.generation.bootstrap.revision);
@@ -132,7 +132,7 @@ test('optional generation availability is explicit and bounded to the qualified 
     'greenfield-household-project', 'greenfield-household-feedback-project',
   ]);
   assert.equal(value.generation.packageVersion, '4.36.4');
-  assert.equal(value.generation.bootstrap.revision, 'ccffdc6ea46d14f1d0fd32483ad80be5c5499d4a');
+  assert.equal(value.generation.bootstrap.revision, '40999197ec4e9cbf5b550d4045014bb4aea9cd85');
   const discovery = await text(contractPath(value, 'NEW_PROJECT.md'));
   for (const marker of ['generation.optionalProfiles', 'google-invite-only', 'accountAuthority', 'generation.feedback.repository', 'runtime-disabled by default', 'No platform maintainer access', 'passkey-first', 'separate optional capability decisions', 'Never silently select Auth or Feedback', 'Feedback without Auth: unsupported', 'implementation detail, not a user-facing creation mode']) {
     assert.ok(discovery.includes(marker), marker);
