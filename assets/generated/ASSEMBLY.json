@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "package": "@mriekki/project-forge",
-  "version": "4.36.4",
+  "version": "4.36.5",
   "components": {
     "core": {
       "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
@@ -748,7 +748,7 @@
       }
     },
     "deployment": {
-      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
+      "revision": "403be5f15f063b8892c0dac99bf1d8d4bef12dc9",
       "distribution": "greenfield-project",
       "files": [
         {
@@ -784,7 +784,7 @@
         {
           "source": "src/project_forge_deployment/app_cli.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/app_cli.py",
-          "sha256": "6a72d8afe40296fa7547b828cbb5a4ec7ca087268c807613d19d80c3ea8d73aa"
+          "sha256": "874ca4818bb7bcf4e799dfa70a974c7374de9952438b52b7283b3f6a5138b625"
         },
         {
           "source": "src/project_forge_deployment/app_deployment.py",
@@ -887,6 +887,26 @@
           "sha256": "a780cff1fa8b724f260914d44883b849de090d585eeace0b34cc26e6990eca9d"
         },
         {
+          "source": "src/project_forge_deployment/evidence_records.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/evidence_records.py",
+          "sha256": "b827716ed1a5ba7daa65e41b9a2812c0ac4dd804a4d9321a3c8aec26831b5d0c"
+        },
+        {
+          "source": "src/project_forge_deployment/application_publication_status.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/application_publication_status.py",
+          "sha256": "f9dfa56b5309d97b293f63c4dc51a36978b4ff7940819ed3b58dc696f090a86b"
+        },
+        {
+          "source": "src/project_forge_deployment/deployment_evidence_handoff.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/deployment_evidence_handoff.py",
+          "sha256": "f1829bf286197f4be2f778dccfa8442e21a8e7b7a40020e2a41685d36b1261ec"
+        },
+        {
+          "source": "src/project_forge_deployment/release_reconciliation.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/release_reconciliation.py",
+          "sha256": "739b6d3f57a242577e18965e75435a2eebed385b5939d1e8a71bac141dc4a8d7"
+        },
+        {
           "source": "src/project_forge_deployment/release_attestation.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/release_attestation.py",
           "sha256": "7c0db86deea73d6af3d538a0cc7b45ab8fc4104c9f5114e09a70fa512bfb1791"
@@ -954,7 +974,7 @@
         {
           "source": "src/project_forge_deployment/private_image_publication.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/private_image_publication.py",
-          "sha256": "1c4f39f34c85542d7f0bd48ebd928a6cf91212336ea0f3209fe11ea8eb73a9dc"
+          "sha256": "97fd7572ed2523fbab5545f50915a1b5d8e589535d968c9265b7724408fb1303"
         },
         {
           "source": "src/project_forge_deployment/profile_migration.py",
@@ -1114,7 +1134,7 @@
         {
           "source": "docs/DEVELOPER_ENVIRONMENTS.md",
           "destination": "docs/project-forge/DEVELOPER_ENVIRONMENTS.md",
-          "sha256": "cac10b7e30db24992225a88b43e16aa55404317c87a2ef136f21a2589ee4dc5f"
+          "sha256": "00a5026c57eeefbaf34036b2f2a626f2fb7114d53b6a2b52743f996bfd1a4c24"
         },
         {
           "source": "docs/WORKSPACE_INSTANCES.md",

@@ -112,6 +112,22 @@
       "destination": "tools/project-forge-deployment/project_forge_deployment/feedback_release_evidence.py"
     },
     {
+      "source": "src/project_forge_deployment/evidence_records.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/evidence_records.py"
+    },
+    {
+      "source": "src/project_forge_deployment/application_publication_status.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/application_publication_status.py"
+    },
+    {
+      "source": "src/project_forge_deployment/deployment_evidence_handoff.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/deployment_evidence_handoff.py"
+    },
+    {
+      "source": "src/project_forge_deployment/release_reconciliation.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/release_reconciliation.py"
+    },
+    {
       "source": "src/project_forge_deployment/release_attestation.py",
       "destination": "tools/project-forge-deployment/project_forge_deployment/release_attestation.py"
     },

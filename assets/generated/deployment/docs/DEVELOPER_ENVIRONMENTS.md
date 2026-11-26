@@ -373,3 +373,57 @@ The intended small human surface is:
 ```
 
 `/setup` is the single setup front door; the local/remote/environment forms select its scope rather than introducing a separate developer-environment command. `project-forge-deploy environment ...` commands are deterministic implementation/fallback surfaces and can be invoked directly when desired.
+
+
+### Deployment evidence within the existing readiness and deploy workflow
+
+When a Project has an existing successful supported private-image publisher
+run, a Builder can request a deployment status/evidence handoff through the
+normal readiness or deployment conversation. Use the installed Deployment
+Kit's existing `app inventory` command in its explicitly scoped evidence
+mode, if the installed version supports the options. Resolve the exact
+Project repository, application slug, logical environment, verified named
+target and existing publisher run from Project-owned records; do not guess
+or default to Production. A first deployment without an actual publisher
+run remains a prerequisite gap, not a reason to publish for diagnostics.
+
+Example for an already resolved remote target (replace illustrative scope
+with the actual Project evidence):
+
+```sh
+python3 tools/project-forge-deployment/project-forge-deploy.py app inventory target --json \
+  --owner-repo owner/project --app-slug app --environment demo \
+  --publication-run 123 --partial
+```
+
+Ordinary inventory without those options is unchanged. The scoped path
+returns the versioned deployment evidence handoff, not the full host
+inventory or another application's data. It uses existing authenticated
+GitHub CLI access, then existing read-only Kit inventory for the named
+target. For the exact private user-owned image, optional
+`--collect-registry` verifies workstation Docker Buildx raw manifest bytes
+and existing package metadata without logging in, pulling, pushing or
+accessing new credentials. Unsupported or expired/inaccessible
+publisher evidence fails closed; optional stage failure with
+`--partial` preserves independent evidence and exits 2.
+Do not infer remote registry access from a workstation result.
+
+An explicit `--endpoint` records an HTTP(S) origin as a reported selection,
+not verified route access. Reuse existing attributed, release-scoped human
+report documents with repeatable `--human-report PATH`; they remain
+unverified claims. An optional merged PR reference requires all three
+`--pr NUMBER --pr-head SHA --pr-base SHA` and the merge commit must match
+the selected release. A private signed-out PR page error is not evidence
+that an authenticated exact comparison is unavailable.
+
+Use `--output PATH` only to create a new explicit local handoff; it never
+overwrites an earlier export. Retain original evidence separately, within
+the Project's authorized access boundary. The JSON includes original
+observations and a final-time lifecycle assessment. Publisher receipt
+consistency and registry manifest/config digest equality are not signed
+application provenance, actual running image identity or approval. Missing
+target-specific compatibility, backup/recovery, approved desired state,
+formal acceptance and shared-service identity remain unknown. Evidence
+export does not import to a dashboard. Use the existing deployment and
+acceptance workflow for any separately authorized write; no new approval,
+signer, host trust, release or Production execution path is introduced.

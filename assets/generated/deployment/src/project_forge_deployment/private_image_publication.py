@@ -155,6 +155,37 @@ def reject_constant(_):
     raise DeploymentKitError("Invalid registry manifest constant.")
 
 
+def check_manifest_config(manifest_bytes, manifest_digest, expected_config_digest):
+    """Compare exact raw manifest bytes and recorded config identity; no I/O.
+
+    This verifies a digest relationship, not the config bytes, platform,
+    source-build attestation, access, approval or publication authorization.
+    """
+    require(matches(DIGEST, manifest_digest) and matches(DIGEST, expected_config_digest),
+            "Exact immutable manifest and config digests required.")
+    require(isinstance(manifest_bytes, bytes) and 0 < len(manifest_bytes) <= MAX_MANIFEST,
+            "Bounded exact registry manifest bytes required.")
+    require("sha256:" + hashlib.sha256(manifest_bytes).hexdigest() == manifest_digest,
+            "Registry manifest bytes do not match the reported digest.")
+    try:
+        manifest = record(json.loads(manifest_bytes.decode("utf-8"),
+                                    object_pairs_hook=unique_keys, parse_constant=reject_constant))
+    except (ValueError, UnicodeError, RecursionError):
+        raise DeploymentKitError("Invalid registry manifest bytes.") from None
+    media = manifest.get("mediaType")
+    require(type(manifest.get("schemaVersion")) is int and manifest["schemaVersion"] == 2
+            and isinstance(media, str) and media in MANIFEST_TYPES
+            and "manifests" not in manifest and isinstance(manifest.get("layers"), list),
+            "Only a single image manifest is supported; indexes are not accepted.")
+    config = record(manifest.get("config"))
+    require(config.get("mediaType") == MANIFEST_TYPES[media]
+            and matches(DIGEST, config.get("digest"))
+            and config["digest"] == expected_config_digest
+            and positive_int(config.get("size")),
+            "Registry manifest config does not match the exact built image ID.")
+    return config["digest"]
+
+
 def check_published_records(expected, *, prepublication, refreshed, package,
                             pushed_tag, tag_digest, manifest_digest, manifest_bytes):
     """Compare exact raw single-image manifest bytes and built config digest.
@@ -189,26 +220,7 @@ def check_published_records(expected, *, prepublication, refreshed, package,
     require(pushed_tag == prepublication.get("tag"), "Unexpected release tag.")
     require(matches(DIGEST, tag_digest) and tag_digest == manifest_digest,
             "Tag and immutable manifest digest are not an exact match.")
-    require(isinstance(manifest_bytes, bytes) and 0 < len(manifest_bytes) <= MAX_MANIFEST,
-            "Bounded exact registry manifest bytes required.")
-    require("sha256:" + hashlib.sha256(manifest_bytes).hexdigest() == manifest_digest,
-            "Registry manifest bytes do not match the reported digest.")
-    try:
-        manifest = record(json.loads(manifest_bytes.decode("utf-8"),
-                                    object_pairs_hook=unique_keys, parse_constant=reject_constant))
-    except (ValueError, UnicodeError, RecursionError):
-        raise DeploymentKitError("Invalid registry manifest bytes.") from None
-    media = manifest.get("mediaType")
-    require(type(manifest.get("schemaVersion")) is int and manifest["schemaVersion"] == 2
-            and isinstance(media, str) and media in MANIFEST_TYPES
-            and "manifests" not in manifest and isinstance(manifest.get("layers"), list),
-            "Only a single image manifest is supported; indexes are not accepted.")
-    config = record(manifest.get("config"))
-    require(config.get("mediaType") == MANIFEST_TYPES[media]
-            and matches(DIGEST, config.get("digest"))
-            and config["digest"] == prepublication.get("localImageId")
-            and positive_int(config.get("size")),
-            "Registry manifest config does not match the exact built image ID.")
+    config_digest = check_manifest_config(manifest_bytes, manifest_digest, prepublication["localImageId"])
     # No arbitrary caller fields are forwarded into the shareable projection.
     return {"schemaVersion": 1, "kind": "private-image-publication-record-comparison",
             "ownerRepo": expected["ownerRepo"], "commit": expected["commit"],
@@ -216,7 +228,7 @@ def check_published_records(expected, *, prepublication, refreshed, package,
             "releaseWorkflowRunId": prepublication["releaseWorkflowRunId"],
             "releaseAttempt": prepublication["releaseAttempt"],
             "releaseVersion": expected["releaseVersion"], "platform": expected["platform"],
-            "localImageId": config["digest"], "image": expected["registry"] + "@" + manifest_digest,
+            "localImageId": config_digest, "image": expected["registry"] + "@" + manifest_digest,
             "tag": pushed_tag, "packageId": prepublication["packageId"],
             "reportedVisibility": "private", "comparison": "reported-record-match",
             "evidenceAuthority": "caller-supplied-unverified", "comparisonOnly": True,

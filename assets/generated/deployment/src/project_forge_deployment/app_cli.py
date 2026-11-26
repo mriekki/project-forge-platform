@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
+from datetime import timedelta
 from typing import Any
 
 from .app_deployment import (
@@ -137,6 +139,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     inventory.add_argument("name")
     inventory.add_argument("--json", action="store_true")
+    # Opt in to the same scoped deployment handoff used by administrators.
+    # Ordinary inventory retains its original behavior and result schema.
+    inventory.add_argument("--publication-run", type=int, help="Exact existing publisher run for a scoped evidence handoff")
+    inventory.add_argument("--owner-repo")
+    inventory.add_argument("--app-slug")
+    inventory.add_argument("--environment")
+    inventory.add_argument("--collect-registry", action="store_true", help="Also verify the exact private manifest from this workstation")
+    inventory.add_argument("--endpoint", help="Explicitly reported HTTP(S) origin only")
+    inventory.add_argument("--human-report", action="append", default=[])
+    inventory.add_argument("--pr", type=int)
+    inventory.add_argument("--pr-head")
+    inventory.add_argument("--pr-base")
+    inventory.add_argument("--runtime-max-age-seconds", type=int)
+    inventory.add_argument("--human-max-age-seconds", type=int)
+    inventory.add_argument("--partial", action="store_true", help="Retain independent evidence when an optional stage fails")
+    inventory.add_argument("--output", help="New local evidence export file; never overwrite")
 
     isolation = sub.add_parser(
         "isolation",
@@ -167,10 +185,53 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _inventory_evidence(args):
+    """Extend the existing explicit inventory path, never a new write gate."""
+    scope = (args.owner_repo, args.app_slug, args.environment)
+    if args.publication_run is None:
+        if any(value is not None for value in (
+            *scope, args.endpoint, args.pr, args.pr_head, args.pr_base,
+            args.runtime_max_age_seconds, args.human_max_age_seconds, args.output,
+        )) or args.collect_registry or args.human_report or args.partial:
+            raise ValueError("scoped evidence options require an explicit publisher run")
+        return None
+    if not args.json or not all(scope):
+        raise ValueError("scoped evidence requires exact owner/repo, app, environment and JSON")
+    from . import deployment_evidence_handoff as handoff
+
+    if len(args.human_report) > handoff.MAX_REPORTS:
+        raise ValueError("too many human reports")
+    pr = (args.pr, args.pr_head, args.pr_base)
+    if all(value is None for value in pr):
+        pr = None
+    result = handoff.build_handoff(
+        args.owner_repo, app=args.app_slug, environment=args.environment,
+        target=args.name, publication_run=args.publication_run,
+        endpoint=args.endpoint, collect=True, collect_registry=args.collect_registry,
+        documents=[handoff.bounded_read(path) for path in args.human_report],
+        pr=pr, partial=args.partial,
+        runtime_max_age=timedelta(seconds=300 if args.runtime_max_age_seconds is None else args.runtime_max_age_seconds),
+        human_max_age=timedelta(seconds=604800 if args.human_max_age_seconds is None else args.human_max_age_seconds),
+        publisher=handoff.publication_status, inventory_collector=handoff.collect_inventory,
+        registry_inspector=handoff.observe_registry_manifest, pr_inspector=handoff.pr_fallback,
+    )
+    handoff.write_export(result, args.output)
+    return 2 if result["diagnostics"]["collectionState"] == "incomplete" else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         if args.command == "inventory":
+            try:
+                result_code = _inventory_evidence(args)
+            except (OSError, subprocess.SubprocessError, ValueError, TypeError, KeyError,
+                    AttributeError, OverflowError, RecursionError, DeploymentKitError):
+                print("Deployment evidence unavailable or inconsistent; inspect exact scoped sources and retry.",
+                      file=sys.stderr)
+                return 2
+            if result_code is not None:
+                return result_code
             _print(app_inventory(args.name), as_json=args.json)
             return 0
 
