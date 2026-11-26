@@ -9,3 +9,29 @@ Receipts are repository history, not mutable current-state pointers. Current pac
 Actions workflow/run IDs in a receipt are historical references only. The receipt remains valid evidence when those runs have expired under GitHub Actions retention. Release logic must prefer a valid receipt for the current published package and use historical Actions runs only as a legacy fallback for package versions that predate receipts.
 
 Normal release flow adds the receipt in the post-publication public-contract alignment PR. Existing receipts are append-only in normal operation and must not be silently rewritten.
+
+
+## On-demand native package provenance observation
+
+The **Native Package Provenance Status (READ ONLY)** Actions workflow accepts
+one exact, already-published native package version on main. It reuses the
+existing native receipt validator and signed publication verifier, downloads
+the exact npm archive without running package scripts, checks the pinned npm
+verifier integrity and registry signature, and independently checks the signed
+subject, certificate and original publication run. It does not change the
+receipt, stable selection, publisher trust, registry or any deployment.
+
+A successful run retains the nonsecret `native-package-provenance-observation`
+artifact for 30 days. The artifact binds the exact receipt bytes, archive hash,
+version, original publication run and verification run/attempt/commit/time.
+The artifact is a projection of the existing verifier's result, **not** a new
+signature or authorization. Independently check its origin, successful job and
+artifact digest, reviewed workflow commit, and receipt identity before relying
+on it. For the exact main proof attempt, independently verify both the original
+actor and triggering actor are the Platform repository owner; an owner-initiated
+run rerun by a non-owner is not an authorized proof attempt. PR runs exercise the path against the stable receipt as a preview only;
+do not use a PR artifact as authoritative main-branch proof. A missing,
+expired or unavailable original run/attestation or failed verification leaves
+fresh verification unavailable; it does not rewrite or invalidate the
+historical receipt. No production or publication gate is satisfied by this
+diagnostic.

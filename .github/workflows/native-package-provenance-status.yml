@@ -1,0 +1,89 @@
+name: Native Package Provenance Status (READ ONLY)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact already-published native package version
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - '.github/workflows/native-package-provenance-status.yml'
+      - 'scripts/native-package-provenance-status.mjs'
+      - 'test/native-package-provenance-status.test.mjs'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify:
+    name: Verify exact already-published native package
+    # Only owner-controlled source and the existing public verifier. PR results
+    # are previews, never authoritative main-branch proof artifacts.
+    if: >-
+      github.repository == 'mriekki/project-forge-platform' &&
+      github.actor == github.repository_owner &&
+      github.triggering_actor == github.repository_owner &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.5'
+          package-manager-cache: false
+      - name: Resolve explicit published receipt (PR uses stable selection)
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: node scripts/native-package-provenance-status.mjs select
+      - name: Fetch exact public package and integrity-pinned npm verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          scratch="$RUNNER_TEMP/pf-package-proof"
+          mkdir "$scratch" "$scratch/client" "$scratch/neutral"
+          curl --fail --silent --show-error --max-time 60 --max-filesize 33554432 --proto '=https' \
+            https://registry.npmjs.org/npm/-/npm-11.21.0.tgz > "$scratch/npm.tgz"
+          node -e 'const fs=require("node:fs"),c=require("node:crypto");if("sha512-"+c.createHash("sha512").update(fs.readFileSync(process.argv[1])).digest("base64")!=="sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg==")process.exit(2)' "$scratch/npm.tgz"
+          tar -xzf "$scratch/npm.tgz" -C "$scratch/client" --no-same-owner --no-same-permissions
+          cli="$scratch/client/package/bin/npm-cli.js"
+          unset NODE_AUTH_TOKEN NPM_TOKEN NPM_CONFIG_USERCONFIG NPM_CONFIG_GLOBALCONFIG
+          export npm_config_userconfig="$scratch/user.npmrc" npm_config_globalconfig="$scratch/global.npmrc"
+          : > "$npm_config_userconfig"
+          : > "$npm_config_globalconfig"
+          test "$(node "$cli" --version)" = 11.21.0
+          cd "$scratch/neutral"
+          node "$cli" view "@mriekki/project-forge@$PROOF_VERSION" --json --registry=https://registry.npmjs.org/ > registry.json
+          node "$cli" view @mriekki/project-forge time --json --registry=https://registry.npmjs.org/ > times.json
+          node "$cli" pack "@mriekki/project-forge@$PROOF_VERSION" --ignore-scripts --json --registry=https://registry.npmjs.org/ > pack.json
+          test -f "mriekki-project-forge-$PROOF_VERSION.tgz"
+          mv "mriekki-project-forge-$PROOF_VERSION.tgz" release.tgz
+          node "$cli" init -y >/dev/null
+          node "$cli" install --ignore-scripts --no-audit --no-fund --save-exact "@mriekki/project-forge@$PROOF_VERSION" --registry=https://registry.npmjs.org/
+          node "$cli" audit signatures --registry=https://registry.npmjs.org/
+      - name: Verify native signed package and original publication run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          scratch="$RUNNER_TEMP/pf-package-proof"
+          node scripts/native-package-provenance-status.mjs verify \
+            "$scratch/neutral/registry.json" "$scratch/neutral/release.tgz" \
+            "$scratch/neutral/times.json" "$scratch/neutral/package-lock.json" \
+            "$scratch/client/package" "$scratch/proof.json"
+      - name: Retain nonsecret exact provenance observation
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: native-package-provenance-observation
+          path: ${{ runner.temp }}/pf-package-proof/proof.json
+          if-no-files-found: error
+          retention-days: 30
