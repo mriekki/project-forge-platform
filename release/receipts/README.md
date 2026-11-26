@@ -27,7 +27,9 @@ version, original publication run and verification run/attempt/commit/time.
 The artifact is a projection of the existing verifier's result, **not** a new
 signature or authorization. Independently check its origin, successful job and
 artifact digest, reviewed workflow commit, and receipt identity before relying
-on it. PR runs exercise the path against the stable receipt as a preview only;
+on it. For the exact main proof attempt, independently verify both the original
+actor and triggering actor are the Platform repository owner; an owner-initiated
+run rerun by a non-owner is not an authorized proof attempt. PR runs exercise the path against the stable receipt as a preview only;
 do not use a PR artifact as authoritative main-branch proof. A missing,
 expired or unavailable original run/attestation or failed verification leaves
 fresh verification unavailable; it does not rewrite or invalidate the

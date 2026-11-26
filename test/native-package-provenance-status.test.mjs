@@ -53,3 +53,34 @@ test('refuse mismatched result or any non-success or authority marker',()=>{
   assert.throws(()=>projectProof({...input,observedAt:'2026-02-30T12:00:00.000Z'}));
   assert.throws(()=>projectProof({...input,receiptBytes:Buffer.from('{"schemaVersion":2,"schemaVersion":2}')}));
 });
+
+test('actual verification job guard requires owner original actor and rerun initiator',()=>{
+  const workflow=fs.readFileSync(new URL('../.github/workflows/native-package-provenance-status.yml',import.meta.url),'utf8');
+  // Read the real folded job predicate. Pin its complete supported expression
+  // before evaluating the common JS/Actions boolean subset on exact-case fixtures.
+  const match=workflow.match(/^    if: >-\n((?: {6}[^\n]+\n)+)/m);
+  assert.ok(match,'verification job predicate must be present');
+  const guard=match[1].trim().split('\n').map(line=>line.trim()).join(' ');
+  assert.equal(guard,
+    "github.repository == 'mriekki/project-forge-platform' && "+
+    "github.actor == github.repository_owner && "+
+    "github.triggering_actor == github.repository_owner && "+
+    "((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || "+
+    "(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))");
+  const permits=new Function('github','return ('+guard+');');
+  const owner='mriekki',repository=owner+'/project-forge-platform';
+  const dispatch={repository,repository_owner:owner,actor:owner,triggering_actor:owner,
+    event_name:'workflow_dispatch',ref:'refs/heads/main'};
+  const preview={...dispatch,event_name:'pull_request',ref:'refs/pull/12/merge',
+    event:{pull_request:{head:{repo:{full_name:repository}}}}};
+  for(const context of [dispatch,preview]){
+    assert.equal(permits(context),true);
+    for(const change of [{actor:'collaborator'},{triggering_actor:'collaborator'},
+      {triggering_actor:undefined},{repository:'other/project-forge-platform'}]){
+      assert.equal(permits({...context,...change}),false);
+    }
+  }
+  assert.equal(permits({...dispatch,ref:'refs/heads/work'}),false);
+  assert.equal(permits({...dispatch,event_name:'push'}),false);
+  assert.equal(permits({...preview,event:{pull_request:{head:{repo:{full_name:'other/fork'}}}}}),false);
+});

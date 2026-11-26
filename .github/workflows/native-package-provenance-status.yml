@@ -25,6 +25,7 @@ jobs:
     if: >-
       github.repository == 'mriekki/project-forge-platform' &&
       github.actor == github.repository_owner &&
+      github.triggering_actor == github.repository_owner &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: ubuntu-latest
