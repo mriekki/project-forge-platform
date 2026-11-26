@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "kind": "project-forge-native-source-release",
+  "package": {
+    "name": "@mriekki/project-forge",
+    "version": "4.36.4"
+  },
+  "platformSource": "d9a880f408c513d05ffb93aa70c296f61f4cbfe1",
+  "source": {
+    "mode": "native-monorepo",
+    "commit": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
+    "previousVersion": "4.36.3",
+    "previousReceiptSha256": "d806455c660640345e928bf12a3ad234a96135d8a4822cb3af19b86abab74c02",
+    "manifestSha256": "5abd42f37cace69691d3f99bd5bcea027a33108bbce0db4239a460bd882ae3fb",
+    "qualificationEvent": "issues"
+  },
+  "components": {
+    "authentication": {
+      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
+      "revisionKind": "private-monorepo-git-commit",
+      "mappedInputSha256": "96f0b61b47a70fd0c62f4c43fd6bb4c8900ae3a174401190b2d17bbcfc06d9d5"
+    },
+    "core": {
+      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
+      "revisionKind": "private-monorepo-git-commit",
+      "mappedInputSha256": "e088b1208d4e995e06d502fd34ccc1f9a004288e7fdac61ee4ebd2b48c9ff34d",
+      "version": "4.5.1"
+    },
+    "deployment": {
+      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
+      "revisionKind": "private-monorepo-git-commit",
+      "mappedInputSha256": "a9cdf91793dcf2812da61877b678dc73abb43003ee165c3d99216cdfab77d87d"
+    },
+    "feedback": {
+      "revision": "2398264365b45b41da572621acf85e22a1bd8a5a",
+      "revisionKind": "original-owner-git-commit",
+      "mappedInputSha256": "9ee84df20e1ce0fd7d26453eb738d709b925e7e3014e6a3535d5bc242a10aa04"
+    },
+    "release-notes": {
+      "revision": "d752769c7633797e09955ef3377fa1997f9a1114",
+      "revisionKind": "original-owner-git-commit",
+      "mappedInputSha256": "1d74e7dc4004df8d9bfe3ec0936dfa314c02519bfe2be48f0278c9e19c74d2a8"
+    }
+  },
+  "ci": {
+    "nativeSourceMain": {
+      "result": "success",
+      "workflowRunId": 45717338167,
+      "runAttempt": 1
+    },
+    "platformMain": {
+      "result": "success",
+      "workflowRunId": 45721914073,
+      "runAttempt": 1
+    }
+  },
+  "artifact": {
+    "releaseCandidateSha256": "d2d64352d3d2805a3e8e6ebb4ffd78d1ec17485f44e776b4dc9e8256ddf70ba0",
+    "registryShasum": "164fa13cbbc6b67e1fbe1fb093b1f785c4d9aba0"
+  },
+  "publication": {
+    "publishedAt": "2026-11-25T23:38:31Z",
+    "workflowRunId": 45722012362,
+    "publisher": "github-oidc",
+    "registryIdentity": "verified",
+    "neutralNpxSmoke": "verified",
+    "provenance": {
+      "signed": true,
+      "transparencyLogUrl": "https://search.sigstore.dev/?logIndex=4113890497"
+    }
+  }
+}
