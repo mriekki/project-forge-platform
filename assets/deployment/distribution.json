@@ -164,6 +164,10 @@
       "destination": "tools/project-forge-deployment/project_forge_deployment/local_extensions.py"
     },
     {
+      "source": "src/project_forge_deployment/local_https_auth.py",
+      "destination": "tools/project-forge-deployment/project_forge_deployment/local_https_auth.py"
+    },
+    {
       "source": "src/project_forge_deployment/local_runtime.py",
       "destination": "tools/project-forge-deployment/project_forge_deployment/local_runtime.py"
     },
@@ -310,6 +314,10 @@
     {
       "source": "docs/DEVELOPER_ENVIRONMENTS.md",
       "destination": "docs/project-forge/DEVELOPER_ENVIRONMENTS.md"
+    },
+    {
+      "source": "docs/LOCAL_WORKSTATION_EXTENSIONS.md",
+      "destination": "docs/project-forge/LOCAL_WORKSTATION_EXTENSIONS.md"
     },
     {
       "source": "docs/WORKSPACE_INSTANCES.md",

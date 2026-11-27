@@ -2,7 +2,7 @@
 # Byte-exact public mirror qualification for the new independently qualified source 4.36.5 archive.
 # This is read-only, uses only the current checkout and never publishes.
 set -euo pipefail
-expected="78cdd14d30d83febba36d96e45460d04af858f9bc04312c2ffac3f11ba90d2a1"
+expected="14a380dcca20a88e1272ac305d56f1ff902d4975083322a9bf970a50a5e434fd"
 test "$(npm --version)" = '10.9.9'
 node -e 'const p=require("./package.json");const c=require("./assets/components.json");const a=require("./assets/generated/ASSEMBLY.json");const l=require("./package-lock.json");for(const x of [p,c,a,l])if(x.version!=="4.36.5")process.exit(2);if(l.packages[""].version!=="4.36.5")process.exit(2)'
 umask 077

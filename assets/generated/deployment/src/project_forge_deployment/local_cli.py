@@ -61,7 +61,7 @@ def _parse_mount(value: str) -> dict[str, str]:
 
 
 def _confirm(args: argparse.Namespace, phrase: str, action: str) -> None:
-    if args.yes:
+    if getattr(args, "yes", False):
         return
     entered = input(f"Type {phrase} to {action}: ").strip()
     if entered != phrase:
@@ -74,6 +74,22 @@ def _add_sqlite_identity(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--app-slug", required=True)
     parser.add_argument("--database-file", required=True)
     parser.add_argument("--json", action="store_true")
+
+
+def _add_https_identity(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--owner-repo", required=True)
+    parser.add_argument("--environment", required=True)
+    parser.add_argument("--app-slug", required=True)
+
+
+def _add_https_spec(parser: argparse.ArgumentParser) -> None:
+    _add_https_identity(parser)
+    parser.add_argument("--image", required=True)
+    parser.add_argument("--runtime-port", type=int, default=8080)
+    parser.add_argument("--health-path", default="/api/auth/me")
+    parser.add_argument("--run-as", default="1654:1654")
+    parser.add_argument("--env", action="append", default=[])
+    parser.add_argument("--read-only-mount", action="append", default=[], metavar="SOURCE::TARGET")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -124,12 +140,177 @@ def build_parser() -> argparse.ArgumentParser:
     deploy.add_argument("--read-only-mount", action="append", default=[], metavar="SOURCE::TARGET")
     deploy.add_argument("--json", action="store_true")
     deploy.add_argument("--yes", action="store_true")
+
+    https = sub.add_parser(
+        "https",
+        help="Opt-in WSL2 localhost HTTPS ingress for one Auth Kit workstation application",
+    )
+    https_actions = https.add_subparsers(dest="https_command", required=True)
+    https_status = https_actions.add_parser("status", help="Inspect local Auth HTTPS resources and trust state")
+    _add_https_identity(https_status)
+    https_status.add_argument("--json", action="store_true")
+    https_plan = https_actions.add_parser("plan", help="Create a read-only local Auth HTTPS deployment plan")
+    _add_https_spec(https_plan)
+    https_plan.add_argument("--json", action="store_true")
+    https_apply = https_actions.add_parser("apply", help="Apply a reviewed local Auth HTTPS plan")
+    _add_https_spec(https_apply)
+    https_apply.add_argument("--json", action="store_true")
+    trust_status = https_actions.add_parser("trust-status", help="Inspect the exact Windows CurrentUser CA root")
+    _add_https_identity(trust_status)
+    trust_status.add_argument("--json", action="store_true")
+    trust_install = https_actions.add_parser("trust-install", help="Install the app-scoped CA root after authorization")
+    _add_https_identity(trust_install)
+    trust_install.add_argument("--json", action="store_true")
+    trust_remove = https_actions.add_parser("trust-remove", help="Remove only the exact recorded CA thumbprint")
+    _add_https_identity(trust_remove)
+    trust_remove.add_argument("--thumbprint", required=True)
+    trust_remove.add_argument("--json", action="store_true")
+    https_remove = https_actions.add_parser("remove", help="Stop the app and remove its exact HTTPS resources")
+    _add_https_identity(https_remove)
+    https_remove.add_argument("--json", action="store_true")
+    https_recover = https_actions.add_parser("recover", help="Clean an exact partial or blocked HTTPS lifecycle")
+    _add_https_identity(https_recover)
+    https_recover.add_argument("--json", action="store_true")
     return parser
+
+
+def _local_https_main(args: argparse.Namespace) -> int:
+    from . import local_https_auth
+
+    identity = {
+        "owner_repo": args.owner_repo,
+        "app_slug": args.app_slug,
+        "environment": args.environment,
+    }
+    if args.https_command == "status":
+        _print(local_https_auth.local_https_auth_status_for_identity(**identity), as_json=args.json)
+        return 0
+    if args.https_command == "trust-status":
+        _print(local_https_auth.local_https_auth_trust_status({
+            "ownerRepo": args.owner_repo,
+            "appSlug": args.app_slug,
+            "environment": args.environment,
+        }), as_json=args.json)
+        return 0
+    if args.https_command == "trust-install":
+        trust = local_https_auth.local_https_auth_trust_status({
+            "ownerRepo": args.owner_repo,
+            "appSlug": args.app_slug,
+            "environment": args.environment,
+        })
+        _print(trust, as_json=args.json)
+        if trust["state"] != "not-installed" or trust.get("certificateState") != "valid":
+            raise DeploymentKitError(
+                "The local HTTPS Auth trust root is not in an installable state; inspect the exact thumbprint first."
+            )
+        _confirm(
+            args,
+            local_https_auth.LOCAL_HTTPS_AUTH_TRUST_WRITE_PHRASE,
+            f"install the local HTTPS Auth CA root for {args.app_slug} ({args.environment})",
+        )
+        _print(
+            local_https_auth.install_local_https_auth_trust({
+                "ownerRepo": args.owner_repo,
+                "appSlug": args.app_slug,
+                "environment": args.environment,
+            }),
+            as_json=args.json,
+        )
+        return 0
+    if args.https_command == "trust-remove":
+        trust = local_https_auth.local_https_auth_trust_status({
+            "ownerRepo": args.owner_repo,
+            "appSlug": args.app_slug,
+            "environment": args.environment,
+        })
+        _print(trust, as_json=args.json)
+        _confirm(
+            args,
+            local_https_auth.LOCAL_HTTPS_AUTH_TRUST_REMOVE_PHRASE,
+            f"remove the exact local HTTPS Auth CA thumbprint for {args.app_slug} ({args.environment})",
+        )
+        _print(
+            local_https_auth.remove_local_https_auth_trust(
+                {
+                    "ownerRepo": args.owner_repo,
+                    "appSlug": args.app_slug,
+                    "environment": args.environment,
+                },
+                args.thumbprint,
+            ),
+            as_json=args.json,
+        )
+        return 0
+    if args.https_command == "remove":
+        status = local_https_auth.local_https_auth_status_for_identity(**identity)
+        _print(status, as_json=args.json)
+        if status["state"] != "ready":
+            raise DeploymentKitError("Only a ready, drift-free local HTTPS Auth runtime can be removed.")
+        if status.get("trust", {}).get("state") != "not-installed":
+            raise DeploymentKitError(
+                "Remove the exact CurrentUser CA thumbprint in a separate authorized operation before runtime teardown."
+            )
+        _confirm(
+            args,
+            local_https_auth.LOCAL_HTTPS_AUTH_REMOVE_PHRASE,
+            f"remove the local HTTPS Auth runtime for {args.app_slug} ({args.environment})",
+        )
+        _print(
+            local_https_auth.remove_local_https_auth({
+                "ownerRepo": args.owner_repo,
+                "appSlug": args.app_slug,
+                "environment": args.environment,
+            }),
+            as_json=args.json,
+        )
+        return 0
+    if args.https_command == "recover":
+        _confirm(
+            args,
+            local_https_auth.LOCAL_HTTPS_AUTH_RECOVER_PHRASE,
+            f"recover the partial local HTTPS Auth runtime for {args.app_slug} ({args.environment})",
+        )
+        _print(
+            local_https_auth.recover_local_https_auth({
+                "ownerRepo": args.owner_repo,
+                "appSlug": args.app_slug,
+                "environment": args.environment,
+            }),
+            as_json=args.json,
+        )
+        return 0
+
+    spec = local_https_auth.normalize_local_https_auth_spec(
+        owner_repo=args.owner_repo,
+        environment=args.environment,
+        app_slug=args.app_slug,
+        image=args.image,
+        runtime_port=args.runtime_port,
+        health_path=args.health_path,
+        run_as=args.run_as,
+        environment_variables=_parse_env(args.env),
+        read_only_mounts=[_parse_mount(value) for value in args.read_only_mount],
+    )
+    plan = local_https_auth.plan_local_https_auth(spec)
+    plan_view = {key: value for key, value in plan.items() if key not in {"spec", "inventorySnapshot", "materialSnapshot"}}
+    _print(plan_view, as_json=args.json)
+    if args.https_command == "plan":
+        return 0
+    _confirm(
+        args,
+        local_https_auth.LOCAL_HTTPS_AUTH_DEPLOY_WRITE_PHRASE,
+        f"deploy the local HTTPS Auth runtime for {args.app_slug} ({args.environment})",
+    )
+    _print(local_https_auth.apply_local_https_auth(plan), as_json=args.json)
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        if args.command == "https":
+            return _local_https_main(args)
+
         if args.command == "inventory":
             _print(local_inventory(), as_json=args.json)
             return 0

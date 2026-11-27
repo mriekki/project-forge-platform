@@ -67,7 +67,7 @@
   },
   "components": {
     "core": {
-      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
+      "revision": "91427346012dbb86c596ba831abcf6eb5a9f365a",
       "version": "4.5.1",
       "distribution": "greenfield-workspace",
       "descriptor": "assets/core/distribution.json",
@@ -83,14 +83,14 @@
       }
     },
     "deployment": {
-      "revision": "403be5f15f063b8892c0dac99bf1d8d4bef12dc9",
+      "revision": "91427346012dbb86c596ba831abcf6eb5a9f365a",
       "distribution": "greenfield-project",
       "descriptor": "assets/deployment/distribution.json",
       "sourceRoot": "assets/generated/deployment",
       "canonicalDescriptor": "distributions/greenfield-project.json"
     },
     "authentication": {
-      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
+      "revision": "91427346012dbb86c596ba831abcf6eb5a9f365a",
       "distribution": "greenfield-project",
       "descriptor": "assets/authentication/distribution.json",
       "sourceRoot": "assets/generated/authentication",

@@ -43,6 +43,7 @@ def normalize_workstation_spec(
     environment_variables: dict[str, str] | Iterable[tuple[str, str]],
     additional_port_bindings: list[dict[str, int]] | None = None,
     read_only_mounts: list[dict[str, str]] | None = None,
+    allow_file_mounts: bool = False,
 ) -> dict[str, Any]:
     """Normalize a loopback-only workstation spec.
 
@@ -80,7 +81,13 @@ def normalize_workstation_spec(
         }
     )
     extra_bindings = normalize_bindings(base["hostPort"], base["runtimePort"], additional_port_bindings or [])
-    extra_mounts = normalize_mounts(base["appSlug"], base["environment"], read_only_mounts or [], base["persistence"]["dataContainerPath"])
+    extra_mounts = normalize_mounts(
+        base["appSlug"],
+        base["environment"],
+        read_only_mounts or [],
+        base["persistence"]["dataContainerPath"],
+        allow_file_mounts=allow_file_mounts,
+    )
     if extra_bindings:
         base["additionalPortBindings"] = extra_bindings
     if extra_mounts:

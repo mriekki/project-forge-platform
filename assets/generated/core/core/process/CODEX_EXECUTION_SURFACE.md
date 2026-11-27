@@ -10,6 +10,7 @@ Project Forge keeps **one canonical workflow** across ChatGPT, GitHub Copilot, a
 - Distribution copies the same canonical Core source into both paths; `CORE_BASELINE.json` / package provenance records both managed paths. Do not manually maintain or fork either distributed copy.
 - The Codex `agents/openai.yaml` policy disables implicit activation for human-invocable Project Forge workflows. `web-guidance` remains an agent-invoked skill and is not given that restriction.
 - `AGENTS.md` is the common repository instruction anchor. `.github/copilot-instructions.md` remains Copilot-specific.
+- Read `.github/instructions/project-forge-workflow.instructions.md` for shared delivery priorities and workflow guidance.
 - Codex `$reviewer` is a read-only skill fallback that reads the existing Copilot Reviewer agent's standards; it **does not claim** native subagent equivalence.
 
 ## Workflow behavior
