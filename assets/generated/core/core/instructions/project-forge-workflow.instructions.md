@@ -14,6 +14,13 @@ Possible sources include Product Briefs, Feature Briefs, Engineering Enablers, J
 
 Use proportional rigor: `LIGHT`, `STANDARD`, `ELEVATED`.
 
+Prioritize a working, usable outcome and practical testing in an appropriate
+safe Project or deployment environment. Fix observed failures and material
+blockers; defer nonessential polish. Avoid repeating planning or review when
+scope and material evidence have not changed. Report untested behavior and
+residual risks. Required independent reviews and authorization, security,
+release, trust, and Production gates still apply.
+
 For ongoing tool maintenance use `/setup update` with the catalog-driven preview/approval/check contract. Do not turn normal `/setup` into a blanket package upgrade or change project-pinned runtimes and managed assets through a workstation update.
 
 Keep explicit human gates for material requirements, substantive plans, meaningful implementation acceptance, the final merge/delivery decision, and production deployment.

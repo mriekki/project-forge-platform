@@ -54,6 +54,25 @@ reconciliation remain Deployment Kit operations. Do not trust a Docker
 subnet, direct LAN requests, forged X-Forwarded headers or an
 unreviewed proxy address.
 
+### Optional workstation HTTPS
+
+Deployment Kit can provide opt-in `https://localhost` ingress for one local
+Auth application on WSL2 Ubuntu with Docker Desktop. This does not change
+Authentication's exact-origin or exact physical-peer middleware: the app
+still accepts forwarded request authority only from the inspected Caddy
+container peer on its private Docker bridge. The app has no published host
+port; Caddy alone binds `127.0.0.1:443`.
+
+The Project owner must configure its own Google client with the exact
+`https://localhost/signin-pf-google` callback and keep the client secret in a
+protected file mounted read-only beneath
+`/run/secrets/pf-google-client-secret`. Deployment Kit does not create or alter OAuth
+clients. Installing the Caddy public root into Windows CurrentUser Root is an
+independent, exact-thumbprint operation requiring its own authorization; plan,
+apply, and status do not change operating-system trust. See the Deployment
+Kit [workstation HTTPS contract](../../../packages/deployment/docs/LOCAL_WORKSTATION_EXTENSIONS.md#opt-in-local-auth-https-wsl2)
+for supported commands, lifecycle and limits.
+
 Bootstrap writes a non-secret `HOUSEHOLD_AUTH_SETUP.json` with
 `requires-reviewed-provider-bindings`. The application refuses startup
 without a complete reviewed configuration. The reference backend is

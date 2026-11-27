@@ -4,7 +4,7 @@
   "version": "4.36.5",
   "components": {
     "core": {
-      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
+      "revision": "91427346012dbb86c596ba831abcf6eb5a9f365a",
       "distribution": "greenfield-workspace",
       "files": [
         {
@@ -20,7 +20,7 @@
         {
           "source": "core/instructions/project-forge-workflow.instructions.md",
           "destination": ".github/instructions/project-forge-workflow.instructions.md",
-          "sha256": "c2ab2b578c3b5b47d79f9aa64daeafcd40c89cfa8924244177950bdf4e10115b"
+          "sha256": "f45e7abe8e3b7f87b6659f3b5f385e89ce12a375ca8120fedc5224b172a5936f"
         },
         {
           "source": "core/instructions/project-forge-local-development.instructions.md",
@@ -55,7 +55,7 @@
         {
           "source": "core/skills/setup/SKILL.md",
           "destination": ".github/skills/setup/SKILL.md",
-          "sha256": "13c78aa8f83b841ca11c438c528eab7666560e9b218633c2166a5745b61f84dd"
+          "sha256": "0da233de8c8314370583abafa666cf96e2423a47c4d85603cd2e85cbe983064a"
         },
         {
           "source": "core/skills/build/SKILL.md",
@@ -445,7 +445,7 @@
         {
           "source": "core/skills/setup/SKILL.md",
           "destination": ".agents/skills/setup/SKILL.md",
-          "sha256": "13c78aa8f83b841ca11c438c528eab7666560e9b218633c2166a5745b61f84dd"
+          "sha256": "0da233de8c8314370583abafa666cf96e2423a47c4d85603cd2e85cbe983064a"
         },
         {
           "source": "core/codex/explicit-only.openai.yaml",
@@ -730,7 +730,7 @@
         {
           "source": "core/process/CODEX_EXECUTION_SURFACE.md",
           "destination": "docs/project-forge/CODEX_EXECUTION_SURFACE.md",
-          "sha256": "857c097dd38bc359f297c76254be043ed258f510ac1595fa3d774c152e6ef6b7"
+          "sha256": "56d2095908834a9dc4ed85a053e2764ad3f4a43253752b3d729b1aed120b027d"
         },
         {
           "source": "core/process/CHANGE_AWARE_CI_GUIDANCE.md",
@@ -748,7 +748,7 @@
       }
     },
     "deployment": {
-      "revision": "403be5f15f063b8892c0dac99bf1d8d4bef12dc9",
+      "revision": "91427346012dbb86c596ba831abcf6eb5a9f365a",
       "distribution": "greenfield-project",
       "files": [
         {
@@ -944,12 +944,17 @@
         {
           "source": "src/project_forge_deployment/local_cli.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/local_cli.py",
-          "sha256": "b0b99dc66a95a5f9cb386a15d7a32f3f935bf37be2cf06175ceb9cc2c9a479cd"
+          "sha256": "1717a1ab6581b3830090fb3f5b6dbe3a94e517dc52b71a1a1e99b76f7fca3830"
         },
         {
           "source": "src/project_forge_deployment/local_extensions.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/local_extensions.py",
-          "sha256": "cf90ef1fc122c6626b7f53d8e9b1eb88c97f7f8106d248e5b04f25263184ca93"
+          "sha256": "331cec7f3df3fb46781b7fa3b09498b9e140469e6ff6bb54216733972c74344b"
+        },
+        {
+          "source": "src/project_forge_deployment/local_https_auth.py",
+          "destination": "tools/project-forge-deployment/project_forge_deployment/local_https_auth.py",
+          "sha256": "589c3a28f4c10131e7c23b91d08ce79c83220069f6c0fb174d0e905e34ba9b37"
         },
         {
           "source": "src/project_forge_deployment/local_runtime.py",
@@ -959,7 +964,7 @@
         {
           "source": "src/project_forge_deployment/local_spec.py",
           "destination": "tools/project-forge-deployment/project_forge_deployment/local_spec.py",
-          "sha256": "bddaafcb5785e74103cb82d73f01d4e577c97476bd6a6549b3e332cca5eb50f8"
+          "sha256": "239af337be4695369f67c07047984f872a0e765212f70d9aad31a10929035595"
         },
         {
           "source": "src/project_forge_deployment/local_sqlite.py",
@@ -1137,6 +1142,11 @@
           "sha256": "00a5026c57eeefbaf34036b2f2a626f2fb7114d53b6a2b52743f996bfd1a4c24"
         },
         {
+          "source": "docs/LOCAL_WORKSTATION_EXTENSIONS.md",
+          "destination": "docs/project-forge/LOCAL_WORKSTATION_EXTENSIONS.md",
+          "sha256": "7c52e53d06f8c4727a3c0097dfdb46d05687a2f727e8f5b871957d5de355303b"
+        },
+        {
           "source": "docs/WORKSPACE_INSTANCES.md",
           "destination": "docs/project-forge/WORKSPACE_INSTANCES.md",
           "sha256": "43da263213d3822308d4a9bc57b53119e8b0abdc92e14afb354e88dedd2b0706"
@@ -1174,7 +1184,7 @@
       ]
     },
     "authentication": {
-      "revision": "37f392a79e3c89c6be21bb5cfdf1692e034a5224",
+      "revision": "91427346012dbb86c596ba831abcf6eb5a9f365a",
       "distribution": "greenfield-project",
       "files": [
         {
@@ -1300,7 +1310,7 @@
         {
           "source": "docs/PROJECT_AUTH_REFERENCE.md",
           "destination": "tools/project-forge-auth-kit/docs/PROJECT_AUTH_REFERENCE.md",
-          "sha256": "1bbca014b897f3748e8af9039ba39cf14e8c445cf4748b2596b5ee733876a90b"
+          "sha256": "38ceee9be96b45764b432f081295c598ab78ec0da65b95ec61d95bd0793dc3f4"
         },
         {
           "source": "tools/project_auth_recovery.py",

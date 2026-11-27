@@ -234,6 +234,49 @@ Mount only project-owned local persistence as required. Verify the declared heal
 
 Only after applicable prerequisites, persistence, build/tests, runtime, and health checks pass should local readiness be recorded as ready.
 
+### Optional local Auth HTTPS ingress (WSL2 + Docker Desktop)
+
+Use the Deployment Kit's local HTTPS Auth runtime only when the approved
+Project requirements select the Auth Kit and the exact local app/image,
+Google client ID, protected secret-file path, and read-only material mount
+are available. It supports one app at `https://localhost:443` on WSL2 Ubuntu
+with Docker Desktop; a port conflict or unsupported host is a blocker, not a
+reason to fall back to HTTP, another port, or a shared Caddy route.
+
+For the exact secret-file ACL, commands, callback and recovery instructions,
+read `docs/project-forge/LOCAL_WORKSTATION_EXTENSIONS.md`. If it is missing,
+report that a Project Forge package update is needed instead of guessing.
+
+1. Read the Project's configured owner/repository, environment, app slug,
+   immutable app image, runtime port, and protected local-material location.
+   The protected Google secret must be mounted as exactly
+   `/run/secrets/pf-google-client-secret`; never display or pass the secret contents.
+2. Run `project-forge-deploy local https status` for that exact identity.
+   If not ready, show the exact `local https plan` command with the observed
+   Project values and protected-file path. Do not invent missing provider or
+   app settings.
+3. Present the plan and its dedicated resource topology. Run the matching
+   `local https apply` only after the developer confirms
+   `[LOCAL HTTPS AUTH DEPLOY]`. Apply rechecks the plan inputs and requires
+   the CLI's explicit confirmation; status, plan, and apply do not install
+   any OS trust root.
+4. Verify `local https status` and `local https trust-status` independently.
+   Trust installation is a separate workstation mutation. Present the exact
+   `local https trust-install` command only after a distinct
+   `[LOCAL HTTPS AUTH TRUST WRITE]` authorization. Keep any terminal prompt
+   local; never ask for passwords, private keys, or OAuth secret bytes in
+   chat.
+5. Verify the app through `https://localhost` and report runtime readiness
+   separately from Windows trust and real Google sign-in. Provider callback
+   setup remains Project-owned; local runtime readiness does not claim that a
+   live OAuth round-trip has succeeded.
+
+The adapter preserves the Auth Kit's exact Caddy-peer validation, mounts
+Google secret material read-only, and preserves the app data volume during
+its separately authorized removal. If status reports drift, stale CA
+identity, or incomplete setup, stop and follow its exact recovery guidance;
+never remove unrelated Docker resources or change an existing shared gateway.
+
 ### Optional passkey-ready Project setup (only when repository-selected and package-qualified)
 
 For an Auth Kit Project with `generation.householdAuth.passkeys.signIn=passkey-first`

@@ -65,7 +65,14 @@ def _no_symlink_components(path: Path) -> None:
             raise DeploymentKitError("External material paths cannot contain symbolic links.")
 
 
-def normalize_mounts(app_slug: str, environment: str, values: object, data_target: str | None) -> list[dict[str, str]]:
+def normalize_mounts(
+    app_slug: str,
+    environment: str,
+    values: object,
+    data_target: str | None,
+    *,
+    allow_file_mounts: bool = False,
+) -> list[dict[str, str]]:
     if not isinstance(values, (list, tuple)):
         raise DeploymentKitError("readOnlyMounts must be a list.")
     root = material_root(app_slug, environment)
@@ -80,16 +87,24 @@ def normalize_mounts(app_slug: str, environment: str, values: object, data_targe
         except ValueError as error:
             raise DeploymentKitError("Material source must be beneath the Project-scoped local-materials root.") from error
         if not relative.parts or relative == Path("."):
-            raise DeploymentKitError("Mount a named material directory, not the Project-scoped root.")
+            raise DeploymentKitError("Mount a named material file or directory, not the Project-scoped root.")
         target = item["target"]
-        if not isinstance(target, str) or not target.startswith(MATERIAL_TARGET_ROOT + "/"):
-            raise DeploymentKitError("Material targets must be under /run/project-forge/material/.")
-        parts = target[len(MATERIAL_TARGET_ROOT) + 1:].split("/")
-        if not all(_SAFE_NAME.fullmatch(part) and part not in {".", ".."} for part in parts):
-            raise DeploymentKitError("Material target must use safe nonempty path segments.")
-        target = MATERIAL_TARGET_ROOT + "/" + "/".join(parts)
+        if allow_file_mounts and target == "/run/secrets/pf-google-client-secret":
+            target = "/run/secrets/pf-google-client-secret"
+        else:
+            if not isinstance(target, str) or not target.startswith(MATERIAL_TARGET_ROOT + "/"):
+                raise DeploymentKitError("Material targets must be under /run/project-forge/material/ or the exact local secret mount.")
+            parts = target[len(MATERIAL_TARGET_ROOT) + 1:].split("/")
+            if not all(_SAFE_NAME.fullmatch(part) and part not in {".", ".."} for part in parts):
+                raise DeploymentKitError("Material target must use safe nonempty path segments.")
+            target = MATERIAL_TARGET_ROOT + "/" + "/".join(parts)
         if data_target and (target == data_target or target.startswith(data_target.rstrip("/") + "/") or data_target.startswith(target + "/")):
             raise DeploymentKitError("Material target overlaps managed persistence.")
+        if source.is_file():
+            if not allow_file_mounts:
+                raise DeploymentKitError("Named material file mounts require an explicitly scoped workstation adapter.")
+        elif not source.is_dir():
+            raise DeploymentKitError("Material sources must be existing regular files or directories.")
         result.append({"source": str(source), "target": target})
     for i, first in enumerate(result):
         for second in result[i+1:]:
@@ -108,9 +123,13 @@ def snapshot_material(spec: dict[str, Any]) -> str | None:
     for mount in mounts:
         source = Path(mount["source"])
         _no_symlink_components(source)
-        if not source.is_dir():
-            raise DeploymentKitError("External material source directory is missing.")
-        for path in [source, *sorted(source.rglob("*"))]:
+        if source.is_file():
+            paths = [source]
+        elif source.is_dir():
+            paths = [source, *sorted(source.rglob("*"))]
+        else:
+            raise DeploymentKitError("External material source file or directory is missing.")
+        for path in paths:
             _no_symlink_components(path)
             try:
                 info = path.lstat()
@@ -119,5 +138,6 @@ def snapshot_material(spec: dict[str, Any]) -> str | None:
             if not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode)):
                 raise DeploymentKitError("Material directories may contain only regular files and directories.")
             entries.append((mount["source"], str(path.relative_to(source)), info.st_dev, info.st_ino,
-                            info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns))
+                            info.st_uid, info.st_gid, info.st_mode, info.st_size,
+                            info.st_mtime_ns, info.st_ctime_ns))
     return hashlib.sha256(json.dumps(entries, separators=(",", ":")).encode("utf-8")).hexdigest()
