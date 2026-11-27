@@ -27,7 +27,7 @@ const pins=Object.freeze({
   "tools/npm/build_versioned_preview.py": "be0e792bf9aa6bce49e6031cf7cd5740e876c997",
   "tools/release/native_revision_plan.py": "afa230b1a4961768be0d5e22a2ee14c953c290b7",
   "tools/release/plan_component_revisions.py": "3e93f443d4165b201a30c6aa717a9fa6f266ffae",
-  "tests/release/generated_consumer_selected_proof.py": "5bde9bdf3a5b11e323aa6190c96cb0e155da0f36"
+  "tests/release/generated_consumer_selected_proof.py": "d9e9bfea4d14ba92b6c63fdf17badfc73b622154"
 });
 const title='[project-forge-native-successor-preview]';
 const sha=/^[0-9a-f]{40}$/;
